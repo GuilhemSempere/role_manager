@@ -141,9 +141,11 @@
 
 			rowContents += "<td>";
 			<c:forEach var="level1Type" items="${rolesByLevel1Type}">
-			rowContents += "<a id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink' style='text-transform:none;' href=\"javascript:openModuleContentDialog('${loggedUser.username}', '" + key + "', '${level1Type.key}');\">${level1Type.key} entities</a>"
+			rowContents += "<a id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink' style='text-transform:none;' href=\"javascript:openModuleContentDialog('${loggedUser.username}', '" + key + "', '${level1Type.key}');\">${level1Type.key} entities</a>";
 			</c:forEach>
 			rowContents += "</td>";
+			
+			rowContents += "<td><a href=\"javascript:openModuleBackupDialog('" + key + "');\">module backups</a></td>";
 			
 			<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
 	   		rowContents += "<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'><input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'></td>";
@@ -191,9 +193,22 @@
 		function openModuleContentDialog(username, module, entityType)
 		{
 	    	$('#moduleContentFrame').contents().find("body").html("");
-	        $("#moduleContentDialog #moduleContentDialogTitle").html(entityType + " entities for user <u>" + username + "</u> in database <u id='moduleName'>" + module);
+	        $("#moduleContentDialog #moduleContentDialogTitle").html(entityType + " entities for user <u>" + username + "</u> in database <u id='moduleName'>" + module + "</u>");
 	        $("#moduleContentDialog").modal('show');
 	        $("#moduleContentFrame").attr('src', '<c:url value="<%= BackOfficeController.moduleContentPageURL %>" />?user=' + username + '&module=' + module + '&entityType=' + entityType);
+		}
+		
+		function openModuleBackupDialog(module){
+		    $("#moduleBackupDialogTitle").html("Backup management for database <u>" + module + "</u>");
+			$("#moduleBackupDialog").modal('show');
+			$.get('<c:url value="<%= BackOfficeController.moduleBackupInfoURL %>" />', {module: module})
+				.then(function (backupData){
+				    $("#moduleBackupDialogContent").html(JSON.stringify(backupData));
+				    
+				    const newBackupURL = '<c:url value="<%= BackOfficeController.newBackupURL %>" />' + '?module=' + module;
+				    const newBackupButton = $('<a class="btn btn-sm" target="_blank" href="' + newBackupURL + '">New backup</a>');
+				    $("#moduleBackupManagementOptions").append(newBackupButton);
+			});
 		}
 		
 		function resizeIFrame() {
@@ -228,6 +243,7 @@
 		<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_HIDDEN %></th>
 		</c:if>
 		<th>Entity management</th>
+		<th>Backup management</th>
 		<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
 		<th>Changes</th>
 		<th>Removal</th>
@@ -246,9 +262,22 @@
 					<iframe style='margin-bottom:10px; width:100%;' id="moduleContentFrame" name="moduleContentFrame"></iframe>
 					<br>
 					<form>
-						<input type='button' class='btn btn-sm btn-primary' value='Close' id="hlContentDialogClose" onclick="$('#moduleContentDialog').modal('hide');">
+						<input type='button' class='btn btn-sm btn-primary' value='Close' id="hlContentDialogClose" onclick="$('#moduleContentDialog').modal('hide');" />
 					</form>
 				</div>
+			</div>
+		</div>
+	</div>
+	
+	<div class="modal fade" tabindex="-1" role="dialog" id="moduleBackupDialog" aria-hidden="true">
+		<div class="modal-dialog modal-lg" style="background-color:white;">
+			<div class="modal-header">
+				<div id="moduleBackupDialogTitle" style="font-weight:bold; margin-bottom:5px;"></div>
+			</div>
+			<div class="modal-content">
+				<div id="moduleBackupDialogContent"></div>
+				<div id="moduleBackupManagementOptions"></div>
+				<input type="button" class="btn btn-sm btn-primary" value="Close" id="hlBackupDialogClose" onclick="$('#moduleBackupDialog').modal('hide');" />
 			</div>
 		</div>
 	</div>

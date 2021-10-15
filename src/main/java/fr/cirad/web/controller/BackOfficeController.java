@@ -27,6 +27,8 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
@@ -42,12 +44,16 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
 import fr.cirad.security.ReloadableInMemoryDaoImpl;
+import fr.cirad.security.backup.BackupManager;
+import fr.cirad.security.backup.BackupProcess;
 import fr.cirad.security.base.IModuleManager;
 import fr.cirad.security.base.IRoleDefinition;
 import fr.cirad.web.controller.security.UserPermissionController;
@@ -75,9 +81,15 @@ public class BackOfficeController {
 	static final public String moduleEntityRemovalURL = "/" + FRONTEND_URL + "/removeModuleEntity.json_";
 	static final public String moduleEntityVisibilityURL = "/" + FRONTEND_URL + "/entityVisibility.json_";
     static final public String hostListURL = "/" + FRONTEND_URL + "/hosts.json_";
+    
+    static final public String moduleBackupInfoURL = "/" + FRONTEND_URL + "/moduleBackupInfo.json_";
+    static final public String newBackupURL = "/" + FRONTEND_URL + "/newBackup.do_";
+    static final public String backupStatusPageURL = "/" + FRONTEND_URL + "/backupStatus.do_";
+    static final public String backupStatusQueryURL = "/" + FRONTEND_URL + "/backupProgress.json_";
 
 	@Autowired private IModuleManager moduleManager;
 	@Autowired private ReloadableInMemoryDaoImpl userDao;
+	@Autowired private BackupManager backupManager;
 	
 	@RequestMapping(mainPageURL)
 	protected ModelAndView mainPage(HttpSession session) throws Exception
@@ -212,7 +224,59 @@ public class BackOfficeController {
 		
 		return moduleManager.setManagedEntityVisibility(sModule, sEntityType, sEntityId, fPublic);
 	}
+	
+	@GetMapping(moduleBackupInfoURL)
+	protected @ResponseBody List<Map<String, Comparable>> getModuleBackupInfo(@RequestParam("module") String sModule) throws Exception {
+		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
+		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+			throw new Exception("You are not allowed to access backup data");
+		
+		List<Map<String, Comparable>> result = new ArrayList<Map<String, Comparable>>();
 
+		// TODO
+		
+		return result;
+	}
+
+	@GetMapping(newBackupURL)
+	protected String startDumpProcess(@RequestParam("module") String sModule) throws Exception {
+		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
+		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+			throw new Exception("You are not allowed to create new backups");
+		
+		String processID = backupManager.startDumpProcess(sModule, authToken);
+		return "redirect:" + backupStatusPageURL + "?processID=" + processID;
+	}
+	
+	@GetMapping(backupStatusPageURL)
+	protected ModelAndView backupStatusPage(@RequestParam("processID") String processID) throws Exception {
+		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
+		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+			throw new Exception("You are not allowed to access backup status");
+
+		ModelAndView mav = new ModelAndView("private/backupStatus");
+		mav.addObject("processID", processID);
+		return mav;
+	}
+	
+	@GetMapping(backupStatusQueryURL)
+	protected @ResponseBody Map<String, Object> backupStatusQuery(@RequestParam("processID") String processID, @RequestParam(name="completeLog", required=false) String completeLogFlag) throws Exception {
+		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
+		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+			throw new Exception("You are not allowed to access backup status");
+		
+		boolean completeLog = (completeLogFlag == "1");
+		BackupProcess process = backupManager.getProcess(processID);
+		
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("processID", processID);
+		result.put("status", process.getStatus().label);
+		result.put("message", process.getStatusMessage());
+		result.put("log", process.getLog());
+		
+		return result;
+	}
+		
 //	protected ArrayList<String> listAuthorisedModules()
 //	{
 //		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
