@@ -63,6 +63,6 @@
 	<h1 style="text-align:center;">Status of backup process ${processID}</h1>
 	<div id="statusCode" style="text-align:center; text-transform:capitalize; font-size:24"></div>
 	<div id="statusMessage" style="text-align:center;"></div>
-	<pre id="log" style="max-width:600px; margin:auto;"></pre>
+	<pre id="log" style="max-width:800px; margin:auto;"></pre>
 </body>
 </html>
