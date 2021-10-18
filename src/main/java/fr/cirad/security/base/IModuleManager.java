@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 
+import fr.cirad.security.backup.IBackgroundProcess;
+
 /**
  * @author sempere
  * Interface to implement for a webapp to be able to use the role manager add-on
@@ -116,4 +118,30 @@ public interface IModuleManager {
 	 * @return name of the host this module's data is stored on
 	 */
 	String getModuleHost(String sModule);
+	
+	
+	/**
+	 * @return Whether or not the backup feature is present
+	 */
+	boolean allowBackups();
+	
+	/**
+	 * @param sModule Module to get the backups of
+	 * @return List of existing backups for the given module
+	 */
+	Collection<String> getBackups(String sModule);
+	
+	/**
+	 * @param sModule Module to backup
+	 * @return Started dump process
+	 */
+	IBackgroundProcess startDump(String sModule);
+	
+	/**
+	 * @param sModule Module to backup
+	 * @param sBackup Backup to restore
+	 * @return Started restore process
+	 */
+	IBackgroundProcess startRestore(String sModule, String sBackup);
 }
+	

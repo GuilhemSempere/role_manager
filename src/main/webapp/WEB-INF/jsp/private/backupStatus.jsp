@@ -41,7 +41,7 @@
 		function updateStatus(status){
 		    $("#statusCode").html(status.status);
 		    $("#statusMessage").html(status.message);
-		    $("#log").html(status.log.join("\n"));
+		    $("#log").html(status.log);
 		}
 		
 		function queryStatus(){

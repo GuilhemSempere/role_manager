@@ -53,7 +53,7 @@ import org.springframework.web.servlet.ModelAndView;
 
 import fr.cirad.security.ReloadableInMemoryDaoImpl;
 import fr.cirad.security.backup.BackupManager;
-import fr.cirad.security.backup.BackupProcess;
+import fr.cirad.security.backup.IBackgroundProcess;
 import fr.cirad.security.base.IModuleManager;
 import fr.cirad.security.base.IRoleDefinition;
 import fr.cirad.web.controller.security.UserPermissionController;
@@ -266,13 +266,14 @@ public class BackOfficeController {
 			throw new Exception("You are not allowed to access backup status");
 		
 		boolean completeLog = (completeLogFlag == "1");
-		BackupProcess process = backupManager.getProcess(processID);
+		IBackgroundProcess process = backupManager.getProcess(processID);
 		
 		Map<String, Object> result = new HashMap<String, Object>();
 		result.put("processID", processID);
 		result.put("status", process.getStatus().label);
 		result.put("message", process.getStatusMessage());
 		result.put("log", process.getLog());
+		result.put("DEBUG", moduleManager.getHosts());
 		
 		return result;
 	}

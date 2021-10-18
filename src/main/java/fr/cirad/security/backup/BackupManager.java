@@ -16,25 +16,24 @@ public class BackupManager {
 	
 	@Autowired private IModuleManager moduleManager;
 	
-	private Map<String, BackupProcess> m_processes = new TreeMap<String, BackupProcess>();
+	private Map<String, IBackgroundProcess> m_processes = new TreeMap<String, IBackgroundProcess>();
 	
 	public String startDumpProcess(String moduleName, Authentication authToken) {
 		String processID = generateProcessID("dump", authToken);
-		BackupProcess process = new BackupProcess(processID, moduleName, authToken);
+		
+		IBackgroundProcess process = moduleManager.startDump(moduleName);
 		this.m_processes.put(processID, process);
-		process.startDump();
 		return processID;
 	}
 	
-	public String startRestoreProcess(String moduleName, Authentication authToken) {
+	public String startRestoreProcess(String moduleName, String backupName, Authentication authToken) {
 		String processID = generateProcessID("restore", authToken);
-		BackupProcess process = new BackupProcess(processID, moduleName, authToken);
+		IBackgroundProcess process = moduleManager.startRestore(moduleName, backupName);
 		this.m_processes.put(processID, process);
-		process.startRestore();
 		return processID;
 	}
 	
-	public BackupProcess getProcess(String processID) {
+	public IBackgroundProcess getProcess(String processID) {
 		return m_processes.get(processID);
 	}
 	
