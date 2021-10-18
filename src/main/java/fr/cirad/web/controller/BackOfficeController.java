@@ -53,6 +53,7 @@ import org.springframework.web.servlet.ModelAndView;
 import fr.cirad.security.ReloadableInMemoryDaoImpl;
 import fr.cirad.security.backup.BackupManager;
 import fr.cirad.security.backup.IBackgroundProcess;
+import fr.cirad.security.backup.ProcessStatus;
 import fr.cirad.security.base.IModuleManager;
 import fr.cirad.security.base.IRoleDefinition;
 import fr.cirad.web.controller.security.UserPermissionController;
@@ -268,10 +269,17 @@ public class BackOfficeController {
 		IBackgroundProcess process = backupManager.getProcess(processID);
 		
 		Map<String, Object> result = new HashMap<String, Object>();
-		result.put("processID", processID);
-		result.put("status", process.getStatus().label);
-		result.put("message", process.getStatusMessage());
-		result.put("log", process.getLog());
+		if (process == null) {
+			result.put("processID", processID);
+			result.put("status", ProcessStatus.INEXISTANT.label);
+			result.put("message", "The requested process was not found. Either the supplied processID is wrong, or the process has finished and has been deleted");
+			result.put("log", "");
+		} else {
+			result.put("processID", processID);
+			result.put("status", process.getStatus().label);
+			result.put("message", process.getStatusMessage());
+			result.put("log", process.getLog());
+		}
 		
 		return result;
 	}

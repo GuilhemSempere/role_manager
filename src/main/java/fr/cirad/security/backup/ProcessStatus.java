@@ -1,6 +1,7 @@
 package fr.cirad.security.backup;
 
 public enum ProcessStatus {
+	INEXISTANT("inexistant"),
 	IDLE("idle"), RUNNING("running"),
 	SUCCESS("success"),
 	ERROR("error"), INTERRUPTED("interrupted");
