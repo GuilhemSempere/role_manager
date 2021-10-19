@@ -18,6 +18,7 @@ package fr.cirad.security.base;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import fr.cirad.security.backup.IBackgroundProcess;
@@ -129,7 +130,7 @@ public interface IModuleManager {
 	 * @param sModule Module to get the backups of
 	 * @return List of existing backups for the given module
 	 */
-	Collection<String> getBackups(String sModule);
+	List<String> getBackups(String sModule);
 	
 	/**
 	 * @param sModule Module to backup
@@ -140,8 +141,9 @@ public interface IModuleManager {
 	/**
 	 * @param sModule Module to backup
 	 * @param sBackup Backup to restore
+	 * @param drop True to drop the database before restoring the backup
 	 * @return Started restore process
 	 */
-	IBackgroundProcess startRestore(String sModule, String sBackup);
+	IBackgroundProcess startRestore(String sModule, String sBackup, boolean drop);
 }
 	

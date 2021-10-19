@@ -203,12 +203,30 @@
 			$("#moduleBackupDialog").modal('show');
 			$.get('<c:url value="<%= BackOfficeController.moduleBackupInfoURL %>" />', {module: module})
 				.then(function (backupData){
-				    $("#moduleBackupDialogContent").html(JSON.stringify(backupData));
+				    let tableHtml = "<table><tr><th>Backup file</th><th>Restore</th></tr>";
+				    backupData.forEach(function (backupInfo) {
+						const restoreURL = '<c:url value="<%= BackOfficeController.restoreBackupURL %>" />?module=' + module + '&backup=' + backupInfo;
+						const restoreButton = '<button onclick="confirmBackupRestore(\'' + backupInfo + '\', \'' + restoreURL + '\')" class="btn btn-sm btn-primary">Restore</a>';
+						tableHtml += "<tr><td>" + backupInfo + "</td><td>" + restoreButton + "</td></tr>";
+				    });
+				    $("#moduleBackupDialogContent").html(tableHtml);
 				    
 				    const newBackupURL = '<c:url value="<%= BackOfficeController.newBackupURL %>" />' + '?module=' + module;
-				    const newBackupButton = $('<a class="btn btn-sm" target="_blank" href="' + newBackupURL + '">New backup</a>');
-				    $("#moduleBackupManagementOptions").append(newBackupButton);
+				    $("#newBackupButton").attr("href", newBackupURL);
 			});
+		}
+		
+		function confirmBackupRestore(backupName, restoreURL){
+		    $("#restoreConfirmationTitle").html("Restore backup " + backupName + " ?");
+		    
+		    $("#dropCheck").on("change", function (){
+		    	let url = $("#confirmRestoreButton").attr("href");
+		    	url = url.replace(/&drop=.*$/, "&drop=" + $("#dropCheck").is(":checked"));
+		    	$("#confirmRestoreButton").attr("href", url);
+		    });
+		    
+		    $("#confirmRestoreButton").attr("href", restoreURL + "&drop=false");
+		    $("#restoreConfirmationDialog").modal("show");
 		}
 		
 		function resizeIFrame() {
@@ -276,8 +294,28 @@
 			</div>
 			<div class="modal-content">
 				<div id="moduleBackupDialogContent"></div>
-				<div id="moduleBackupManagementOptions"></div>
+				<div id="moduleBackupManagementOptions">
+					<a id="newBackupButton" class="btn btn-sm btn-primary" target="_blank">New backup</a>
+				</div>
 				<input type="button" class="btn btn-sm btn-primary" value="Close" id="hlBackupDialogClose" onclick="$('#moduleBackupDialog').modal('hide');" />
+			</div>
+		</div>
+	</div>
+	
+	<div class="modal fade" role="dialog" id="restoreConfirmationDialog" aria-hidden="true">
+		<div class="modal-dialog modal-md" style="background-color:white;">
+			<div class="modal-header">
+				<div id="restoreConfirmationTitle" style="font-weight:bold; margin-bottom:5px;"></div>
+			</div>
+			<div class="modal-content">
+				<div>
+					<input type="checkbox" name="dropCheck" id="dropCheck" />
+					<label for="dropCheck">Drop the database before restoring</label>
+				</div>
+				<div>
+					<button class="btn btn-sm btn-primary" onclick="$('#restoreConfirmationDialog').modal('hide')">Cancel</button>
+					<a id="confirmRestoreButton" class="btn btn-sm btn-danger" target="_blank">Confirm</a>
+				</div>
 			</div>
 		</div>
 	</div>

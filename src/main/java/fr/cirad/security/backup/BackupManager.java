@@ -26,9 +26,9 @@ public class BackupManager {
 		return processID;
 	}
 	
-	public String startRestoreProcess(String moduleName, String backupName, Authentication authToken) {
+	public String startRestoreProcess(String moduleName, String backupName, boolean drop, Authentication authToken) {
 		String processID = generateProcessID("restore", authToken);
-		IBackgroundProcess process = moduleManager.startRestore(moduleName, backupName);
+		IBackgroundProcess process = moduleManager.startRestore(moduleName, backupName, drop);
 		this.m_processes.put(processID, process);
 		return processID;
 	}

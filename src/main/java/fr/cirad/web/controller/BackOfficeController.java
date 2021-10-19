@@ -84,6 +84,7 @@ public class BackOfficeController {
     
     static final public String moduleBackupInfoURL = "/" + FRONTEND_URL + "/moduleBackupInfo.json_";
     static final public String newBackupURL = "/" + FRONTEND_URL + "/newBackup.do_";
+    static final public String restoreBackupURL = "/" + FRONTEND_URL + "/restoreBackup.do_";
     static final public String backupStatusPageURL = "/" + FRONTEND_URL + "/backupStatus.do_";
     static final public String backupStatusQueryURL = "/" + FRONTEND_URL + "/backupProgress.json_";
 
@@ -226,15 +227,12 @@ public class BackOfficeController {
 	}
 	
 	@GetMapping(moduleBackupInfoURL)
-	protected @ResponseBody List<Map<String, Comparable>> getModuleBackupInfo(@RequestParam("module") String sModule) throws Exception {
+	protected @ResponseBody List<String> getModuleBackupInfo(@RequestParam("module") String sModule) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to access backup data");
 		
-		List<Map<String, Comparable>> result = new ArrayList<Map<String, Comparable>>();
-
-		// TODO
-		
+		List<String> result = moduleManager.getBackups(sModule);
 		return result;
 	}
 
@@ -245,6 +243,16 @@ public class BackOfficeController {
 			throw new Exception("You are not allowed to create new backups");
 		
 		String processID = backupManager.startDumpProcess(sModule, authToken);
+		return "redirect:" + backupStatusPageURL + "?processID=" + processID;
+	}
+	
+	@GetMapping(restoreBackupURL)
+	protected String startDumpProcess(@RequestParam("module") String sModule, @RequestParam("backup") String sBackup, @RequestParam("drop") boolean drop) throws Exception {
+		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
+		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+			throw new Exception("You are not allowed to restore backups");
+		
+		String processID = backupManager.startRestoreProcess(sModule, sBackup, drop, authToken);
 		return "redirect:" + backupStatusPageURL + "?processID=" + processID;
 	}
 	
