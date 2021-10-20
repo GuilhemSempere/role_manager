@@ -35,13 +35,23 @@
 		const nonFinalStatus = ["idle", "running"];
 		
 		$(document).on("ready", function (){
-		    queryStatus(true);
+		    queryStatus();
 		});
-		
+				
 		function updateStatus(status){
 		    $("#statusCode").html(status.status);
 		    $("#statusMessage").html(status.message);
+		    
+		    const logBox = $("#log")[0];
+		    const baseScroll = logBox.scrollTop;
+		    const baseScrollHeight = logBox.scrollHeight;
+		    const logHeight = logBox.getBoundingClientRect().height;
+		    console.log(logBox, baseScroll, baseScrollHeight, logHeight);
+		    
 		    $("#log").html(status.log);
+		    if (baseScroll >= baseScrollHeight - logHeight){  // Only if it was not scrolled up
+		   		$('#log').scrollTop($('#log')[0].scrollHeight);  // Force at the bottom
+		    }
 		}
 		
 		function queryStatus(){
@@ -59,10 +69,12 @@
 		}
 	</script>
 </head>
-<body style='background-color:#f0f0f0;'>	
-	<h1 style="text-align:center;">Status of backup process ${processID}</h1>
-	<div id="statusCode" style="text-align:center; text-transform:capitalize; font-size:24"></div>
-	<div id="statusMessage" style="text-align:center;"></div>
-	<pre id="log" style="max-width:800px; margin:auto;"></pre>
+<body style='background-color:#f0f0f0; height:96%;'>
+	<div style="display: flex; height:100%; flex-direction:column;">
+		<h1 style="text-align:center; flex:auto;">Status of backup process ${processID}</h1>
+		<div id="statusCode" style="text-align:center; text-transform:capitalize; font-size:24; flex:auto;"></div>
+		<div id="statusMessage" style="text-align:center; flex:auto;"></div>
+		<pre id="log" style="max-width:800px; margin:auto; overflow:auto; flex:auto"></pre>
+	</div>
 </body>
 </html>

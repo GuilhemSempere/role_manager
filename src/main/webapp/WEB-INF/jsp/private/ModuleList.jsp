@@ -309,7 +309,7 @@
 			</div>
 			<div class="modal-content">
 				<div>
-					<input type="checkbox" name="dropCheck" id="dropCheck" />
+					<input type="checkbox" name="dropCheck" id="dropCheck" autocomplete="off" />
 					<label for="dropCheck">Drop the database before restoring</label>
 				</div>
 				<div>

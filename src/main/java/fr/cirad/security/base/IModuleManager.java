@@ -146,4 +146,3 @@ public interface IModuleManager {
 	 */
 	IBackgroundProcess startRestore(String sModule, String sBackup, boolean drop);
 }
-	
