@@ -33,6 +33,7 @@
 		const processID = '${processID}';
 		const queryInterval = 1000;
 		const nonFinalStatus = ["idle", "running"];
+		let logContent = "";
 		
 		$(document).on("ready", function (){
 		    queryStatus();
@@ -41,15 +42,16 @@
 		function updateStatus(status){
 		    $("#statusCode").html(status.status);
 		    $("#statusMessage").html(status.message);
+		    logContent += status.log
 		    
+		    // Stick to the bottom of the log
 		    const logBox = $("#log")[0];
 		    const baseScroll = logBox.scrollTop;
 		    const baseScrollHeight = logBox.scrollHeight;
 		    const logHeight = logBox.getBoundingClientRect().height;
-		    console.log(logBox, baseScroll, baseScrollHeight, logHeight);
 		    
-		    $("#log").html(status.log);
-		    if (baseScroll >= baseScrollHeight - logHeight){  // Only if it was not scrolled up
+		    $("#log").html(logContent);
+		    if (baseScroll >= baseScrollHeight - logHeight){  // Only if it was not scrolled up manually
 		   		$('#log').scrollTop($('#log')[0].scrollHeight);  // Force at the bottom
 		    }
 		}
@@ -58,7 +60,7 @@
 		    $.ajax({
 		        url: progressQueryURL,
 		        method: "GET",
-		        data: {processID},
+		        data: {processID, logStart: logContent.length},
 		        dataType: "json",
 		    }).then(function (result){
 		        updateStatus(result);

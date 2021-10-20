@@ -145,7 +145,9 @@
 			</c:forEach>
 			rowContents += "</td>";
 			
+			<c:if test="${hasBackup}">
 			rowContents += "<td><a href=\"javascript:openModuleBackupDialog('" + key + "');\">module backups</a></td>";
+			</c:if>
 			
 			<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
 	   		rowContents += "<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'><input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'></td>";
@@ -261,7 +263,9 @@
 		<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_HIDDEN %></th>
 		</c:if>
 		<th>Entity management</th>
+		<c:if test="${hasBackup}">
 		<th>Backup management</th>
+		</c:if>
 		<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
 		<th>Changes</th>
 		<th>Removal</th>

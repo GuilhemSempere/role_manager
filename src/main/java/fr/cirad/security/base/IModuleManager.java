@@ -124,7 +124,7 @@ public interface IModuleManager {
 	/**
 	 * @return Whether or not the backup feature is present
 	 */
-	boolean allowBackups();
+	boolean hasBackups();
 	
 	/**
 	 * @param sModule Module to get the backups of

@@ -120,6 +120,7 @@ public class BackOfficeController {
 	{
 		ModelAndView mav = new ModelAndView(); 
 		mav.addObject("rolesByLevel1Type", UserPermissionController.rolesByLevel1Type);
+		mav.addObject("hasBackup", moduleManager.hasBackups());
 		return mav;
 	}
 	
@@ -232,6 +233,9 @@ public class BackOfficeController {
 		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to access backup data");
 		
+		if (!moduleManager.hasBackups())
+			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
+		
 		List<String> result = moduleManager.getBackups(sModule);
 		return result;
 	}
@@ -241,6 +245,9 @@ public class BackOfficeController {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to create new backups");
+		
+		if (!moduleManager.hasBackups())
+			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
 		
 		String processID = backupManager.startDumpProcess(sModule, authToken);
 		return "redirect:" + backupStatusPageURL + "?processID=" + processID;
@@ -252,6 +259,9 @@ public class BackOfficeController {
 		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to restore backups");
 		
+		if (!moduleManager.hasBackups())
+			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
+		
 		String processID = backupManager.startRestoreProcess(sModule, sBackup, drop, authToken);
 		return "redirect:" + backupStatusPageURL + "?processID=" + processID;
 	}
@@ -261,6 +271,9 @@ public class BackOfficeController {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to access backup status");
+		
+		if (!moduleManager.hasBackups())
+			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
 
 		ModelAndView mav = new ModelAndView("private/backupStatus");
 		mav.addObject("processID", processID);
@@ -268,12 +281,14 @@ public class BackOfficeController {
 	}
 	
 	@GetMapping(backupStatusQueryURL)
-	protected @ResponseBody Map<String, Object> backupStatusQuery(@RequestParam("processID") String processID, @RequestParam(name="completeLog", required=false) String completeLogFlag) throws Exception {
+	protected @ResponseBody Map<String, Object> backupStatusQuery(@RequestParam("processID") String processID, @RequestParam(name="logStart", required=false) Integer logStart) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to access backup status");
 		
-		boolean completeLog = (completeLogFlag == "1");
+		if (!moduleManager.hasBackups())
+			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
+		
 		IBackgroundProcess process = backupManager.getProcess(processID);
 		
 		Map<String, Object> result = new HashMap<String, Object>();
@@ -283,10 +298,11 @@ public class BackOfficeController {
 			result.put("message", "The requested process was not found. Either the supplied processID is wrong, or the process has finished and has been deleted");
 			result.put("log", "");
 		} else {
+			if (logStart == null) logStart = 0;
 			result.put("processID", processID);
 			result.put("status", process.getStatus().label);
 			result.put("message", process.getStatusMessage());
-			result.put("log", process.getLog());
+			result.put("log", process.getLog().substring(logStart));
 		}
 		
 		return result;
