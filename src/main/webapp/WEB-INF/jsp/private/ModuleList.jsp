@@ -205,16 +205,33 @@
 			$("#moduleBackupDialog").modal('show');
 			$.get('<c:url value="<%= BackOfficeController.moduleBackupInfoURL %>" />', {module: module})
 				.then(function (backupData){
-				    let tableHtml = "<table><tr><th>Backup file</th><th>Restore</th></tr>";
-				    backupData.forEach(function (backupInfo) {
-						const restoreURL = '<c:url value="<%= BackOfficeController.restoreBackupURL %>" />?module=' + module + '&backup=' + backupInfo;
-						const restoreButton = '<button onclick="confirmBackupRestore(\'' + backupInfo + '\', \'' + restoreURL + '\')" class="btn btn-sm btn-primary">Restore</a>';
-						tableHtml += "<tr><td>" + backupInfo + "</td><td>" + restoreButton + "</td></tr>";
-				    });
-				    $("#moduleBackupDialogContent").html(tableHtml);
+				    let contentHtml = "";
+				    if (backupData.locked)
+				        contentHtml += "<p><strong>This module is busy, backup operations impossible for the moment</strong></p>";
+				        
+				    contentHtml += "<table><tr><th>Backup file</th>";
+				    if (!backupData.locked) contentHtml += "<th>Restore</th>";
+				    contentHtml += "</tr>";
 				    
-				    const newBackupURL = '<c:url value="<%= BackOfficeController.newBackupURL %>" />' + '?module=' + module;
-				    $("#newBackupButton").attr("href", newBackupURL);
+				    backupData.backups.forEach(function (backupInfo) {
+				        contentHtml += "<tr><td>" + backupInfo + "</td>";
+				        
+				        if (!backupData.locked){
+							const restoreURL = '<c:url value="<%= BackOfficeController.restoreBackupURL %>" />?module=' + module + '&backup=' + backupInfo;
+							const restoreButton = '<button onclick="confirmBackupRestore(\'' + backupInfo + '\', \'' + restoreURL + '\')" class="btn btn-sm btn-primary">Restore</a>';
+							contentHtml += "<td>" + restoreButton + "</td>";
+				        }
+				        contentHtml += "</tr>";
+				    });
+				    contentHtml += "</table>"
+				    $("#moduleBackupDialogContent").html(contentHtml);
+				    
+				    if (backupData.locked){
+				        $("#newBackupButton").hide();
+				    } else {
+					    const newBackupURL = '<c:url value="<%= BackOfficeController.newBackupURL %>" />' + '?module=' + module;
+					    $("#newBackupButton").show().attr("href", newBackupURL);
+				    }
 			});
 		}
 		

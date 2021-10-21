@@ -228,7 +228,7 @@ public class BackOfficeController {
 	}
 	
 	@GetMapping(moduleBackupInfoURL)
-	protected @ResponseBody List<String> getModuleBackupInfo(@RequestParam("module") String sModule) throws Exception {
+	protected @ResponseBody Map<String, Object> getModuleBackupInfo(@RequestParam("module") String sModule) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to access backup data");
@@ -236,7 +236,10 @@ public class BackOfficeController {
 		if (!moduleManager.hasBackups())
 			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
 		
-		List<String> result = moduleManager.getBackups(sModule);
+		List<String> backups = moduleManager.getBackups(sModule);
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("backups", backups);
+		result.put("locked", !moduleManager.isModuleAvailableForBackup(sModule));
 		return result;
 	}
 
@@ -249,18 +252,24 @@ public class BackOfficeController {
 		if (!moduleManager.hasBackups())
 			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
 		
+		if (!moduleManager.isModuleAvailableForBackup(sModule))
+			throw new Exception("The module is already busy, backup operation impossible");
+		
 		String processID = backupManager.startDumpProcess(sModule, authToken);
 		return "redirect:" + backupStatusPageURL + "?processID=" + processID;
 	}
 	
 	@GetMapping(restoreBackupURL)
-	protected String startDumpProcess(@RequestParam("module") String sModule, @RequestParam("backup") String sBackup, @RequestParam("drop") boolean drop) throws Exception {
+	protected String startRestoreProcess(@RequestParam("module") String sModule, @RequestParam("backup") String sBackup, @RequestParam("drop") boolean drop) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to restore backups");
 		
 		if (!moduleManager.hasBackups())
 			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
+		
+		if (!moduleManager.isModuleAvailableForBackup(sModule))
+			throw new Exception("The module is already busy, backup operation impossible");
 		
 		String processID = backupManager.startRestoreProcess(sModule, sBackup, drop, authToken);
 		return "redirect:" + backupStatusPageURL + "?processID=" + processID;

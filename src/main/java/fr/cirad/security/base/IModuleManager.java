@@ -145,4 +145,10 @@ public interface IModuleManager {
 	 * @return Started restore process
 	 */
 	IBackgroundProcess startRestore(String sModule, String sBackup, boolean drop);
+	
+	/**
+	 * @param sModule Module to check
+	 * @return Whether or not a backup process can be started on the module
+	 */
+	boolean isModuleAvailableForBackup(String sModule);
 }
