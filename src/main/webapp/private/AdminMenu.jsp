@@ -47,6 +47,8 @@
 	<a class="btn btn-sm btn-primary" style="width:130px;" href="<c:url value="<%= BackOfficeController.moduleListPageURL %>" />" target="managementFrame" onClick="highlightMe(this);">Manage databases</a>
 	<br/><br/>
 	<a class="btn btn-sm btn-primary" style="width:130px;" href="<c:url value="<%= UserPermissionController.userListPageURL %>" />" target="managementFrame" onClick="highlightMe(this);">Manage users<br/>and permissions</a>
+	<br/><br/>
+	<a class="btn btn-sm btn-primary" style="width:130px;" href="<c:url value="<%= BackOfficeController.processListPageURL %>" />" target="managementFrame" onClick="highlightMe(this);">Admin processes</a>
 </div>
 
 </body>

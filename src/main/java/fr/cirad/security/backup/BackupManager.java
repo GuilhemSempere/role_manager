@@ -1,5 +1,6 @@
 package fr.cirad.security.backup;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -35,6 +36,10 @@ public class BackupManager {
 	
 	public IBackgroundProcess getProcess(String processID) {
 		return m_processes.get(processID);
+	}
+	
+	public Map<String, IBackgroundProcess> getProcesses() {
+		return Collections.unmodifiableMap(this.m_processes);
 	}
 	
 	private String generateProcessID(String processType, Authentication authToken) {

@@ -23,6 +23,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -87,6 +88,8 @@ public class BackOfficeController {
     static final public String restoreBackupURL = "/" + FRONTEND_URL + "/restoreBackup.do_";
     static final public String backupStatusPageURL = "/" + FRONTEND_URL + "/backupStatus.do_";
     static final public String backupStatusQueryURL = "/" + FRONTEND_URL + "/backupProgress.json_";
+    static final public String processListPageURL = "/" + FRONTEND_URL + "/processList.do_";
+    static final public String processListStatusURL = "/" + FRONTEND_URL + "/processListStatus.json_";
 
 	@Autowired private IModuleManager moduleManager;
 	@Autowired private ReloadableInMemoryDaoImpl userDao;
@@ -312,6 +315,31 @@ public class BackOfficeController {
 			result.put("status", process.getStatus().label);
 			result.put("message", process.getStatusMessage());
 			result.put("log", process.getLog().substring(logStart));
+		}
+		
+		return result;
+	}
+	
+	@GetMapping(processListPageURL)
+	protected ModelAndView processListPage() {
+		ModelAndView mav = new ModelAndView();
+		return mav;
+	}
+	
+	@GetMapping(processListStatusURL)
+	protected @ResponseBody List<Map<String, String>> processListStatus() {
+		Map<String, IBackgroundProcess> processes = backupManager.getProcesses();
+		List<String> orderedIds = new ArrayList<String>(processes.keySet());
+		Collections.sort(orderedIds);
+		
+		List<Map<String, String>> result = new ArrayList<Map<String, String>>();
+		for (String processID : orderedIds) {
+			IBackgroundProcess process = processes.get(processID);
+			Map<String, String> item = new HashMap<String, String>();
+			item.put("processID", processID);
+			item.put("status", process.getStatus().label);
+			item.put("message", process.getStatusMessage());
+			result.add(item);
 		}
 		
 		return result;

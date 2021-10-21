@@ -209,7 +209,7 @@
 				    if (backupData.locked)
 				        contentHtml += "<p><strong>This module is busy, backup operations impossible for the moment</strong></p>";
 				        
-				    contentHtml += "<table><tr><th>Backup file</th>";
+				    contentHtml += '<table class="adminListTable"><tr><th>Backup file</th>';
 				    if (!backupData.locked) contentHtml += "<th>Restore</th>";
 				    contentHtml += "</tr>";
 				    
