@@ -11,4 +11,8 @@ public enum ProcessStatus {
 	private ProcessStatus(String label) {
 		this.label = label;
 	}
+	
+	public boolean isFinal() {
+		return !(this.equals(IDLE) || this.equals(RUNNING));
+	}
 }

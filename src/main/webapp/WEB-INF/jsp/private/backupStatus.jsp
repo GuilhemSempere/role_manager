@@ -73,10 +73,10 @@
 </head>
 <body style='background-color:#f0f0f0; height:96%;'>
 	<div style="display: flex; height:100%; flex-direction:column;">
-		<h1 style="text-align:center; flex:auto;">Status of backup process ${processID}</h1>
-		<div id="statusCode" style="text-align:center; text-transform:capitalize; font-size:24; flex:auto;"></div>
-		<div id="statusMessage" style="text-align:center; flex:auto;"></div>
-		<pre id="log" style="max-width:800px; margin:auto; overflow:auto; flex:auto"></pre>
+		<h1 style="text-align:center; flex:0 0 1.25em;">Status of backup process ${processID}</h1>
+		<div id="statusCode" style="text-align:center; text-transform:capitalize; font-size:24; flex:0 0 1.25em;"></div>
+		<div id="statusMessage" style="text-align:center; flex:0 0 2em;"></div>
+		<pre id="log" style="max-width:800px; min-width:50%; margin:auto; overflow:auto; flex:auto"></pre>
 	</div>
 </body>
 </html>

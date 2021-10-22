@@ -6,6 +6,7 @@ import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
@@ -40,6 +41,16 @@ public class BackupManager {
 	
 	public Map<String, IBackgroundProcess> getProcesses() {
 		return Collections.unmodifiableMap(this.m_processes);
+	}
+	
+	@Scheduled(fixedRate = 86400000)
+	public void cleanupFinishedProcesses() {
+		for (String processID : m_processes.keySet()) {
+			IBackgroundProcess process = m_processes.get(processID);
+			if (process.getStatus().isFinal()) {
+				m_processes.remove(processID);
+			}
+		}
 	}
 	
 	private String generateProcessID(String processType, Authentication authToken) {
