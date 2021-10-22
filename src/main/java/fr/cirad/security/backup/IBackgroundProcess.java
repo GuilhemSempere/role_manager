@@ -15,4 +15,14 @@ public interface IBackgroundProcess {
 	 * @return The status of the underlying process
 	 */
 	public ProcessStatus getStatus();
+	
+	/**
+	 * @return Whether or not the process can be aborted
+	 */
+	public boolean isAbortable();
+	
+	/**
+	 * Abort the process
+	 */
+	public void abort();
 }

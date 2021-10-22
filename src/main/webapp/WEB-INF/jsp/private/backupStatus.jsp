@@ -34,9 +34,15 @@
 		const queryInterval = 1000;
 		const nonFinalStatus = ["idle", "running"];
 		let logContent = "";
+		let intervalID;
+		
+		<c:if test="${abortable}">
+		const abortProcessURL = '<c:url value="<%= BackOfficeController.abortProcessURL %>" />';
+		</c:if>
 		
 		$(document).on("ready", function (){
 		    queryStatus();
+		    intervalID = setInterval(queryStatus, queryInterval);
 		});
 				
 		function updateStatus(status){
@@ -64,17 +70,37 @@
 		        dataType: "json",
 		    }).then(function (result){
 		        updateStatus(result);
-		        if (nonFinalStatus.includes(result.status)){
-		            setTimeout(queryStatus, queryInterval);
+		        if (!nonFinalStatus.includes(result.status)){
+		            $("#abortButton").remove();
+		            clearInterval(intervalID);
+		        } 
+		        <c:if test="${abortable}">
+		        else {
+		            $("#abortButton").css("display", "inline");
 		        }
+		        </c:if>
 		    });
 		}
+		
+		<c:if test="${abortable}">
+		function abortProcess(){
+			const abort = window.confirm("Abort the current process");
+			if (abort){
+			    $.get(abortProcessURL, {processID});
+			}
+		}
+		</c:if>
 	</script>
 </head>
 <body style='background-color:#f0f0f0; height:96%;'>
 	<div style="display: flex; height:100%; flex-direction:column;">
 		<h1 style="text-align:center; flex:0 0 1.25em;">Status of backup process ${processID}</h1>
-		<div id="statusCode" style="text-align:center; text-transform:capitalize; font-size:24; flex:0 0 1.25em;"></div>
+		<div style="text-align:center; text-transform:capitalize; font-size:24; flex:0 0 1.25em;">
+			<p id="statusCode" style="font-size:inherit;display:inline"></p>
+			<c:if test="${abortable}">
+			<button id="abortButton" class="btn btn-danger" onclick="abortProcess()" style="display:none;">Abort</button>
+			</c:if>
+		</div>
 		<div id="statusMessage" style="text-align:center; flex:0 0 2em;"></div>
 		<pre id="log" style="max-width:800px; min-width:50%; margin:auto; overflow:auto; flex:auto"></pre>
 	</div>

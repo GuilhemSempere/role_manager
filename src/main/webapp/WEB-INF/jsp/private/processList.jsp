@@ -64,6 +64,7 @@
 <body style='background-color:#f0f0f0;'>
 	<h2>Admin processes</h2>
 	<button class="btn btn-sm btn-primary" onclick="queryStatus()">Refresh</button>
+	<br /><br />
 	<table class="adminListTable">
 		<thead>
 			<tr>

@@ -15,7 +15,7 @@
 	  <secur:intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY,IS_AUTHENTICATED_FULLY,IS_AUTHENTICATED_REMEMBERED" />
 	  
 	  <secur:form-login login-page="/private/" always-use-default-target="true" default-target-url="/private/main.do_" />
-	  <secur:access-denied-handler error-page="/WEB-INF/jsp/error/403.jsp" />	 
+	  <secur:access-denied-handler error-page="/WEB-INF/jsp/error/403.jsp" />
 	  <secur:logout logout-success-url="/private/" invalidate-session="true" /> 
 	</secur:http>
 	

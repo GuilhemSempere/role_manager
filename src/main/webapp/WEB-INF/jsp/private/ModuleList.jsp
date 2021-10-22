@@ -208,24 +208,34 @@
 				    let contentHtml = "";
 				    if (backupData.locked)
 				        contentHtml += "<p><strong>This module is busy, backup operations impossible for the moment</strong></p>";
-				        
-				    contentHtml += '<table class="adminListTable"><tr><th>Backup file</th>';
-				    if (!backupData.locked) contentHtml += "<th>Restore</th>";
-				    contentHtml += "</tr>";
 				    
-				    backupData.backups.forEach(function (backupInfo) {
-				        contentHtml += "<tr><td>" + backupInfo + "</td>";
-				        
-				        if (!backupData.locked){
-							const restoreURL = '<c:url value="<%= BackOfficeController.restoreBackupURL %>" />?module=' + module + '&backup=' + backupInfo;
-							const restoreButton = '<button onclick="confirmBackupRestore(\'' + backupInfo + '\', \'' + restoreURL + '\')" class="btn btn-sm btn-primary">Restore</a>';
-							contentHtml += "<td>" + restoreButton + "</td>";
-				        }
-				        contentHtml += "</tr>";
-				    });
-				    contentHtml += "</table>"
-				    $("#moduleBackupDialogContent").html(contentHtml);
-				    
+				    if (backupData.backups.length == 0){
+				        contentHtml += "<p><em>No existing backup</em></p>";
+				    } else {
+					    contentHtml += '<table class="adminListTable"><tr><th>Backup file</th>';
+					    if (!backupData.locked){
+					        contentHtml += "<th>Restore</th>";
+					        contentHtml += "<th>Delete</th>";
+					    }
+					    contentHtml += "</tr>";
+					    
+					    backupData.backups.forEach(function (backupInfo) {
+					        contentHtml += "<tr><td>" + backupInfo + "</td>";
+					        
+					        if (!backupData.locked){
+								const restoreURL = '<c:url value="<%= BackOfficeController.restoreBackupURL %>" />?module=' + module + '&backup=' + backupInfo;
+								const restoreButton = '<button onclick="confirmBackupRestore(\'' + backupInfo + '\', \'' + restoreURL + '\')" class="btn btn-sm btn-primary">Restore</a>';
+								contentHtml += "<td>" + restoreButton + "</td>";
+								
+								const deleteButton = '<a href="javascript:deleteBackup(\'' + module + '\', \'' + backupInfo + '\')"><img src="img/delete.gif" /></a>';
+								contentHtml += "<td>" + deleteButton + "</td>";
+					        }
+					        contentHtml += "</tr>";
+					    });
+					    contentHtml += "</table>"
+				    }
+					
+					$("#moduleBackupDialogContent").html(contentHtml);
 				    if (backupData.locked){
 				        $("#newBackupButton").hide();
 				    } else {
@@ -246,6 +256,16 @@
 		    
 		    $("#confirmRestoreButton").attr("href", restoreURL + "&drop=false");
 		    $("#restoreConfirmationDialog").modal("show");
+		}
+		
+		function deleteBackup(module, backupName){
+		    if (window.confirm("Delete backup " + backupName + " of module " + module + " ?")){
+		        const deleteURL = '<c:url value="<%= BackOfficeController.deleteBackupURL %>" />?module=' + module + '&backup=' + backupName;
+		        $.ajax({
+		            url: deleteURL,
+		            method: "DELETE",
+		        }).then(openModuleBackupDialog(module));
+		    }
 		}
 		
 		function resizeIFrame() {
@@ -309,31 +329,36 @@
 	</div>
 	
 	<div class="modal fade" tabindex="-1" role="dialog" id="moduleBackupDialog" aria-hidden="true">
-		<div class="modal-dialog modal-lg" style="background-color:white;">
-			<div class="modal-header">
-				<div id="moduleBackupDialogTitle" style="font-weight:bold; margin-bottom:5px;"></div>
-			</div>
+		<div class="modal-dialog modal-lg">
 			<div class="modal-content">
-				<div id="moduleBackupDialogContent"></div>
-				<div id="moduleBackupManagementOptions">
-					<a id="newBackupButton" class="btn btn-sm btn-primary" target="_blank">New backup</a>
+				<div class="modal-header">
+					<div id="moduleBackupDialogTitle" style="font-weight:bold; margin-bottom:5px;"></div>
 				</div>
-				<input type="button" class="btn btn-sm btn-primary" value="Close" id="hlBackupDialogClose" onclick="$('#moduleBackupDialog').modal('hide');" />
+				<div class="modal-body">
+					<div id="moduleBackupDialogContent"></div>
+					<br /><br />
+					<div id="moduleBackupManagementOptions">
+						<a id="newBackupButton" class="btn btn-sm btn-primary" target="_blank">New backup</a>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<input type="button" class="btn btn-sm btn-primary" value="Close" id="hlBackupDialogClose" onclick="$('#moduleBackupDialog').modal('hide');" />
+				</div>
 			</div>
 		</div>
 	</div>
 	
 	<div class="modal fade" role="dialog" id="restoreConfirmationDialog" aria-hidden="true">
 		<div class="modal-dialog modal-md" style="background-color:white;">
-			<div class="modal-header">
-				<div id="restoreConfirmationTitle" style="font-weight:bold; margin-bottom:5px;"></div>
-			</div>
 			<div class="modal-content">
-				<div>
+				<div class="modal-header">
+					<div id="restoreConfirmationTitle" style="font-weight:bold; margin-bottom:5px;"></div>
+				</div>
+				<div class="modal-body">
 					<input type="checkbox" name="dropCheck" id="dropCheck" autocomplete="off" />
 					<label for="dropCheck">Drop the database before restoring</label>
 				</div>
-				<div>
+				<div class="modal-footer">
 					<button class="btn btn-sm btn-primary" onclick="$('#restoreConfirmationDialog').modal('hide')">Cancel</button>
 					<a id="confirmRestoreButton" class="btn btn-sm btn-danger" target="_blank">Confirm</a>
 				</div>

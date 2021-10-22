@@ -37,6 +37,7 @@ import javax.servlet.http.HttpSession;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.GrantedAuthorityImpl;
@@ -45,11 +46,14 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.http.HttpStatus;
 
 import fr.cirad.security.ReloadableInMemoryDaoImpl;
 import fr.cirad.security.backup.BackupManager;
@@ -90,6 +94,8 @@ public class BackOfficeController {
     static final public String backupStatusQueryURL = "/" + FRONTEND_URL + "/backupProgress.json_";
     static final public String processListPageURL = "/" + FRONTEND_URL + "/processList.do_";
     static final public String processListStatusURL = "/" + FRONTEND_URL + "/processListStatus.json_";
+    static final public String abortProcessURL = "/" + FRONTEND_URL + "/abortProcess.json_";
+    static final public String deleteBackupURL = "/" + FRONTEND_URL + "/deleteBackup.json_";
 
 	@Autowired private IModuleManager moduleManager;
 	@Autowired private ReloadableInMemoryDaoImpl userDao;
@@ -253,7 +259,7 @@ public class BackOfficeController {
 			throw new Exception("You are not allowed to create new backups");
 		
 		if (!moduleManager.hasBackups())
-			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
+			throw new Exception("The backup feature is disabled");
 		
 		if (!moduleManager.isModuleAvailableForBackup(sModule))
 			throw new Exception("The module is already busy, backup operation impossible");
@@ -287,8 +293,11 @@ public class BackOfficeController {
 		if (!moduleManager.hasBackups())
 			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
 
+		IBackgroundProcess process = backupManager.getProcess(processID);
+		
 		ModelAndView mav = new ModelAndView("private/backupStatus");
 		mav.addObject("processID", processID);
+		mav.addObject("abortable", process == null ? false : process.isAbortable());
 		return mav;
 	}
 	
@@ -321,13 +330,27 @@ public class BackOfficeController {
 	}
 	
 	@GetMapping(processListPageURL)
-	protected ModelAndView processListPage() {
+	protected ModelAndView processListPage() throws Exception {
+		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
+		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+			throw new Exception("You are not allowed to access backup status");
+		
+		if (!moduleManager.hasBackups())
+			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
+		
 		ModelAndView mav = new ModelAndView();
 		return mav;
 	}
 	
 	@GetMapping(processListStatusURL)
-	protected @ResponseBody List<Map<String, String>> processListStatus() {
+	protected @ResponseBody List<Map<String, String>> processListStatus() throws Exception {
+		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
+		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+			throw new Exception("You are not allowed to access backup status");
+		
+		if (!moduleManager.hasBackups())
+			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
+		
 		Map<String, IBackgroundProcess> processes = backupManager.getProcesses();
 		List<String> orderedIds = new ArrayList<String>(processes.keySet());
 		Collections.sort(orderedIds);
@@ -344,7 +367,35 @@ public class BackOfficeController {
 		
 		return result;
 	}
+	
+	@GetMapping(abortProcessURL)
+	protected @ResponseBody Map<String, Boolean> abortProcess(@RequestParam("processID") String processID) throws Exception {
+		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
+		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+			throw new Exception("You are not allowed to abort processes");
 		
+		if (!moduleManager.hasBackups())
+			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
+		
+		Map<String, Boolean> result = new HashMap<String, Boolean>();
+		result.put("done", backupManager.abortProcess(processID));
+		return result;
+	}
+	
+	@DeleteMapping(deleteBackupURL)
+	protected @ResponseBody Map<String, Boolean> deleteBackup(@RequestParam("module") String module, @RequestParam("backup") String backup) throws Exception {
+		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
+		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+			throw new Exception("You are not allowed to abort processes");
+		
+		if (!moduleManager.hasBackups())
+			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
+		
+		Map<String, Boolean> result = new HashMap<String, Boolean>();
+		result.put("done", moduleManager.deleteBackup(module, backup));
+		return result;
+	}
+	
 //	protected ArrayList<String> listAuthorisedModules()
 //	{
 //		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();

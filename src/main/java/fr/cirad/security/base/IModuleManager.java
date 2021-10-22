@@ -151,4 +151,11 @@ public interface IModuleManager {
 	 * @return Whether or not a backup process can be started on the module
 	 */
 	boolean isModuleAvailableForBackup(String sModule);
+	
+	/**
+	 * @param sModule Module the backup belongs to
+	 * @param sBackup Name of the backup to delete
+	 * @return True if the deletion succeeded, false otherwise
+	 */
+	boolean deleteBackup(String sModule, String sBackup);
 }

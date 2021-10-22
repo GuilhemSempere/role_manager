@@ -35,6 +35,16 @@ public class BackupManager {
 		return processID;
 	}
 	
+	public boolean abortProcess(String processID) {
+		IBackgroundProcess process = m_processes.get(processID);
+		if (process.isAbortable()) {
+			process.abort();
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
 	public IBackgroundProcess getProcess(String processID) {
 		return m_processes.get(processID);
 	}
@@ -42,7 +52,10 @@ public class BackupManager {
 	public Map<String, IBackgroundProcess> getProcesses() {
 		return Collections.unmodifiableMap(this.m_processes);
 	}
-	
+
+	/**
+	 * Clean old finished processes regularly
+	 */
 	@Scheduled(fixedRate = 86400000)
 	public void cleanupFinishedProcesses() {
 		for (String processID : m_processes.keySet()) {
