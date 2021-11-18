@@ -56,11 +56,11 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.http.HttpStatus;
 
 import fr.cirad.security.ReloadableInMemoryDaoImpl;
-import fr.cirad.security.backup.BackupManager;
-import fr.cirad.security.backup.IBackgroundProcess;
-import fr.cirad.security.backup.ProcessStatus;
 import fr.cirad.security.base.IModuleManager;
 import fr.cirad.security.base.IRoleDefinition;
+import fr.cirad.security.dump.DumpManager;
+import fr.cirad.security.dump.IBackgroundProcess;
+import fr.cirad.security.dump.ProcessStatus;
 import fr.cirad.web.controller.security.UserPermissionController;
 
 @Controller
@@ -87,19 +87,19 @@ public class BackOfficeController {
 	static final public String moduleEntityVisibilityURL = "/" + FRONTEND_URL + "/entityVisibility.json_";
     static final public String hostListURL = "/" + FRONTEND_URL + "/hosts.json_";
     
-    static final public String moduleBackupInfoURL = "/" + FRONTEND_URL + "/moduleBackupInfo.json_";
-    static final public String newBackupURL = "/" + FRONTEND_URL + "/newBackup.do_";
-    static final public String restoreBackupURL = "/" + FRONTEND_URL + "/restoreBackup.do_";
-    static final public String backupStatusPageURL = "/" + FRONTEND_URL + "/backupStatus.do_";
-    static final public String backupStatusQueryURL = "/" + FRONTEND_URL + "/backupProgress.json_";
+    static final public String moduleDumpInfoURL = "/" + FRONTEND_URL + "/moduleDumpInfo.json_";
+    static final public String newDumpURL = "/" + FRONTEND_URL + "/newDump.do_";
+    static final public String restoreDumpURL = "/" + FRONTEND_URL + "/restoreDump.do_";
+    static final public String dumpStatusPageURL = "/" + FRONTEND_URL + "/dumpStatus.do_";
+    static final public String dumpStatusQueryURL = "/" + FRONTEND_URL + "/dumpProgress.json_";
     static final public String processListPageURL = "/" + FRONTEND_URL + "/processList.do_";
     static final public String processListStatusURL = "/" + FRONTEND_URL + "/processListStatus.json_";
     static final public String abortProcessURL = "/" + FRONTEND_URL + "/abortProcess.json_";
-    static final public String deleteBackupURL = "/" + FRONTEND_URL + "/deleteBackup.json_";
+    static final public String deleteDumpURL = "/" + FRONTEND_URL + "/deleteDump.json_";
 
 	@Autowired private IModuleManager moduleManager;
 	@Autowired private ReloadableInMemoryDaoImpl userDao;
-	@Autowired private BackupManager backupManager;
+	@Autowired private DumpManager dumpManager;
 	
 	@RequestMapping(mainPageURL)
 	protected ModelAndView mainPage(HttpSession session) throws Exception
@@ -129,7 +129,7 @@ public class BackOfficeController {
 	{
 		ModelAndView mav = new ModelAndView(); 
 		mav.addObject("rolesByLevel1Type", UserPermissionController.rolesByLevel1Type);
-		mav.addObject("hasBackup", moduleManager.hasBackups());
+		mav.addObject("hasDump", moduleManager.hasDumps());
 		return mav;
 	}
 	
@@ -236,81 +236,81 @@ public class BackOfficeController {
 		return moduleManager.setManagedEntityVisibility(sModule, sEntityType, sEntityId, fPublic);
 	}
 	
-	@GetMapping(moduleBackupInfoURL)
-	protected @ResponseBody Map<String, Object> getModuleBackupInfo(@RequestParam("module") String sModule) throws Exception {
+	@GetMapping(moduleDumpInfoURL)
+	protected @ResponseBody Map<String, Object> getModuleDumpInfo(@RequestParam("module") String sModule) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
-			throw new Exception("You are not allowed to access backup data");
+			throw new Exception("You are not allowed to access dump data");
 		
-		if (!moduleManager.hasBackups())
-			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
+		if (!moduleManager.hasDumps())
+			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 		
-		List<String> backups = moduleManager.getBackups(sModule);
+		List<String> dumps = moduleManager.getDumps(sModule);
 		Map<String, Object> result = new HashMap<String, Object>();
-		result.put("backups", backups);
-		result.put("locked", !moduleManager.isModuleAvailableForBackup(sModule));
+		result.put("dumps", dumps);
+		result.put("locked", !moduleManager.isModuleAvailableForDump(sModule));
 		return result;
 	}
 
-	@GetMapping(newBackupURL)
+	@GetMapping(newDumpURL)
 	protected String startDumpProcess(@RequestParam("module") String sModule) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
-			throw new Exception("You are not allowed to create new backups");
+			throw new Exception("You are not allowed to create new dumps");
 		
-		if (!moduleManager.hasBackups())
-			throw new Exception("The backup feature is disabled");
+		if (!moduleManager.hasDumps())
+			throw new Exception("The dump feature is disabled");
 		
-		if (!moduleManager.isModuleAvailableForBackup(sModule))
-			throw new Exception("The module is already busy, backup operation impossible");
+		if (!moduleManager.isModuleAvailableForDump(sModule))
+			throw new Exception("The module is already busy, dump operation impossible");
 		
-		String processID = backupManager.startDumpProcess(sModule, authToken);
-		return "redirect:" + backupStatusPageURL + "?processID=" + processID;
+		String processID = dumpManager.startDumpProcess(sModule, authToken);
+		return "redirect:" + dumpStatusPageURL + "?processID=" + processID;
 	}
 	
-	@GetMapping(restoreBackupURL)
-	protected String startRestoreProcess(@RequestParam("module") String sModule, @RequestParam("backup") String sBackup, @RequestParam("drop") boolean drop) throws Exception {
+	@GetMapping(restoreDumpURL)
+	protected String startRestoreProcess(@RequestParam("module") String sModule, @RequestParam("dump") String sDump, @RequestParam("drop") boolean drop) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
-			throw new Exception("You are not allowed to restore backups");
+			throw new Exception("You are not allowed to restore dumps");
 		
-		if (!moduleManager.hasBackups())
-			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
+		if (!moduleManager.hasDumps())
+			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 		
-		if (!moduleManager.isModuleAvailableForBackup(sModule))
-			throw new Exception("The module is already busy, backup operation impossible");
+		if (!moduleManager.isModuleAvailableForDump(sModule))
+			throw new Exception("The module is already busy, dump operation impossible");
 		
-		String processID = backupManager.startRestoreProcess(sModule, sBackup, drop, authToken);
-		return "redirect:" + backupStatusPageURL + "?processID=" + processID;
+		String processID = dumpManager.startRestoreProcess(sModule, sDump, drop, authToken);
+		return "redirect:" + dumpStatusPageURL + "?processID=" + processID;
 	}
 	
-	@GetMapping(backupStatusPageURL)
-	protected ModelAndView backupStatusPage(@RequestParam("processID") String processID) throws Exception {
+	@GetMapping(dumpStatusPageURL)
+	protected ModelAndView dumpStatusPage(@RequestParam("processID") String processID) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
-			throw new Exception("You are not allowed to access backup status");
+			throw new Exception("You are not allowed to access dump status");
 		
-		if (!moduleManager.hasBackups())
-			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
+		if (!moduleManager.hasDumps())
+			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 
-		IBackgroundProcess process = backupManager.getProcess(processID);
+		IBackgroundProcess process = dumpManager.getProcess(processID);
 		
-		ModelAndView mav = new ModelAndView("private/backupStatus");
+		ModelAndView mav = new ModelAndView("private/dumpStatus");
 		mav.addObject("processID", processID);
 		mav.addObject("abortable", process == null ? false : process.isAbortable());
 		return mav;
 	}
 	
-	@GetMapping(backupStatusQueryURL)
-	protected @ResponseBody Map<String, Object> backupStatusQuery(@RequestParam("processID") String processID, @RequestParam(name="logStart", required=false) Integer logStart) throws Exception {
+	@GetMapping(dumpStatusQueryURL)
+	protected @ResponseBody Map<String, Object> dumpStatusQuery(@RequestParam("processID") String processID, @RequestParam(name="logStart", required=false) Integer logStart) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
-			throw new Exception("You are not allowed to access backup status");
+			throw new Exception("You are not allowed to access dump status");
 		
-		if (!moduleManager.hasBackups())
-			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
+		if (!moduleManager.hasDumps())
+			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 		
-		IBackgroundProcess process = backupManager.getProcess(processID);
+		IBackgroundProcess process = dumpManager.getProcess(processID);
 		
 		Map<String, Object> result = new HashMap<String, Object>();
 		if (process == null) {
@@ -333,10 +333,10 @@ public class BackOfficeController {
 	protected ModelAndView processListPage() throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
-			throw new Exception("You are not allowed to access backup status");
+			throw new Exception("You are not allowed to access dump status");
 		
-		if (!moduleManager.hasBackups())
-			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
+		if (!moduleManager.hasDumps())
+			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 		
 		ModelAndView mav = new ModelAndView();
 		return mav;
@@ -346,12 +346,12 @@ public class BackOfficeController {
 	protected @ResponseBody List<Map<String, String>> processListStatus() throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
-			throw new Exception("You are not allowed to access backup status");
+			throw new Exception("You are not allowed to access dump status");
 		
-		if (!moduleManager.hasBackups())
-			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
+		if (!moduleManager.hasDumps())
+			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 		
-		Map<String, IBackgroundProcess> processes = backupManager.getProcesses();
+		Map<String, IBackgroundProcess> processes = dumpManager.getProcesses();
 		List<String> orderedIds = new ArrayList<String>(processes.keySet());
 		Collections.sort(orderedIds);
 		
@@ -374,25 +374,25 @@ public class BackOfficeController {
 		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to abort processes");
 		
-		if (!moduleManager.hasBackups())
-			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
+		if (!moduleManager.hasDumps())
+			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 		
 		Map<String, Boolean> result = new HashMap<String, Boolean>();
-		result.put("done", backupManager.abortProcess(processID));
+		result.put("done", dumpManager.abortProcess(processID));
 		return result;
 	}
 	
-	@DeleteMapping(deleteBackupURL)
-	protected @ResponseBody Map<String, Boolean> deleteBackup(@RequestParam("module") String module, @RequestParam("backup") String backup) throws Exception {
+	@DeleteMapping(deleteDumpURL)
+	protected @ResponseBody Map<String, Boolean> deleteDump(@RequestParam("module") String module, @RequestParam("dump") String dump) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to abort processes");
 		
-		if (!moduleManager.hasBackups())
-			throw new Exception("The backup feature is disabled");  // TODO : 404 ?
+		if (!moduleManager.hasDumps())
+			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 		
 		Map<String, Boolean> result = new HashMap<String, Boolean>();
-		result.put("done", moduleManager.deleteBackup(module, backup));
+		result.put("done", moduleManager.deleteDump(module, dump));
 		return result;
 	}
 	

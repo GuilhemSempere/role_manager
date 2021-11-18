@@ -46,7 +46,7 @@
 	    processList.forEach(function (status){
 	        tableContent += "<tr><td>" + status.processID + "</td><td>" + status.status + "</td><td>" + status.message + "</td>";
 	        
-	        const statusPageURL = '<c:url value="<%= BackOfficeController.backupStatusPageURL %>" />?processID=' + status.processID;
+	        const statusPageURL = '<c:url value="<%= BackOfficeController.dumpStatusPageURL %>" />?processID=' + status.processID;
 	        tableContent += '<td><a href="' + statusPageURL + '" target="_blank">Details</a></td>';
 	        tableContent += "</tr>";
 	    });

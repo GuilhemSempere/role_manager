@@ -1,4 +1,4 @@
-package fr.cirad.security.backup;
+package fr.cirad.security.dump;
 
 import java.util.Collections;
 import java.util.Map;
@@ -13,8 +13,8 @@ import org.springframework.stereotype.Component;
 import fr.cirad.security.base.IModuleManager;
 
 @Component
-public class BackupManager {
-	private static final Logger LOG = Logger.getLogger(BackupManager.class);
+public class DumpManager {
+	private static final Logger LOG = Logger.getLogger(DumpManager.class);
 	
 	@Autowired private IModuleManager moduleManager;
 	

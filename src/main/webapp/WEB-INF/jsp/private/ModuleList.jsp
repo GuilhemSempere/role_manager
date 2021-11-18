@@ -102,8 +102,8 @@
 					alert("Unable to apply changes for " + moduleName);
 				else
 				{
-					moduleData[moduleName][0] = setToPublic;
-					moduleData[moduleName][1] = setToHidden;
+					moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>'] = setToPublic;
+					moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>'] = setToHidden;
 					setDirty(moduleName, false);
 				}
 			}).error(function(xhr) { handleError(xhr); });
@@ -112,8 +112,8 @@
 		function resetFlags(moduleName)
 		{
 			let itemRow = $("#row_" + moduleName);
-			itemRow.find(".flagCol1").prop("checked", moduleData[moduleName][0]);
-			itemRow.find(".flagCol2").prop("checked", moduleData[moduleName][1]);
+			itemRow.find(".flagCol1").prop("checked", moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>']);
+			itemRow.find(".flagCol2").prop("checked", moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>']);
 			setDirty(moduleName, false);
 		}
 		
@@ -129,14 +129,11 @@
 		
 		function buildRow(key)
 		{
-		   	let rowContents = "<td>" + key + "</td>";
+		   	let rowContents = "<td><a title='Click to browse database' href='../?module=" + key + "' target='_blank'>" + key + "</a></td>";
 		   	
 		   	<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
-	   		if (moduleData[key] != null) {
+	   		if (moduleData[key] != null)
 	   			rowContents += "<td>" + moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HOST %>'] + "</td>";
-				rowContents += "<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol1' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>'] ? " checked" : "") + "></td>";
-				rowContents += "<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol2' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>'] ? " checked" : "") + "></td>";
-			}
 			</c:if>
 
 			rowContents += "<td>";
@@ -145,11 +142,15 @@
 			</c:forEach>
 			rowContents += "</td>";
 			
-			<c:if test="${hasBackup}">
-			rowContents += "<td><a href=\"javascript:openModuleBackupDialog('" + key + "');\">module backups</a></td>";
+			<c:if test="${hasDump}">
+			rowContents += "<td><a href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a></td>";
 			</c:if>
 			
-			<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
+			<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">	   		
+	   		if (moduleData[key] != null) {
+				rowContents += "<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol1' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>'] ? " checked" : "") + "></td>";
+				rowContents += "<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol2' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>'] ? " checked" : "") + "></td>";
+			}
 	   		rowContents += "<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'><input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'></td>";
 	   		rowContents += "<td align='center'><a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem(\"" + encodeURIComponent(key) + "\");' title='Discard module'><img src='img/delete.gif'></a></td>";
 	   		</c:if>
@@ -200,53 +201,53 @@
 	        $("#moduleContentFrame").attr('src', '<c:url value="<%= BackOfficeController.moduleContentPageURL %>" />?user=' + username + '&module=' + module + '&entityType=' + entityType);
 		}
 		
-		function openModuleBackupDialog(module){
-		    $("#moduleBackupDialogTitle").html("Backup management for database <u>" + module + "</u>");
-			$("#moduleBackupDialog").modal('show');
-			$.get('<c:url value="<%= BackOfficeController.moduleBackupInfoURL %>" />', {module: module})
-				.then(function (backupData){
+		function openModuleDumpDialog(module){
+		    $("#moduleDumpDialogTitle").html("Dump management for database <u>" + module + "</u>");
+			$("#moduleDumpDialog").modal('show');
+			$.get('<c:url value="<%= BackOfficeController.moduleDumpInfoURL %>" />', {module: module})
+				.then(function (dumpData){
 				    let contentHtml = "";
-				    if (backupData.locked)
-				        contentHtml += "<p><strong>This module is busy, backup operations impossible for the moment</strong></p>";
+				    if (dumpData.locked)
+				        contentHtml += "<p><strong>This module is busy, dump operations impossible for the moment</strong></p>";
 				    
-				    if (backupData.backups.length == 0){
-				        contentHtml += "<p><em>No existing backup</em></p>";
+				    if (dumpData.dumps.length == 0){
+				        contentHtml += "<p><em>No existing dump</em></p>";
 				    } else {
-					    contentHtml += '<table class="adminListTable"><tr><th>Backup file</th>';
-					    if (!backupData.locked){
+					    contentHtml += '<table class="adminListTable"><tr><th>Dump file</th>';
+					    if (!dumpData.locked){
 					        contentHtml += "<th>Restore</th>";
 					        contentHtml += "<th>Delete</th>";
 					    }
 					    contentHtml += "</tr>";
 					    
-					    backupData.backups.forEach(function (backupInfo) {
-					        contentHtml += "<tr><td>" + backupInfo + "</td>";
+					    dumpData.dumps.forEach(function (dumpInfo) {
+					        contentHtml += "<tr><td>" + dumpInfo + "</td>";
 					        
-					        if (!backupData.locked){
-								const restoreURL = '<c:url value="<%= BackOfficeController.restoreBackupURL %>" />?module=' + module + '&backup=' + backupInfo;
-								const restoreButton = '<button onclick="confirmBackupRestore(\'' + backupInfo + '\', \'' + restoreURL + '\')" class="btn btn-sm btn-primary">Restore</a>';
+					        if (!dumpData.locked){
+								const restoreURL = '<c:url value="<%= BackOfficeController.restoreDumpURL %>" />?module=' + module + '&dump=' + dumpInfo;
+								const restoreButton = '<button onclick="confirmDumpRestore(\'' + dumpInfo + '\', \'' + restoreURL + '\')" class="btn btn-sm btn-primary">Restore</a>';
 								contentHtml += "<td>" + restoreButton + "</td>";
 								
-								const deleteButton = '<a href="javascript:deleteBackup(\'' + module + '\', \'' + backupInfo + '\')"><img src="img/delete.gif" /></a>';
-								contentHtml += "<td>" + deleteButton + "</td>";
+								const deleteButton = '<a href="javascript:deleteDump(\'' + module + '\', \'' + dumpInfo + '\')"><img src="img/delete.gif" /></a>';
+								contentHtml += "<td align='center'>" + deleteButton + "</td>";
 					        }
 					        contentHtml += "</tr>";
 					    });
 					    contentHtml += "</table>"
 				    }
 					
-					$("#moduleBackupDialogContent").html(contentHtml);
-				    if (backupData.locked){
-				        $("#newBackupButton").hide();
+					$("#moduleDumpDialogContent").html(contentHtml);
+				    if (dumpData.locked){
+				        $("#newDumpButton").hide();
 				    } else {
-					    const newBackupURL = '<c:url value="<%= BackOfficeController.newBackupURL %>" />' + '?module=' + module;
-					    $("#newBackupButton").show().attr("href", newBackupURL);
+					    const newDumpURL = '<c:url value="<%= BackOfficeController.newDumpURL %>" />' + '?module=' + module;
+					    $("#newDumpButton").show().attr("href", newDumpURL);
 				    }
 			});
 		}
 		
-		function confirmBackupRestore(backupName, restoreURL){
-		    $("#restoreConfirmationTitle").html("Restore backup " + backupName + " ?");
+		function confirmDumpRestore(dumpName, restoreURL){
+		    $("#restoreConfirmationTitle").html("Restore dump " + dumpName + " ?");
 		    
 		    $("#dropCheck").on("change", function (){
 		    	let url = $("#confirmRestoreButton").attr("href");
@@ -258,13 +259,13 @@
 		    $("#restoreConfirmationDialog").modal("show");
 		}
 		
-		function deleteBackup(module, backupName){
-		    if (window.confirm("Delete backup " + backupName + " of module " + module + " ?")){
-		        const deleteURL = '<c:url value="<%= BackOfficeController.deleteBackupURL %>" />?module=' + module + '&backup=' + backupName;
+		function deleteDump(module, dumpName){
+		    if (window.confirm("Delete dump " + dumpName + " of module " + module + " ?")){
+		        const deleteURL = '<c:url value="<%= BackOfficeController.deleteDumpURL %>" />?module=' + module + '&dump=' + dumpName;
 		        $.ajax({
 		            url: deleteURL,
 		            method: "DELETE",
-		        }).then(openModuleBackupDialog(module));
+		        }).then(openModuleDumpDialog(module));
 		    }
 		}
 		
@@ -296,15 +297,17 @@
 		<th>Database name</th>
 		<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
 		<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_HOST %></th>
-		<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_PUBLIC %></th>
-		<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_HIDDEN %></th>
 		</c:if>
 		<th>Entity management</th>
-		<c:if test="${hasBackup}">
-		<th>Backup management</th>
+		<c:if test="${hasDump}">
+		<th>Dump management</th>
 		</c:if>
 		<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
+		<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
+		<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_PUBLIC %></th>
+		<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_HIDDEN %></th>
 		<th>Changes</th>
+		</c:if>
 		<th>Removal</th>
 		</c:if>
 	</tr>
@@ -328,21 +331,21 @@
 		</div>
 	</div>
 	
-	<div class="modal fade" tabindex="-1" role="dialog" id="moduleBackupDialog" aria-hidden="true">
+	<div class="modal fade" tabindex="-1" role="dialog" id="moduleDumpDialog" aria-hidden="true">
 		<div class="modal-dialog modal-lg">
 			<div class="modal-content">
 				<div class="modal-header">
-					<div id="moduleBackupDialogTitle" style="font-weight:bold; margin-bottom:5px;"></div>
+					<div id="moduleDumpDialogTitle" style="font-weight:bold; margin-bottom:5px;"></div>
 				</div>
 				<div class="modal-body">
-					<div id="moduleBackupDialogContent"></div>
+					<div id="moduleDumpDialogContent"></div>
 					<br /><br />
-					<div id="moduleBackupManagementOptions">
-						<a id="newBackupButton" class="btn btn-sm btn-primary" target="_blank">New backup</a>
+					<div id="moduleDumpManagementOptions">
+						<a id="newDumpButton" class="btn btn-sm btn-primary" target="_blank">New dump</a>
 					</div>
 				</div>
 				<div class="modal-footer">
-					<input type="button" class="btn btn-sm btn-primary" value="Close" id="hlBackupDialogClose" onclick="$('#moduleBackupDialog').modal('hide');" />
+					<input type="button" class="btn btn-sm btn-primary" value="Close" id="hlDumpDialogClose" onclick="$('#moduleDumpDialog').modal('hide');" />
 				</div>
 			</div>
 		</div>

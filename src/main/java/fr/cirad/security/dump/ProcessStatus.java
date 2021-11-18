@@ -1,4 +1,4 @@
-package fr.cirad.security.backup;
+package fr.cirad.security.dump;
 
 public enum ProcessStatus {
 	INEXISTANT("inexistant"),

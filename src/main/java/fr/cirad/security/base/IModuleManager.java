@@ -21,7 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import fr.cirad.security.backup.IBackgroundProcess;
+import fr.cirad.security.dump.IBackgroundProcess;
 
 /**
  * @author sempere
@@ -122,40 +122,40 @@ public interface IModuleManager {
 	
 	
 	/**
-	 * @return Whether or not the backup feature is present
+	 * @return Whether or not the dump feature is present
 	 */
-	boolean hasBackups();
+	boolean hasDumps();
 	
 	/**
-	 * @param sModule Module to get the backups of
-	 * @return List of existing backups for the given module
+	 * @param sModule Module to get the dumps of
+	 * @return List of existing dumps for the given module
 	 */
-	List<String> getBackups(String sModule);
+	List<String> getDumps(String sModule);
 	
 	/**
-	 * @param sModule Module to backup
+	 * @param sModule Module to dump
 	 * @return Started dump process
 	 */
 	IBackgroundProcess startDump(String sModule);
 	
 	/**
-	 * @param sModule Module to backup
-	 * @param sBackup Backup to restore
-	 * @param drop True to drop the database before restoring the backup
+	 * @param sModule Module to dump
+	 * @param sDump Dump to restore
+	 * @param drop True to drop the database before restoring the dump
 	 * @return Started restore process
 	 */
-	IBackgroundProcess startRestore(String sModule, String sBackup, boolean drop);
+	IBackgroundProcess startRestore(String sModule, String sDump, boolean drop);
 	
 	/**
 	 * @param sModule Module to check
-	 * @return Whether or not a backup process can be started on the module
+	 * @return Whether or not a dump process can be started on the module
 	 */
-	boolean isModuleAvailableForBackup(String sModule);
+	boolean isModuleAvailableForDump(String sModule);
 	
 	/**
-	 * @param sModule Module the backup belongs to
-	 * @param sBackup Name of the backup to delete
+	 * @param sModule Module the dump belongs to
+	 * @param sDump Name of the dump to delete
 	 * @return True if the deletion succeeded, false otherwise
 	 */
-	boolean deleteBackup(String sModule, String sBackup);
+	boolean deleteDump(String sModule, String sDump);
 }
