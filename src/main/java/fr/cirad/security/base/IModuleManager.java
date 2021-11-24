@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import fr.cirad.security.dump.DumpMetadata;
 import fr.cirad.security.dump.IBackgroundProcess;
 
 /**
@@ -130,13 +131,15 @@ public interface IModuleManager {
 	 * @param sModule Module to get the dumps of
 	 * @return List of existing dumps for the given module
 	 */
-	List<String> getDumps(String sModule);
+	List<DumpMetadata> getDumps(String sModule);
 	
 	/**
 	 * @param sModule Module to dump
+	 * @param sName Name of the new dump
+	 * @param sDescription Description of the new dump
 	 * @return Started dump process
 	 */
-	IBackgroundProcess startDump(String sModule);
+	IBackgroundProcess startDump(String sModule, String sName, String sDescription);
 	
 	/**
 	 * @param sModule Module to dump

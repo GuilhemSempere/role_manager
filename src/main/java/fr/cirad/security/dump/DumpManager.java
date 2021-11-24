@@ -20,10 +20,10 @@ public class DumpManager {
 	
 	private Map<String, IBackgroundProcess> m_processes = new TreeMap<String, IBackgroundProcess>();
 	
-	public String startDumpProcess(String moduleName, Authentication authToken) {
+	public String startDumpProcess(String moduleName, String dumpName, String dumpDescription, Authentication authToken) {
 		String processID = generateProcessID("dump", authToken);
 		
-		IBackgroundProcess process = moduleManager.startDump(moduleName);
+		IBackgroundProcess process = moduleManager.startDump(moduleName, dumpName, dumpDescription);
 		this.m_processes.put(processID, process);
 		return processID;
 	}

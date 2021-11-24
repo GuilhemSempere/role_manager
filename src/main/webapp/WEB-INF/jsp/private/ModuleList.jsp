@@ -201,53 +201,65 @@
 	        $("#moduleContentFrame").attr('src', '<c:url value="<%= BackOfficeController.moduleContentPageURL %>" />?user=' + username + '&module=' + module + '&entityType=' + entityType);
 		}
 		
+		
 		function openModuleDumpDialog(module){
 		    $("#moduleDumpDialogTitle").html("Dump management for database <u>" + module + "</u>");
 			$("#moduleDumpDialog").modal('show');
+			$("#newDumpModule").val(module);
 			$.get('<c:url value="<%= BackOfficeController.moduleDumpInfoURL %>" />', {module: module})
 				.then(function (dumpData){
-				    let contentHtml = "";
+				    const container = $("#moduleDumpDialogContent").html("");
+				    
 				    if (dumpData.locked)
-				        contentHtml += "<p><strong>This module is busy, dump operations impossible for the moment</strong></p>";
+						container.append("<p><strong>This module is busy, dump operations impossible for the moment</strong></p>");
 				    
 				    if (dumpData.dumps.length == 0){
-				        contentHtml += "<p><em>No existing dump</em></p>";
+				        container.append("<p><em>No existing dump</em></p>");
 				    } else {
-					    contentHtml += '<table class="adminListTable"><tr><th>Dump file</th>';
+					    const dumpTable = $('<table class="adminListTable"></table>');
+					    const headerRow = $('<tr></tr>');
+					    
+					    headerRow.append('<th>Dump</th><th>Creation date</th><th>Description</th>')
 					    if (!dumpData.locked){
-					        contentHtml += "<th>Restore</th>";
-					        contentHtml += "<th>Delete</th>";
+							headerRow.append('<th>Restore</th><th>Delete</th>');
 					    }
-					    contentHtml += "</tr>";
+					    dumpTable.append(headerRow);
 					    
 					    dumpData.dumps.forEach(function (dumpInfo) {
-					        contentHtml += "<tr><td>" + dumpInfo + "</td>";
+					        const row = $("<tr></tr>").append("<td>" + dumpInfo.name + "</td>");
+					        row.append("<td>" + (new Date(dumpInfo.creationDate)).toISOString() + "</td>");
+					        row.append("<td>" + dumpInfo.description.replaceAll(/\r?\n/mg, "<br />") + "</td>");
 					        
 					        if (!dumpData.locked){
-								const restoreURL = '<c:url value="<%= BackOfficeController.restoreDumpURL %>" />?module=' + module + '&dump=' + dumpInfo;
-								const restoreButton = '<button onclick="confirmDumpRestore(\'' + dumpInfo + '\', \'' + restoreURL + '\')" class="btn btn-sm btn-primary">Restore</a>';
-								contentHtml += "<td>" + restoreButton + "</td>";
+								const restoreButton = $('<button class="btn btn-sm btn-primary">Restore</button>').on("click", () => confirmDumpRestore(module, dumpInfo));
+								const restoreCell = $("<td></td>").append(restoreButton);
+								row.append(restoreCell);
 								
-								const deleteButton = '<a href="javascript:deleteDump(\'' + module + '\', \'' + dumpInfo + '\')"><img src="img/delete.gif" /></a>';
-								contentHtml += "<td align='center'>" + deleteButton + "</td>";
+								const deleteButton = $('<a><img src="img/delete.gif" /></a>').on("click", () => deleteDump(module, dumpInfo));
+								const deleteCell = $('<td align="center"></td>').append(deleteButton);
+								row.append(deleteCell);
 					        }
-					        contentHtml += "</tr>";
+					        
+					        dumpTable.append(row);
 					    });
-					    contentHtml += "</table>"
+					    
+					    container.append(dumpTable);
 				    }
 					
-					$("#moduleDumpDialogContent").html(contentHtml);
-				    if (dumpData.locked){
+				    $("newDumpInfo").hide();
+				    $("newDumpName").val("");
+				    $("newDumpDescription").val("");
+					if (dumpData.locked){
 				        $("#newDumpButton").hide();
 				    } else {
-					    const newDumpURL = '<c:url value="<%= BackOfficeController.newDumpURL %>" />' + '?module=' + module;
-					    $("#newDumpButton").show().attr("href", newDumpURL);
+					    $("#newDumpButton").show();
 				    }
 			});
 		}
 		
-		function confirmDumpRestore(dumpName, restoreURL){
-		    $("#restoreConfirmationTitle").html("Restore dump " + dumpName + " ?");
+		function confirmDumpRestore(module, dumpInfo){
+		    const restoreURL = '<c:url value="<%= BackOfficeController.restoreDumpURL %>" />?module=' + module + '&dump=' + dumpInfo.identifier;
+		    $("#restoreConfirmationTitle").html("Restore dump " + dumpInfo.name + " ?");
 		    
 		    $("#dropCheck").on("change", function (){
 		    	let url = $("#confirmRestoreButton").attr("href");
@@ -259,9 +271,9 @@
 		    $("#restoreConfirmationDialog").modal("show");
 		}
 		
-		function deleteDump(module, dumpName){
-		    if (window.confirm("Delete dump " + dumpName + " of module " + module + " ?")){
-		        const deleteURL = '<c:url value="<%= BackOfficeController.deleteDumpURL %>" />?module=' + module + '&dump=' + dumpName;
+		function deleteDump(module, dumpInfo){
+		    if (window.confirm("Delete dump " + dumpInfo.name + " of module " + module + " ?")){
+		        const deleteURL = '<c:url value="<%= BackOfficeController.deleteDumpURL %>" />?module=' + module + '&dump=' + dumpInfo.identifier;
 		        $.ajax({
 		            url: deleteURL,
 		            method: "DELETE",
@@ -341,8 +353,16 @@
 					<div id="moduleDumpDialogContent"></div>
 					<br /><br />
 					<div id="moduleDumpManagementOptions">
-						<a id="newDumpButton" class="btn btn-sm btn-primary" target="_blank">New dump</a>
+						<button id="newDumpButton" class="btn btn-sm btn-primary" onclick="$('#moduleNewDumpInfo').toggle()">New dump</button>
 					</div>
+					<form id="moduleNewDumpInfo" method="GET" target="_blank" action='<c:url value="<%= BackOfficeController.newDumpURL %>" />' hidden>
+						<input type="hidden" id="newDumpModule" name="module" />
+						<label for="newDumpName">Dump name</label><br />
+						<input type="text" id="newDumpName" name="name" /><br />
+						<label for="newDumpDescription">Dump description</label><br />
+						<textarea id="newDumpDescription" name="description"></textarea><br />
+						<input type="submit" class="btn btn-sm btn-primary" value="Start dump" />
+					</form>
 				</div>
 				<div class="modal-footer">
 					<input type="button" class="btn btn-sm btn-primary" value="Close" id="hlDumpDialogClose" onclick="$('#moduleDumpDialog').modal('hide');" />

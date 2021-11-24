@@ -59,6 +59,7 @@ import fr.cirad.security.ReloadableInMemoryDaoImpl;
 import fr.cirad.security.base.IModuleManager;
 import fr.cirad.security.base.IRoleDefinition;
 import fr.cirad.security.dump.DumpManager;
+import fr.cirad.security.dump.DumpMetadata;
 import fr.cirad.security.dump.IBackgroundProcess;
 import fr.cirad.security.dump.ProcessStatus;
 import fr.cirad.web.controller.security.UserPermissionController;
@@ -245,7 +246,7 @@ public class BackOfficeController {
 		if (!moduleManager.hasDumps())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 		
-		List<String> dumps = moduleManager.getDumps(sModule);
+		List<DumpMetadata> dumps = moduleManager.getDumps(sModule);
 		Map<String, Object> result = new HashMap<String, Object>();
 		result.put("dumps", dumps);
 		result.put("locked", !moduleManager.isModuleAvailableForDump(sModule));
@@ -253,7 +254,7 @@ public class BackOfficeController {
 	}
 
 	@GetMapping(newDumpURL)
-	protected String startDumpProcess(@RequestParam("module") String sModule) throws Exception {
+	protected String startDumpProcess(@RequestParam("module") String sModule, @RequestParam("name") String sName, @RequestParam("description") String sDescription) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to create new dumps");
@@ -264,7 +265,7 @@ public class BackOfficeController {
 		if (!moduleManager.isModuleAvailableForDump(sModule))
 			throw new Exception("The module is already busy, dump operation impossible");
 		
-		String processID = dumpManager.startDumpProcess(sModule, authToken);
+		String processID = dumpManager.startDumpProcess(sModule, sName, sDescription, authToken);
 		return "redirect:" + dumpStatusPageURL + "?processID=" + processID;
 	}
 	
