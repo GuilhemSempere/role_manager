@@ -18,13 +18,17 @@ public class DumpMetadata {
 	/** Implementation-specific identifier to the dump (typically a file path) */
 	private String identifier;
 	
+	/** Validity of the dump */
+	private DumpValidity validity;
 	
-	public DumpMetadata(String sIdentifier, String sModule, String sName, Date creation, String sDescription) {
+
+	public DumpMetadata(String sIdentifier, String sModule, String sName, Date creation, String sDescription, DumpValidity dumpValidity) {
 		identifier = sIdentifier;
 		module = sModule;
 		name = sName;
 		creationDate = creation;
 		description = sDescription;
+		validity = dumpValidity;
 	}
 
 	public String getModule() {
@@ -67,5 +71,11 @@ public class DumpMetadata {
 		this.identifier = identifier;
 	}
 	
-	
+	public DumpValidity getValidity() {
+		return validity;
+	}
+
+	public void setValidity(DumpValidity validity) {
+		this.validity = validity;
+	}
 }

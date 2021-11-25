@@ -62,6 +62,12 @@
 		    if (baseScroll >= baseScrollHeight - logHeight){  // Only if it was not scrolled up manually
 		   		$('#log').scrollTop($('#log')[0].scrollHeight);  // Force at the bottom
 		    }
+		    
+		    if (status.warning != null){
+		        $("#warning").show().text(status.warning);
+		    } else {
+		        $("#warning").hide();
+		    }
 		}
 		
 		function queryStatus(){
@@ -103,6 +109,7 @@
 			</c:if>
 		</div>
 		<div id="statusMessage" style="text-align:center; flex:0 0 2em;"></div>
+		<div id="warning" style="text-align:center; flex:auto; padding:4px; margin-bottom:4px; background-color:#FFAA66; font-size:14;" hidden></div>
 		<pre id="log" style="max-width:900px; min-width:50%; margin:auto; overflow:auto; flex:auto; font-size:11px;"></pre>
 	</div>
 </body>

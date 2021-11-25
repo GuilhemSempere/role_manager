@@ -32,6 +32,12 @@
 	<script type="text/javascript">
 		var moduleData;
 		
+		const dumpValidityColors = new Map([
+		    ["VALID", "#88FF88"],
+		    ["OUTDATED", "#FFAA66"],
+		    ["DIVERGENT", "#CC88FF"],
+		]);
+		
 		<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
 		function createModule(moduleName, host)
 		{
@@ -219,14 +225,16 @@
 					    const dumpTable = $('<table class="adminListTable"></table>');
 					    const headerRow = $('<tr></tr>');
 					    
-					    headerRow.append('<th>Dump</th><th>Creation date</th><th>Description</th>')
+					    headerRow.append('<th>Validity</th><th>Dump</th><th>Creation date</th><th>Description</th>')
 					    if (!dumpData.locked){
 							headerRow.append('<th>Restore</th><th>Delete</th>');
 					    }
 					    dumpTable.append(headerRow);
 					    
 					    dumpData.dumps.forEach(function (dumpInfo) {
-					        const row = $("<tr></tr>").append("<td>" + dumpInfo.name + "</td>");
+					        const row = $("<tr></tr>");
+					        row.append('<td style="background-color:' + dumpValidityColors.get(dumpInfo.validity) + '">' + dumpInfo.validity.toLowerCase() + '</td>');
+					        row.append("<td>" + dumpInfo.name + "</td>");
 					        row.append("<td>" + (new Date(dumpInfo.creationDate)).toISOString() + "</td>");
 					        row.append("<td>" + dumpInfo.description.replaceAll(/\r?\n/mg, "<br />") + "</td>");
 					        

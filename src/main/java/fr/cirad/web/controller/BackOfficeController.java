@@ -64,6 +64,7 @@ import fr.cirad.security.base.IModuleManager;
 import fr.cirad.security.base.IRoleDefinition;
 import fr.cirad.security.dump.DumpManager;
 import fr.cirad.security.dump.DumpMetadata;
+import fr.cirad.security.dump.DumpValidity;
 import fr.cirad.security.dump.IBackgroundProcess;
 import fr.cirad.security.dump.ProcessStatus;
 import fr.cirad.web.controller.security.UserPermissionController;
@@ -334,6 +335,16 @@ public class BackOfficeController {
 			result.put("status", process.getStatus().label);
 			result.put("message", process.getStatusMessage());
 			result.put("log", process.getLog().substring(logStart));
+			result.put("warning", null);
+			if (process.getStatus() == ProcessStatus.SUCCESS) {
+				List<DumpMetadata> dumps = moduleManager.getDumps(process.getModule());
+				for (DumpMetadata dump : dumps) {
+					if (dump.getValidity() == DumpValidity.DIVERGENT) {
+						result.put("warning", "Some dumps in this module are more recent than the one that has been restored. Remember to delete them if they are undesirable.");
+						break;
+					}
+				}
+			}
 		}
 		
 		return result;
