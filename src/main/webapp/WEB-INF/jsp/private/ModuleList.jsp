@@ -246,9 +246,13 @@
 					    container.append(dumpTable);
 				    }
 					
-				    $("newDumpInfo").hide();
-				    $("newDumpName").val("");
-				    $("newDumpDescription").val("");
+				    $("#newDumpDialogTitle").html("New dump for module <strong>" + module + "</strong>");
+				    $("#newDumpName").val("");
+				    $("#newDumpDescription").val("");
+				    $("#startDumpButton").on("click", function (){
+				        $("#newDumpDialog").modal("hide");
+				        $("#moduleDumpDialog").modal("hide");
+				    })
 					if (dumpData.locked){
 				        $("#newDumpButton").hide();
 				    } else {
@@ -261,13 +265,18 @@
 		    const restoreURL = '<c:url value="<%= BackOfficeController.restoreDumpURL %>" />?module=' + module + '&dump=' + dumpInfo.identifier;
 		    $("#restoreConfirmationTitle").html("Restore dump " + dumpInfo.name + " ?");
 		    
-		    $("#dropCheck").on("change", function (){
+		    $("#dropCheck").prop("checked", true).on("change", function (){
 		    	let url = $("#confirmRestoreButton").attr("href");
 		    	url = url.replace(/&drop=.*$/, "&drop=" + $("#dropCheck").is(":checked"));
 		    	$("#confirmRestoreButton").attr("href", url);
 		    });
 		    
-		    $("#confirmRestoreButton").attr("href", restoreURL + "&drop=false");
+		    $("#confirmRestoreButton").attr("href", restoreURL + "&drop=true").on("click", function (){
+		        $("#restoreConfirmationDialog").modal("hide");
+		        $("#moduleDumpDialog").modal("hide");
+		        return true;
+		    });
+		    
 		    $("#restoreConfirmationDialog").modal("show");
 		}
 		
@@ -277,7 +286,7 @@
 		        $.ajax({
 		            url: deleteURL,
 		            method: "DELETE",
-		        }).then(openModuleDumpDialog(module));
+		        }).then(() => openModuleDumpDialog(module));
 		    }
 		}
 		
@@ -353,16 +362,8 @@
 					<div id="moduleDumpDialogContent"></div>
 					<br /><br />
 					<div id="moduleDumpManagementOptions">
-						<button id="newDumpButton" class="btn btn-sm btn-primary" onclick="$('#moduleNewDumpInfo').toggle()">New dump</button>
+						<button id="newDumpButton" class="btn btn-sm btn-primary" onclick="$('#newDumpDialog').modal('show')">New dump</button>
 					</div>
-					<form id="moduleNewDumpInfo" method="GET" target="_blank" action='<c:url value="<%= BackOfficeController.newDumpURL %>" />' hidden>
-						<input type="hidden" id="newDumpModule" name="module" />
-						<label for="newDumpName">Dump name</label><br />
-						<input type="text" id="newDumpName" name="name" /><br />
-						<label for="newDumpDescription">Dump description</label><br />
-						<textarea id="newDumpDescription" name="description"></textarea><br />
-						<input type="submit" class="btn btn-sm btn-primary" value="Start dump" />
-					</form>
 				</div>
 				<div class="modal-footer">
 					<input type="button" class="btn btn-sm btn-primary" value="Close" id="hlDumpDialogClose" onclick="$('#moduleDumpDialog').modal('hide');" />
@@ -371,8 +372,37 @@
 		</div>
 	</div>
 	
+	<div class="modal fade" role="dialog" id="newDumpDialog" aria-hidden="true">
+		<div class="modal-dialog modal-md">
+			<div class="modal-content">
+				<div class="modal-header">
+					<div id="newDumpDialogTitle" style="font-weight:bold; margin-bottom:5px;"></div>
+				</div>
+				<form id="moduleNewDumpInfo" method="GET" target="_blank" action='<c:url value="<%= BackOfficeController.newDumpURL %>" />'>
+					<div class="modal-body">
+						<input type="hidden" id="newDumpModule" name="module" /><br />
+						<table>
+							<tr>
+								<td><label for="newDumpName">Dump name</label></td>
+								<td><input type="text" id="newDumpName" name="name" pattern="^[\w\s-]*$" title="Only letters, digits, spaces, underscores and hyphens are allowed" /></td>
+							</tr>
+							<tr>
+								<td><label for="newDumpDescription">Dump description</label></td>
+								<td><input type="text" id="newDumpDescription" name="description"></input></td>
+							</tr>
+						</table>
+					</div>
+					<div class="modal-footer">
+						<button class="btn btn-sm btn-primary" onclick="$('#newDumpDialog').modal('hide')">Cancel</button>
+						<input id="startDumpButton" type="submit" class="btn btn-sm btn-danger" value="Start dump" />
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+	
 	<div class="modal fade" role="dialog" id="restoreConfirmationDialog" aria-hidden="true">
-		<div class="modal-dialog modal-md" style="background-color:white;">
+		<div class="modal-dialog modal-md">
 			<div class="modal-content">
 				<div class="modal-header">
 					<div id="restoreConfirmationTitle" style="font-weight:bold; margin-bottom:5px;"></div>
@@ -380,6 +410,7 @@
 				<div class="modal-body">
 					<input type="checkbox" name="dropCheck" id="dropCheck" autocomplete="off" />
 					<label for="dropCheck">Drop the database before restoring</label>
+					<p><em>Only untick this if you know what you are doing</em></p>
 				</div>
 				<div class="modal-footer">
 					<button class="btn btn-sm btn-primary" onclick="$('#restoreConfirmationDialog').modal('hide')">Cancel</button>

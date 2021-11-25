@@ -265,7 +265,7 @@ public class BackOfficeController {
 		if (!moduleManager.isModuleAvailableForDump(sModule))
 			throw new Exception("The module is already busy, dump operation impossible");
 		
-		String processID = dumpManager.startDumpProcess(sModule, sName, sDescription, authToken);
+		String processID = dumpManager.startDumpProcess(sModule, sName.replaceAll("(_|[^\\w-])+", "_"), sDescription, authToken);
 		return "redirect:" + dumpStatusPageURL + "?processID=" + processID;
 	}
 	
