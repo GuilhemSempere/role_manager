@@ -12,6 +12,11 @@ public interface IBackgroundProcess {
 	public String getStatusMessage();
 	
 	/**
+	 * @return The module the process is operating on
+	 */
+	public String getModule();
+	
+	/**
 	 * @return The status of the underlying process
 	 */
 	public ProcessStatus getStatus();
@@ -20,6 +25,11 @@ public interface IBackgroundProcess {
 	 * @return Whether or not the process can be aborted
 	 */
 	public boolean isAbortable();
+	
+	/**
+	 * @return A warning to give before attempting abort, may be null
+	 */
+	public String getAbortWarning();
 	
 	/**
 	 * Abort the process

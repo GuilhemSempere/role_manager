@@ -21,9 +21,13 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -265,7 +269,10 @@ public class BackOfficeController {
 		if (!moduleManager.isModuleAvailableForDump(sModule))
 			throw new Exception("The module is already busy, dump operation impossible");
 		
-		String processID = dumpManager.startDumpProcess(sModule, sName.replaceAll("(_|[^\\w-])+", "_"), sDescription, authToken);
+		String dumpName = sName.replaceAll("(_|[^\\w-])+", "_");
+		if (dumpName.matches("_*"))
+			dumpName = "dump_" + sModule + "_" + DateTimeFormatter.ofPattern("uuuuMMdd_HHmmss").format(LocalDateTime.now());
+		String processID = dumpManager.startDumpProcess(sModule, dumpName, sDescription, authToken);
 		return "redirect:" + dumpStatusPageURL + "?processID=" + processID;
 	}
 	
@@ -299,6 +306,8 @@ public class BackOfficeController {
 		ModelAndView mav = new ModelAndView("private/dumpStatus");
 		mav.addObject("processID", processID);
 		mav.addObject("abortable", process == null ? false : process.isAbortable());
+		mav.addObject("module", process.getModule());
+		mav.addObject("abortWarning", process.getAbortWarning());
 		return mav;
 	}
 	

@@ -31,12 +31,14 @@
 	<script type="text/javascript">
 		const progressQueryURL = '<c:url value="<%= BackOfficeController.dumpStatusQueryURL %>" />';
 		const processID = '${processID}';
+		const module = '${module}';
 		const queryInterval = 1000;
 		const nonFinalStatus = ["idle", "running"];
 		let logContent = "";
 		let intervalID;
 		
 		<c:if test="${abortable}">
+		const abortWarning = "${abortWarning}";
 		const abortProcessURL = '<c:url value="<%= BackOfficeController.abortProcessURL %>" />';
 		</c:if>
 		
@@ -84,17 +86,16 @@
 		
 		<c:if test="${abortable}">
 		function abortProcess(){
-			const abort = window.confirm("Abort the current process");
-			if (abort){
+			const abort = window.confirm("Abort the current process ? " + ((abortWarning != null) ? abortWarning : ""));
+			if (abort)
 			    $.get(abortProcessURL, {processID});
-			}
 		}
 		</c:if>
 	</script>
 </head>
 <body style='background-color:#f0f0f0; height:96%;'>
 	<div style="display: flex; height:100%; flex-direction:column;">
-		<h2 style="text-align:center; flex:0 0 1.25em;">Status of dump process ${processID}</h2>
+		<h2 style="text-align:center; flex:0 0 1.25em;">Status of process ${processID} on module ${module}</h2>
 		<div style="text-align:center; text-transform:capitalize; font-size:24; flex:0 0 1.25em;">
 			<p id="statusCode" style="font-size:inherit;display:inline"></p>
 			<c:if test="${abortable}">

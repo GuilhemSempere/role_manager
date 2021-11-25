@@ -246,8 +246,11 @@
 					    container.append(dumpTable);
 				    }
 					
+				    const now = new Date();
+				    const dateString = now.getFullYear() + ("0" + (now.getMonth() + 1)).slice(-2) + ("0" + now.getDate()).slice(-2) + "_" + 
+				    					("0" + now.getHours()).slice(-2) + ("0" + now.getMinutes()).slice(-2) + ("0" + now.getSeconds()).slice(-2);
 				    $("#newDumpDialogTitle").html("New dump for module <strong>" + module + "</strong>");
-				    $("#newDumpName").val("");
+				    $("#newDumpName").val("dump_" + module + "_" + dateString);
 				    $("#newDumpDescription").val("");
 				    $("#startDumpButton").on("click", function (){
 				        $("#newDumpDialog").modal("hide");
@@ -393,7 +396,7 @@
 						</table>
 					</div>
 					<div class="modal-footer">
-						<button class="btn btn-sm btn-primary" onclick="$('#newDumpDialog').modal('hide')">Cancel</button>
+						<input type="button" class="btn btn-sm btn-primary" onclick="$('#newDumpDialog').modal('hide')" value="Cancel" />
 						<input id="startDumpButton" type="submit" class="btn btn-sm btn-danger" value="Start dump" />
 					</div>
 				</form>
