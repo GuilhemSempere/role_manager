@@ -79,6 +79,7 @@ public class BackOfficeController {
 	static final public String DTO_FIELDNAME_HOST = "host";
 	static final public String DTO_FIELDNAME_PUBLIC = "public";
 	static final public String DTO_FIELDNAME_HIDDEN = "hidden";
+	static final public String DTO_FIELDNAME_DUMPSTATUS = "dumpStatus";
 	
 	static final public String mainPageURL = "/" + FRONTEND_URL + "/main.do_";
 	static final public String homePageURL = "/" + FRONTEND_URL + "/home.do_";
@@ -194,6 +195,8 @@ public class BackOfficeController {
 			aModuleEntry.put(DTO_FIELDNAME_HOST, moduleManager.getModuleHost(module));
 			aModuleEntry.put(DTO_FIELDNAME_PUBLIC, publicModules.contains(module));
 			aModuleEntry.put(DTO_FIELDNAME_HIDDEN, moduleManager.isModuleHidden(module));
+			if (moduleManager.hasDumps())
+				aModuleEntry.put(DTO_FIELDNAME_DUMPSTATUS, moduleManager.getDumpStatus(module));
 			result.put(module, aModuleEntry);
 		}
 		return result;
@@ -252,6 +255,7 @@ public class BackOfficeController {
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 		
 		List<DumpMetadata> dumps = moduleManager.getDumps(sModule);
+		dumps.sort((dump1, dump2) -> dump2.getCreationDate().compareTo(dump1.getCreationDate()));
 		Map<String, Object> result = new HashMap<String, Object>();
 		result.put("dumps", dumps);
 		result.put("locked", !moduleManager.isModuleAvailableForDump(sModule));
@@ -339,7 +343,7 @@ public class BackOfficeController {
 			if (process.getStatus() == ProcessStatus.SUCCESS) {
 				List<DumpMetadata> dumps = moduleManager.getDumps(process.getModule());
 				for (DumpMetadata dump : dumps) {
-					if (dump.getValidity() == DumpValidity.DIVERGENT) {
+					if (dump.getValidity() == DumpValidity.UNWANTED) {
 						result.put("warning", "Some dumps in this module are more recent than the one that has been restored. Remember to delete them if they are undesirable.");
 						break;
 					}

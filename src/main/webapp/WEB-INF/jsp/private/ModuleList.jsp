@@ -35,7 +35,8 @@
 		const dumpValidityColors = new Map([
 		    ["VALID", "#88FF88"],
 		    ["OUTDATED", "#FFAA66"],
-		    ["DIVERGENT", "#CC88FF"],
+		    ["UNWANTED", "#CC88FF"],
+		    ["NONE", "#FF8888"],
 		]);
 		
 		<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
@@ -149,7 +150,8 @@
 			rowContents += "</td>";
 			
 			<c:if test="${hasDump}">
-			rowContents += "<td><a href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a></td>";
+			rowContents += '<td style="background-color:' + dumpValidityColors.get(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>']) + '">';
+			rowContents += "<a style=\"color:#113388;\" href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a></td>";
 			</c:if>
 			
 			<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">	   		
