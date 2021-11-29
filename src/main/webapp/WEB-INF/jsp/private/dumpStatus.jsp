@@ -50,6 +50,8 @@
 		function updateStatus(status){
 		    $("#statusCode").html(status.status);
 		    $("#statusMessage").html(status.message);
+		    if (status.resetLog !== undefined)
+		        logContent = "";
 		    logContent += status.log
 		    
 		    // Stick to the bottom of the log
@@ -101,7 +103,7 @@
 </head>
 <body style='background-color:#f0f0f0; height:96%;'>
 	<div style="display: flex; height:100%; flex-direction:column;">
-		<h2 style="text-align:center; flex:0 0 1.25em;">Status of process ${processID} on module ${module}</h2>
+		<h2 style="text-align:center; flex:0 0 1.25em;">Status of process ${processID} on database ${module}</h2>
 		<div style="text-align:center; text-transform:capitalize; font-size:24; flex:0 0 1.25em;">
 			<p id="statusCode" style="font-size:inherit;display:inline"></p>
 			<c:if test="${abortable}">
@@ -109,7 +111,7 @@
 			</c:if>
 		</div>
 		<div id="statusMessage" style="text-align:center; flex:0 0 2em;"></div>
-		<div id="warning" style="text-align:center; flex:auto; padding:4px; margin-bottom:4px; background-color:#FFAA66; font-size:14;" hidden></div>
+		<div id="warning" style="text-align:center; flex:0 0 2em; padding:4px; margin-bottom:4px; background-color:#FFAA66; font-size:14;" hidden></div>
 		<pre id="log" style="max-width:900px; min-width:50%; margin:auto; overflow:auto; flex:auto; font-size:11px;"></pre>
 	</div>
 </body>

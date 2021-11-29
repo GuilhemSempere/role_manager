@@ -401,7 +401,7 @@
 							</tr>
 							<tr>
 								<td><label for="newDumpDescription">Dump description</label></td>
-								<td><input type="text" id="newDumpDescription" name="description"></input></td>
+								<td><textarea id="newDumpDescription" name="description"></textarea></td>
 							</tr>
 						</table>
 					</div>

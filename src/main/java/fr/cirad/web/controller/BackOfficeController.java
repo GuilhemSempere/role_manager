@@ -84,6 +84,7 @@ public class BackOfficeController {
 	static final public String mainPageURL = "/" + FRONTEND_URL + "/main.do_";
 	static final public String homePageURL = "/" + FRONTEND_URL + "/home.do_";
 	static final public String topFrameURL = "/" + FRONTEND_URL + "/topBanner.do_";
+	static final public String adminMenuURL = "/" + FRONTEND_URL + "/AdminMenu.do_";
 	static final public String moduleListPageURL = "/" + FRONTEND_URL + "/ModuleList.do_";
 	static final public String moduleListDataURL = "/" + FRONTEND_URL + "/listModules.json_";
 	static final public String moduleRemovalURL = "/" + FRONTEND_URL + "/removeModule.json_";
@@ -128,6 +129,14 @@ public class BackOfficeController {
 		ModelAndView mav = new ModelAndView();
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		mav.addObject("loggedUser", authToken != null && !authToken.getAuthorities().contains(new GrantedAuthorityImpl ("ROLE_ANONYMOUS")) ? authToken.getPrincipal() : null);
+		return mav;
+	}
+	
+	@RequestMapping(adminMenuURL)
+	protected ModelAndView adminMenu()
+	{
+		ModelAndView mav = new ModelAndView();
+		mav.addObject("hasDumps", moduleManager.hasDumps());
 		return mav;
 	}
 	
@@ -334,13 +343,17 @@ public class BackOfficeController {
 			result.put("message", "The requested process was not found. Either the supplied processID is wrong, or the process has finished and has been deleted");
 			result.put("log", "");
 		} else {
-			if (logStart == null) logStart = 0;
+			String log = process.getLog();
+			if (logStart != null && logStart < log.length())
+				log = log.substring(logStart);
+			else
+				result.put("resetLog", true);
 			result.put("processID", processID);
 			result.put("status", process.getStatus().label);
 			result.put("message", process.getStatusMessage());
-			result.put("log", process.getLog().substring(logStart));
+			result.put("log", log);
 			result.put("warning", null);
-			if (process.getStatus() == ProcessStatus.SUCCESS) {
+			if (process.getStatus() == ProcessStatus.SUCCESS && processID.contains("restore")) {
 				List<DumpMetadata> dumps = moduleManager.getDumps(process.getModule());
 				for (DumpMetadata dump : dumps) {
 					if (dump.getValidity() == DumpValidity.UNWANTED) {
