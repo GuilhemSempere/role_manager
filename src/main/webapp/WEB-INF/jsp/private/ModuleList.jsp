@@ -237,7 +237,10 @@
 					        const row = $("<tr></tr>");
 					        row.append('<td style="background-color:' + dumpValidityColors.get(dumpInfo.validity) + '">' + dumpInfo.validity.toLowerCase() + '</td>');
 					        row.append("<td>" + dumpInfo.name + "</td>");
-					        row.append("<td>" + (new Date(dumpInfo.creationDate)).toISOString() + "</td>");
+					        const dumpDate = new Date();
+						    const dateString = dumpDate.getFullYear() + "-" + ("0" + (dumpDate.getMonth() + 1)).slice(-2) + "-" +  ("0" + dumpDate.getDate()).slice(-2) + " " + 
+	    							("0" + dumpDate.getHours()).slice(-2) + ":" + ("0" + dumpDate.getMinutes()).slice(-2) + ":" + ("0" + dumpDate.getSeconds()).slice(-2);
+					        row.append("<td>" + dateString + "</td>");
 					        row.append("<td>" + dumpInfo.description.replaceAll(/\r?\n/mg, "<br />") + "</td>");
 					        
 					        if (!dumpData.locked){
@@ -299,7 +302,7 @@
 		        $.ajax({
 		            url: deleteURL,
 		            method: "DELETE",
-		        }).then(() => openModuleDumpDialog(module));
+		        }).then(() => window.location.reload());
 		    }
 		}
 		
@@ -314,6 +317,10 @@
 	    $(window).resize(function() {
 	    	resizeIFrame();
 	    });
+	    
+	    function refreshTable() {
+	        window.location.reload();
+	    }
 	</script>
 </head>
 
@@ -391,7 +398,7 @@
 				<div class="modal-header">
 					<div id="newDumpDialogTitle" style="font-weight:bold; margin-bottom:5px;"></div>
 				</div>
-				<form id="moduleNewDumpInfo" method="GET" target="_blank" action='<c:url value="<%= BackOfficeController.newDumpURL %>" />'>
+				<form id="moduleNewDumpInfo" method="GET" target="_blank" rel="opener" action='<c:url value="<%= BackOfficeController.newDumpURL %>" />'>
 					<div class="modal-body">
 						<input type="hidden" id="newDumpModule" name="module" /><br />
 						<table>
@@ -427,7 +434,7 @@
 				</div>
 				<div class="modal-footer">
 					<button class="btn btn-sm btn-primary" onclick="$('#restoreConfirmationDialog').modal('hide')">Cancel</button>
-					<a id="confirmRestoreButton" class="btn btn-sm btn-danger" target="_blank">Confirm</a>
+					<a id="confirmRestoreButton" class="btn btn-sm btn-danger" target="_blank" rel="opener">Confirm</a>
 				</div>
 			</div>
 		</div>

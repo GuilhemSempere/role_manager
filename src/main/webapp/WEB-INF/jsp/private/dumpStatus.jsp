@@ -99,6 +99,11 @@
 			    $.get(abortProcessURL, {processID});
 		}
 		</c:if>
+		
+		window.onbeforeunload = function(e) {
+			if (window.opener != null)
+			    window.opener.refreshTable();
+		}
 	</script>
 </head>
 <body style='background-color:#f0f0f0; height:96%;'>
