@@ -38,11 +38,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.GrantedAuthorityImpl;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.core.userdetails.memory.InMemoryDaoImpl;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -51,7 +51,7 @@ import fr.cirad.security.base.IRoleDefinition;
 import fr.cirad.web.controller.security.UserPermissionController;
 
 @Component
-public class ReloadableInMemoryDaoImpl extends InMemoryDaoImpl {
+public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 
     private static final Logger LOG = Logger.getLogger(ReloadableInMemoryDaoImpl.class);
 
@@ -63,6 +63,11 @@ public class ReloadableInMemoryDaoImpl extends InMemoryDaoImpl {
 
     private File m_resourceFile;
     private Properties m_props = null;
+    private HashMap<String, UserWithMethod> m_users;
+    
+    public ReloadableInMemoryDaoImpl() {
+    	m_users = new HashMap<String, UserWithMethod>();
+    }
 
     public PasswordEncoder getPasswordEncoder() {
 		return passwordEncoder;
@@ -70,20 +75,31 @@ public class ReloadableInMemoryDaoImpl extends InMemoryDaoImpl {
 
 	@Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        try {
-            for (String aUserName : listUsers(false)) {
-                if (aUserName.equals(username)) {
-                    continue;
-                }
-            }
-
-            loadProperties();
-        } catch (IOException e) {
-            throw new Error(e);
-        }
-
-        return super.loadUserByUsername(username);
+        return loadUserByUsernameAndMethod(username, "");
     }
+	
+	/** Get a user by username from a specific authentication method
+	 * Also load properties if they are not already loaded
+	 * @param username Username to load
+	 * @param method Authentication method to consider. Default is the empty string, null matches any method.
+	 * @return The requested user
+	 * @throws UsernameNotFoundException if the user is not found or does not correspond to the given authentication method
+	 */
+	public UserDetails loadUserByUsernameAndMethod(String username, String method) throws UsernameNotFoundException {
+		try {
+			loadProperties();
+			
+			UserWithMethod user = m_users.get(username);
+			if (user == null)
+				throw new UsernameNotFoundException("Username not found");
+			else if (!user.getMethod().equals(method) && method != null)
+				throw new UsernameNotFoundException("User/method couple not found");
+			else
+				return user;
+		} catch (IOException exc) {
+			throw new UsernameNotFoundException("Could not load the user data");
+		}
+	}
 
     public void setResource(Resource resource) throws Exception {
         m_resourceFile = resource.getFile();
@@ -97,7 +113,7 @@ public class ReloadableInMemoryDaoImpl extends InMemoryDaoImpl {
 			int nConvertedPasswordCount = 0;
 			for (String username : listUsers(false))
 			{
-				UserDetails user = loadUserByUsername(username);
+				UserDetails user = loadUserByUsernameAndMethod(username, null);
 				String password = user.getPassword();
 				if (nConvertedPasswordCount == 0 && ((CustomBCryptPasswordEncoder) pe).looksLikeBCrypt(password))
 					break;	// all is fine, passwords are encoded
@@ -111,7 +127,7 @@ public class ReloadableInMemoryDaoImpl extends InMemoryDaoImpl {
 		else
 			for (String username : listUsers(false))
 			{
-				UserDetails user = loadUserByUsername(username);
+				UserDetails user = loadUserByUsernameAndMethod(username, null);
 				String password = user.getPassword();
 				if (new CustomBCryptPasswordEncoder().looksLikeBCrypt(password))
 					throw new Exception("It looks like the system was reverted back from encoded to plain password mode. The users.properties file contains BCrypt-encoded passwords which cannot be decoded. This can only be fixed by editing it manually.");
@@ -124,22 +140,51 @@ public class ReloadableInMemoryDaoImpl extends InMemoryDaoImpl {
         if (m_resourceFile != null && m_props == null) {
             m_props = new Properties();
             m_props.load(new InputStreamReader(new FileInputStream(m_resourceFile), "UTF-8"));
+            
+            m_users.clear();
+            for (String username: m_props.stringPropertyNames()) {
+            	String[] tokens = m_props.getProperty(username).split(",");
+            	String password = tokens[0];
+            	boolean enabled = true;
+            	String method = "";
+            	List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
+            	
+            	// Compatibility mode
+            	if (!tokens[1].equals("enabled") && !tokens[1].equals("disabled")) {
+	            	for (int i = 1; i < tokens.length; i++) {
+	            		if (tokens[i] == "enabled") {
+	            			enabled = true;
+	            		} else if (tokens[i] == "disabled") {
+	            			enabled = false;
+	            		} else {
+	            			authorities.add(new SimpleGrantedAuthority(tokens[i]));
+	            		}
+	            	}
+            	} else {
+            		enabled = tokens[1].equals("enabled");
+            		method = tokens[2];
+            		for (int i = 3; i < tokens.length; i++) {
+            			authorities.add(new SimpleGrantedAuthority(tokens[i]));
+            		}
+            	}
+            	m_users.put(username, new UserWithMethod(username, password, authorities, enabled, method));
+            	
+            }
         }
-        setUserProperties(m_props);
         return m_props;
     }
 
     public List<String> listUsers(boolean fExcludeAdministrators) throws IOException {
         List<String> result = new ArrayList<>();
         for (Object key : loadProperties().keySet()) {
-            if (!fExcludeAdministrators || !loadUserByUsername((String) key).getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN))) {
+            if (!fExcludeAdministrators || !loadUserByUsernameAndMethod((String) key, null).getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN))) {
                 result.add((String) key);
             }
         }
         return result;
     }
 
-    synchronized public void saveOrUpdateUser(String username, String password, String[] grantedAuthorities, boolean enabled) throws IOException {
+    synchronized public void saveOrUpdateUser(String username, String password, String[] grantedAuthorities, boolean enabled, String method) throws IOException {
         // as long as we keep all write operations in a single synchronized method, we should be safe
         Properties props = loadProperties();
         if (password == null && grantedAuthorities == null && enabled == false)
@@ -147,13 +192,18 @@ public class ReloadableInMemoryDaoImpl extends InMemoryDaoImpl {
         else
 	    {
         	String sPropValue = (passwordEncoder instanceof CustomBCryptPasswordEncoder && !((CustomBCryptPasswordEncoder) passwordEncoder).looksLikeBCrypt(password)) ? passwordEncoder.encode(password) : password;
-	        for (String authority : grantedAuthorities)
-	            sPropValue += "," + authority;
 	        sPropValue += "," + (enabled ? "enabled" : "disabled");
+	        sPropValue += "," + method;
+        	for (String authority : grantedAuthorities)
+	            sPropValue += "," + authority;
 	        props.setProperty(username, sPropValue);
 	    }
         props.store(new OutputStreamWriter(new FileOutputStream(m_resourceFile), "UTF-8"), "");
         reloadProperties();
+    }
+    
+    synchronized public void saveOrUpdateUser(String username, String password, String[] grantedAuthorities, boolean enabled) throws IOException {
+    	saveOrUpdateUser(username, password, grantedAuthorities, enabled, "");
     }
 
     public boolean deleteUser(String username) throws IOException {
@@ -280,11 +330,11 @@ public class ReloadableInMemoryDaoImpl extends InMemoryDaoImpl {
     }
 
     public void allowManagingEntity(String sModule, String entityType, Comparable entityId, String username) throws IOException {
-        UserDetails owner = loadUserByUsername(username);
-		if (owner.getAuthorities() != null && (owner.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN))))
+        UserDetails owner = loadUserByUsernameAndMethod(username, null);
+		if (owner.getAuthorities() != null && (owner.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN))))
 			return;	// no need to grant any role to administrators
 
-        GrantedAuthorityImpl role = new GrantedAuthorityImpl(sModule + UserPermissionController.ROLE_STRING_SEPARATOR + entityType + UserPermissionController.ROLE_STRING_SEPARATOR + IRoleDefinition.ENTITY_MANAGER_ROLE + UserPermissionController.ROLE_STRING_SEPARATOR + entityId);
+        SimpleGrantedAuthority role = new SimpleGrantedAuthority(sModule + UserPermissionController.ROLE_STRING_SEPARATOR + entityType + UserPermissionController.ROLE_STRING_SEPARATOR + IRoleDefinition.ENTITY_MANAGER_ROLE + UserPermissionController.ROLE_STRING_SEPARATOR + entityId);
         if (!owner.getAuthorities().contains(role)) {
             HashSet<String> authoritiesToSave = new HashSet<>();
             authoritiesToSave.add(role.getAuthority());
@@ -297,7 +347,7 @@ public class ReloadableInMemoryDaoImpl extends InMemoryDaoImpl {
 
     public int countByLoginLookup(String sLoginLookup) throws IOException {
         Authentication authorities = SecurityContextHolder.getContext().getAuthentication();
-        boolean fLoggedUserIsAdmin = authorities.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN));
+        boolean fLoggedUserIsAdmin = authorities.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
         if (sLoginLookup == null) {
             return listUsers(!fLoggedUserIsAdmin).size();
         }
@@ -313,7 +363,7 @@ public class ReloadableInMemoryDaoImpl extends InMemoryDaoImpl {
 
     public List<UserDetails> listByLoginLookup(String sLoginLookup, int max, int size) throws IOException {
         Authentication authorities = SecurityContextHolder.getContext().getAuthentication();
-        boolean fLoggedUserIsAdmin = authorities.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN));
+        boolean fLoggedUserIsAdmin = authorities.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
         List<UserDetails> result = new ArrayList<>();
         List<String> userList = listUsers(!fLoggedUserIsAdmin);
         String[] userArray = userList.toArray(new String[userList.size()]);
@@ -321,7 +371,7 @@ public class ReloadableInMemoryDaoImpl extends InMemoryDaoImpl {
         for (String sUserName : userArray) {
             if (sLoginLookup == null || sUserName.startsWith(sLoginLookup)) {
                 try {
-                    result.add(loadUserByUsername(sUserName));
+                    result.add(loadUserByUsernameAndMethod(sUserName, null));
                 } catch (UsernameNotFoundException unfe) {
                     LOG.error("Unable to load user by username", unfe);
                 }
@@ -336,5 +386,9 @@ public class ReloadableInMemoryDaoImpl extends InMemoryDaoImpl {
     public void reloadProperties()
     {
     	m_props = null;
+    }
+    
+    public int getUserCount() {
+    	return m_users.size();
     }
 }

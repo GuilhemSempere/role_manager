@@ -14,7 +14,7 @@
  * See <http://www.gnu.org/licenses/agpl.html> for details about GNU General
  * Public License V3.
 --%>
-<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" import="org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter" %>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" import="org.springframework.security.web.WebAttributes" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jstl/fmt" %>    
 
@@ -33,7 +33,7 @@
 <body onload="document.forms[0].j_username.focus();">
 
 <%
-	Exception lastException = (Exception) session.getAttribute(AbstractAuthenticationProcessingFilter.SPRING_SECURITY_LAST_EXCEPTION_KEY);
+	Exception lastException = (Exception) session.getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
 %>
 
 <center>
@@ -107,7 +107,7 @@
 </center>
 
 <%
-	session.setAttribute(AbstractAuthenticationProcessingFilter.SPRING_SECURITY_LAST_EXCEPTION_KEY, null);
+	session.setAttribute(WebAttributes.AUTHENTICATION_EXCEPTION, null);
 %>
 						  
 </body>

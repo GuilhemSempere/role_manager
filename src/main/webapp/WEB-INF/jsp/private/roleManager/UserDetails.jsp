@@ -47,7 +47,7 @@
 			</c:if>
 		}
 		
-		<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
+		<c:if test="${fn:contains(loggedUser.authorities, adminRole) && user.getMethod().isEmpty()}">
 		function cloneUser()
 		{
 			var cloneName = prompt("Enter username:");
@@ -148,6 +148,9 @@
 </head>
 
 <body style='background-color:#f0f0f0;' onload="doOnLoad();">
+	<p>
+		${user.username}<br />${loggedUser.username}
+	</p>
 	<form:form modelAttribute="user" name="userForm">
 
 	<div class="cruPageTitle">User:
@@ -260,7 +263,7 @@
 
 	<div style='margin-left:20px; margin-top:10px;'>
 		<p>
-		<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
+		<c:if test="${fn:contains(loggedUser.authorities, adminRole) && user.getMethod().isEmpty()}">
 			You can modify this user's password by typing a new password here: <input id="password" type='password' name="password" style='width:100px;' autocomplete="off"> (max-length: 20)
 		</c:if>
 		</p>
