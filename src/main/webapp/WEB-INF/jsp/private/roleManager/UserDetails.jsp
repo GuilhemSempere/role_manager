@@ -148,9 +148,6 @@
 </head>
 
 <body style='background-color:#f0f0f0;' onload="doOnLoad();">
-	<p>
-		${user.username}<br />${loggedUser.username}
-	</p>
 	<form:form modelAttribute="user" name="userForm">
 
 	<div class="cruPageTitle">User:
