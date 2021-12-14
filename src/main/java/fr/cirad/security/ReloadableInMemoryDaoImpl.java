@@ -161,6 +161,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 	            		}
 	            	}
 	            	saveOrUpdateUser(username, password, authorities.toArray(new SimpleGrantedAuthority[authorities.size()]), enabled, method);
+	            	LOG.info("Updated user info from obsolete to current structure for " + username);
             	} else {
             		enabled = tokens[1].equals("enabled");
             		method = tokens[2];
