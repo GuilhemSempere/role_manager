@@ -138,10 +138,10 @@ public class UserPermissionController
 	protected @ResponseBody Comparable[][] listUsersByLoginLookup(@RequestParam("loginLookup") String sLoginLookup, @RequestParam("page") int page, @RequestParam("size") int size) throws Exception
 	{
 		List<UserDetails> users = userDao.listByLoginLookup(sLoginLookup, Math.max(0, page), size);
-		Comparable[][] result = new Comparable[users.size()][2];
+		Comparable[][] result = new Comparable[users.size()][3];
 		for (int i=0; i<users.size(); i++)
 		{
-			UserDetails ud = users.get(i);
+			UserWithMethod ud = (UserWithMethod)users.get(i);
 			String sAuthoritySummary;
 			if (ud.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 				sAuthoritySummary = "(ADMINISTRATOR)";
@@ -154,6 +154,7 @@ public class UserPermissionController
 			}
 			result[i][0] = ud.getUsername();
 			result[i][1] = sAuthoritySummary;
+			result[i][2] = ud.getMethod().isEmpty() ? "Local" : ud.getMethod();
 		}
 		return result;
 	}

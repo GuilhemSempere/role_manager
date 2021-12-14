@@ -150,7 +150,7 @@
 <body style='background-color:#f0f0f0;' onload="doOnLoad();">
 	<form:form modelAttribute="user" name="userForm">
 
-	<div class="cruPageTitle">User:
+	<div class="cruPageTitle"><p>User:
 	<c:choose>
 		<c:when test="${!empty trimmedUsername}">
 			<b>${user.username}</b>
@@ -161,6 +161,8 @@
 			<form:input path="username" autocomplete="off"/>
 		</c:otherwise>
 	</c:choose>
+	</p>
+	<p>Authentication method : <b>${user.method}</b></p>
 	</div>
 	<br>
 

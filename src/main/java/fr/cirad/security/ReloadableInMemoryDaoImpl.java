@@ -152,20 +152,20 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
             	// Compatibility mode
             	if (!tokens[1].equals("enabled") && !tokens[1].equals("disabled")) {
 	            	for (int i = 1; i < tokens.length; i++) {
-	            		if (tokens[i] == "enabled") {
+	            		if (tokens[i].equals("enabled")) {
 	            			enabled = true;
-	            		} else if (tokens[i] == "disabled") {
+	            		} else if (tokens[i].equals("disabled")) {
 	            			enabled = false;
 	            		} else {
 	            			authorities.add(new SimpleGrantedAuthority(tokens[i]));
 	            		}
 	            	}
+	            	saveOrUpdateUser(username, password, authorities.toArray(new SimpleGrantedAuthority[authorities.size()]), enabled, method);
             	} else {
             		enabled = tokens[1].equals("enabled");
             		method = tokens[2];
-            		for (int i = 3; i < tokens.length; i++) {
-            			authorities.add(new SimpleGrantedAuthority(tokens[i]));
-            		}
+            		for (String authority : tokens[3].split(";"))
+            			authorities.add(new SimpleGrantedAuthority(authority));
             	}
             	m_users.put(username, new UserWithMethod(username, password, authorities, enabled, method));
             	
@@ -184,6 +184,16 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         return result;
     }
 
+    synchronized public void saveOrUpdateUser(String username, String password, GrantedAuthority[] grantedAuthorities, boolean enabled, String method) throws IOException {
+    	String[] stringAuthorities = null;
+    	if (grantedAuthorities != null) {
+    		stringAuthorities = new String[grantedAuthorities.length];
+	    	for (int i = 0; i < grantedAuthorities.length; i++)
+	    			stringAuthorities[i] = grantedAuthorities[i].getAuthority();
+    	}
+    	saveOrUpdateUser(username, password, stringAuthorities, enabled, method);
+    }
+    
     synchronized public void saveOrUpdateUser(String username, String password, String[] grantedAuthorities, boolean enabled, String method) throws IOException {
         // as long as we keep all write operations in a single synchronized method, we should be safe
         Properties props = loadProperties();
@@ -194,8 +204,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         	String sPropValue = (passwordEncoder instanceof CustomBCryptPasswordEncoder && !((CustomBCryptPasswordEncoder) passwordEncoder).looksLikeBCrypt(password)) ? passwordEncoder.encode(password) : password;
 	        sPropValue += "," + (enabled ? "enabled" : "disabled");
 	        sPropValue += "," + method;
-        	for (String authority : grantedAuthorities)
-	            sPropValue += "," + authority;
+	        sPropValue += "," + String.join(";", grantedAuthorities);
 	        props.setProperty(username, sPropValue);
 	    }
         props.store(new OutputStreamWriter(new FileOutputStream(m_resourceFile), "UTF-8"), "");

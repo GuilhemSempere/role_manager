@@ -135,6 +135,7 @@
 <tr>
 	<th>Login</th>
 	<th>Accessible modules</th>
+	<th>Authentication method</th>
 </tr>
 <tr>
 	<td colspan='6' height='200'></td>
