@@ -42,9 +42,8 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.GrantedAuthorityImpl;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
@@ -57,6 +56,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
 import fr.cirad.security.ReloadableInMemoryDaoImpl;
+import fr.cirad.security.UserWithMethod;
 import fr.cirad.security.base.IModuleManager;
 import fr.cirad.security.base.IRoleDefinition;
 
@@ -111,7 +111,7 @@ public class UserPermissionController
         for (String level1Type : level1Types)
         	try
         	{
-        		LinkedHashSet levelRoles = new LinkedHashSet();
+        		LinkedHashSet<String> levelRoles = new LinkedHashSet<String>();
         		levelRoles.add(IRoleDefinition.ENTITY_MANAGER_ROLE);	// this one must exist even if not declared in roles.properties
         		levelRoles.addAll(Arrays.asList(StringUtils.tokenizeToStringArray(bundle.getString(LEVEL1_ROLES + "_" + level1Type), ",")));
         		rolesByLevel1Type.put(level1Type, levelRoles);
@@ -138,12 +138,12 @@ public class UserPermissionController
 	protected @ResponseBody Comparable[][] listUsersByLoginLookup(@RequestParam("loginLookup") String sLoginLookup, @RequestParam("page") int page, @RequestParam("size") int size) throws Exception
 	{
 		List<UserDetails> users = userDao.listByLoginLookup(sLoginLookup, Math.max(0, page), size);
-		Comparable[][] result = new Comparable[users.size()][2];
+		Comparable[][] result = new Comparable[users.size()][3];
 		for (int i=0; i<users.size(); i++)
 		{
-			UserDetails ud = users.get(i);
+			UserWithMethod ud = (UserWithMethod)users.get(i);
 			String sAuthoritySummary;
-			if (ud.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+			if (ud.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 				sAuthoritySummary = "(ADMINISTRATOR)";
 			else
 			{
@@ -154,6 +154,7 @@ public class UserPermissionController
 			}
 			result[i][0] = ud.getUsername();
 			result[i][1] = sAuthoritySummary;
+			result[i][2] = ud.getMethod().isEmpty() ? "Local" : ud.getMethod();
 		}
 		return result;
 	}
@@ -163,20 +164,20 @@ public class UserPermissionController
 	{
 		model.addAttribute("rolesByLevel1Type", rolesByLevel1Type);
 
-		UserDetails user = username != null ? userDao.loadUserByUsername(username) : new User(" ", "", true, true, true, true, new ArrayList<GrantedAuthority>());
-		model.addAttribute(user);
+		UserDetails user = username != null ? userDao.loadUserByUsernameAndMethod(username, null) : new UserWithMethod(" ", "", new ArrayList<GrantedAuthority>(), true, "");
+		model.addAttribute("user", user);
 		Collection<? extends GrantedAuthority> loggedUserAuthorities = SecurityContextHolder.getContext().getAuthentication().getAuthorities();
-		boolean fIsLoggedUserAdmin = loggedUserAuthorities.contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN));
+		boolean fIsLoggedUserAdmin = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
 		Map<String /*module*/, Map<String /*entity-type*/, Collection<Comparable> /*entity-IDs*/>> managedEntitiesByModuleAndType = userDao.getManagedEntitiesByModuleAndType(loggedUserAuthorities);
 		
-		Collection<String> publicModules = new ArrayList(moduleManager.getModules(true)), publicModulesWithoutOwnedProjects = new ArrayList();
+		Collection<String> publicModules = new ArrayList<String>(moduleManager.getModules(true)), publicModulesWithoutOwnedProjects = new ArrayList();
 		if (!fIsLoggedUserAdmin)
 			for (String sModule : publicModules)	// only show modules containing entities managed by logged user
 				if (managedEntitiesByModuleAndType.get(sModule) == null)
 					publicModulesWithoutOwnedProjects.add(sModule);
 		model.addAttribute("publicModules", CollectionUtils.disjunction(publicModules, publicModulesWithoutOwnedProjects));
 		
-		Collection<String> privateModules = new ArrayList(moduleManager.getModules(false)), privateModulesWithoutOwnedProjects = new ArrayList();
+		Collection<String> privateModules = new ArrayList<String>(moduleManager.getModules(false)), privateModulesWithoutOwnedProjects = new ArrayList();
 		if (!fIsLoggedUserAdmin)
 			for (String sModule : privateModules)	// only show modules containing entities managed by logged user
 				if (managedEntitiesByModuleAndType.get(sModule) == null)
@@ -192,13 +193,13 @@ public class UserPermissionController
 		boolean fGotPassword = sPassword != null && sPassword.length() > 0;
 		boolean fCloning = "true".equals(request.getParameter("cloning"));
 
-		ArrayList<String> errors = new ArrayList<>();
+		ArrayList<String> errors = new ArrayList<String>();
 
-		UserDetails user = null;
+		UserWithMethod user = null;
 		if (fGotUserName)
 			try
 			{	
-				user = userDao.loadUserByUsername(sUserName);
+				user = (UserWithMethod)userDao.loadUserByUsernameAndMethod(sUserName, null);
 			}
 			catch (UsernameNotFoundException unfe)
 			{	// it's a new user, so make sure we have a password
@@ -213,7 +214,7 @@ public class UserPermissionController
 		HashSet<String> grantedAuthorityLabels = new HashSet<>();	// ensures unicity 
 		
 		Collection<? extends GrantedAuthority> loggedUserAuthorities = SecurityContextHolder.getContext().getAuthentication().getAuthorities();
-		if (user != null && user.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+		if (user != null && user.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			grantedAuthorityLabels.add(IRoleDefinition.ROLE_ADMIN);
 		else
 		{
@@ -263,7 +264,7 @@ public class UserPermissionController
 							else if (user != null)
 							{
 								Collection<String> writableEntityTypes = userDao.getWritableEntityTypesByModule(user.getAuthorities()).get(sModule);
-								if ((!(loggedUserAuthorities.contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN))) && writableEntityTypes != null && writableEntityTypes.contains(sEntityType)))
+								if ((!(loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN))) && writableEntityTypes != null && writableEntityTypes.contains(sEntityType)))
 									grantedAuthorityLabels.add(sRole);	// added because already existed
 							}
 						}
@@ -295,7 +296,7 @@ public class UserPermissionController
 					Map<String, Collection<Comparable>> entityIDsByRoles = rolesByEntityType.get(sEntityType);
 					for (String role : entityIDsByRoles.keySet())
 						for (Comparable entityId : entityIDsByRoles.get(role))
-							if (!(loggedUserAuthorities.contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN))) && !(loggedUserAuthorities.contains(new GrantedAuthorityImpl(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + IRoleDefinition.ENTITY_MANAGER_ROLE + ROLE_STRING_SEPARATOR + entityId))) && !entitiesOnWhichPermissionsWereExplicitlyApplied.contains(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + entityId))
+							if (!(loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN))) && !(loggedUserAuthorities.contains(new SimpleGrantedAuthority(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + IRoleDefinition.ENTITY_MANAGER_ROLE + ROLE_STRING_SEPARATOR + entityId))) && !entitiesOnWhichPermissionsWereExplicitlyApplied.contains(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + entityId))
 								grantedAuthorityLabels.add(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + role + ROLE_STRING_SEPARATOR + entityId);
 				}
 			}
@@ -306,17 +307,17 @@ public class UserPermissionController
 
 		if (errors.size() > 0 || (!fGotPassword && fCloning))
 		{
-			ArrayList<GrantedAuthority> grantedAuthorities = new ArrayList<>();
+			ArrayList<GrantedAuthority> grantedAuthorities = new ArrayList<GrantedAuthority>();
 			for (final String sGA : grantedAuthorityLabels)
-				grantedAuthorities.add(new GrantedAuthorityImpl(sGA));
-			user = new User(fGotUserName ? sUserName : " ", "", true, true, true, true, grantedAuthorities);
+				grantedAuthorities.add(new SimpleGrantedAuthority(sGA));
+			user = new UserWithMethod(fGotUserName ? sUserName : " ", "", grantedAuthorities, true, "");
 			model.addAttribute("errors", errors);
 			setupForm(model, null);
 			model.addAttribute(user);
 			return userDetailsURL.substring(0, userDetailsURL.lastIndexOf("."));
 		}
 
-		userDao.saveOrUpdateUser(sUserName, sPassword, grantedAuthorityLabels.toArray(new String[grantedAuthorityLabels.size()]), true);
+		userDao.saveOrUpdateUser(sUserName, sPassword, grantedAuthorityLabels.toArray(new String[grantedAuthorityLabels.size()]), true, (user == null) ? "" : user.getMethod());
 		return "redirect:" + userListPageURL;
 	}
 
@@ -328,7 +329,7 @@ public class UserPermissionController
 		UserDetails user = null;	// we need to support the case where the user does not exist yet
 		try
 		{
-			user = userDao.loadUserByUsername(username);
+			user = userDao.loadUserByUsernameAndMethod(username, null);
 		}
 		catch (UsernameNotFoundException ignored)
 		{}
@@ -342,8 +343,8 @@ public class UserPermissionController
 	@RequestMapping(userRemovalURL)
 	protected @ResponseBody boolean removeUser(@RequestParam("user") String sUserName) throws Exception
 	{
-		UserDetails user = userDao.loadUserByUsername(sUserName);
-		if (user != null && user.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+		UserDetails user = userDao.loadUserByUsernameAndMethod(sUserName, null);
+		if (user != null && user.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("Admin user cannot be deleted!");
 
 		return userDao.deleteUser(sUserName);
