@@ -240,20 +240,17 @@ public class UserPermissionController
 							String val = request.getParameter(param);
 							if (val.length() > 0)
 							{
-								String validAuthorityLabels = "";	// may exclude unexisting entities
 								for (String sRole : urlDecode(val).split(","))
 								{
 									String[] splittedPermission = sRole.split(Pattern.quote(ROLE_STRING_SEPARATOR));
 									if (moduleManager.doesEntityExistInModule(splittedPermission[0], splittedPermission[1], splittedPermission[3]))
 									{
 										entitiesOnWhichPermissionsWereExplicitlyApplied.add(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + splittedPermission[3]);
-										validAuthorityLabels += (validAuthorityLabels.isEmpty() ? "" : ",") + sRole;
+										grantedAuthorityLabels.add(sRole);
 									}
 									else
 										LOG.debug("skipping " + sRole);
 								}
-								if (validAuthorityLabels.length() > 0)
-									grantedAuthorityLabels.add(validAuthorityLabels);
 							}
 						}
 						else
