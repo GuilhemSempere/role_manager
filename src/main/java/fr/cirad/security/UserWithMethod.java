@@ -26,7 +26,7 @@ public class UserWithMethod implements UserDetails {
 	
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
-		return authorities;
+		return new ArrayList<GrantedAuthority>(authorities);
 	}
 
 	@Override
@@ -61,5 +61,31 @@ public class UserWithMethod implements UserDetails {
 	@Override
 	public boolean isEnabled() {
 		return enabled;
+	}
+	
+	public void setUsername(String username) {
+		this.username = username;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public void setAuthorities(Collection<? extends GrantedAuthority> authorities) {
+		this.authorities.clear();
+		this.authorities.addAll(authorities);
+	}
+
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
+
+	public void setMethod(String method) {
+		if (!method.equals(this.method)) {
+			throw new IllegalArgumentException("Tried to change user " + username + " authentication method from " +
+					(this.method.isEmpty() ? "<default>" : this.method) + " to " + (method.isEmpty() ? "<default>" : method));
+		} else {
+			this.method = method;
+		}
 	}
 }
