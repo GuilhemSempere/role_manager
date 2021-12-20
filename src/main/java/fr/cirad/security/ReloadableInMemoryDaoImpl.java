@@ -161,6 +161,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 	            		}
 	            	}
 	            	bufferSaveOrUpdateUser(username, password, authorities, enabled, method);
+					LOG.info("Updated user info from obsolete to current structure for " + username);
             	} else {
             		enabled = tokens[1].equals("enabled");
             		method = tokens[2];
@@ -249,7 +250,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     }
     
     /** Save and reload users stored in memory */
-    public void saveUsers() throws IOException {
+    synchronized public void saveUsers() throws IOException {
     	Properties props = new Properties();
     	for (String username : m_users.keySet()) {
     		UserWithMethod user = m_users.get(username);
@@ -263,7 +264,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 	    props.store(new OutputStreamWriter(new FileOutputStream(m_resourceFile), "UTF-8"), "");
     }
 
-    public boolean deleteUser(String username) throws IOException {
+    synchronized public boolean deleteUser(String username) throws IOException {
         if (!m_users.containsKey(username)) {
             return false;
         }
