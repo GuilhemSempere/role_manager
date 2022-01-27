@@ -44,7 +44,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.GrantedAuthorityImpl;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -128,7 +128,7 @@ public class BackOfficeController {
 	{
 		ModelAndView mav = new ModelAndView();
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
-		mav.addObject("loggedUser", authToken != null && !authToken.getAuthorities().contains(new GrantedAuthorityImpl ("ROLE_ANONYMOUS")) ? authToken.getPrincipal() : null);
+		mav.addObject("loggedUser", authToken != null && !authToken.getAuthorities().contains(new SimpleGrantedAuthority ("ROLE_ANONYMOUS")) ? authToken.getPrincipal() : null);
 		return mav;
 	}
 	
@@ -157,7 +157,7 @@ public class BackOfficeController {
 		UserDetails user = null;	// we need to support the case where the user does not exist yet
 		try
 		{
-			user = userDao.loadUserByUsername(username);
+			user = userDao.loadUserByUsernameAndMethod(username, null);
 		}
 		catch (UsernameNotFoundException ignored)
 		{}
@@ -169,7 +169,7 @@ public class BackOfficeController {
 		Map<Comparable, String> privateEntities = fVisibilitySupported ? moduleManager.getEntitiesByModule(entityType, false).get(module) : new HashMap<>();
 
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
-		Collection<Comparable> allowedEntities = authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)) ? null : userDao.getManagedEntitiesByModuleAndType(authToken.getAuthorities()).get(module).get(entityType);
+		Collection<Comparable> allowedEntities = (authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) ? null : userDao.getManagedEntitiesByModuleAndType(authToken.getAuthorities()).get(module).get(entityType));
 		for (Map<Comparable, String> entityMap : Arrays.asList(publicEntities, privateEntities))
 		{
 			Map<Comparable, String> allowedEntityMap = new TreeMap<Comparable, String>();
@@ -191,7 +191,7 @@ public class BackOfficeController {
 	{
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		Collection<String> modulesToManage;
-		if (authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+		if (authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			modulesToManage = moduleManager.getModules(null);
 		else
 			modulesToManage = userDao.getManagedEntitiesByModuleAndType(authToken.getAuthorities()).keySet();
@@ -236,7 +236,7 @@ public class BackOfficeController {
 	protected @ResponseBody boolean removeModuleEntity(@RequestParam("module") String sModule, @RequestParam("entityType") String sEntityType, @RequestParam("entityId") String sEntityId) throws Exception
 	{
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
-		Collection<Comparable> allowedEntities = authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)) ? null : userDao.getManagedEntitiesByModuleAndType(authToken.getAuthorities()).get(sModule).get(sEntityType);
+		Collection<Comparable> allowedEntities = authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) ? null : userDao.getManagedEntitiesByModuleAndType(authToken.getAuthorities()).get(sModule).get(sEntityType);
 		if (allowedEntities != null && !allowedEntities.stream().map(c -> c.toString()).collect(Collectors.toList()).contains(sEntityId))
 			throw new Exception("You are not allowed to remove this " + sEntityType);
 		
@@ -247,7 +247,7 @@ public class BackOfficeController {
 	protected @ResponseBody boolean modifyModuleEntityVisibility(@RequestParam("module") String sModule, @RequestParam("entityType") String sEntityType, @RequestParam("entityId") String sEntityId, @RequestParam("public") boolean fPublic) throws Exception
 	{
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
-		Collection<Comparable> allowedEntities = authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)) ? null : userDao.getManagedEntitiesByModuleAndType(authToken.getAuthorities()).get(sModule).get(sEntityType);
+		Collection<Comparable> allowedEntities = authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) ? null : userDao.getManagedEntitiesByModuleAndType(authToken.getAuthorities()).get(sModule).get(sEntityType);
 		if (allowedEntities != null && !allowedEntities.stream().map(c -> c.toString()).collect(Collectors.toList()).contains(sEntityId))
 			throw new Exception("You are not allowed to modify this " + sEntityType);
 		
