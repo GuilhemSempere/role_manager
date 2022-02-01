@@ -11,7 +11,10 @@ public class DumpMetadata {
 	
 	/** Date of creation of the dump */
 	private Date creationDate;
-	
+
+	/** Dump filesize in Mb*/
+    private int fileSizeMb;
+    
 	/** Description of the dump */
 	private String description;
 	
@@ -22,11 +25,12 @@ public class DumpMetadata {
 	private DumpValidity validity;
 	
 
-	public DumpMetadata(String sIdentifier, String sModule, String sName, Date creation, String sDescription, DumpValidity dumpValidity) {
+	public DumpMetadata(String sIdentifier, String sModule, String sName, Date creation, int nFileSizeMb, String sDescription, DumpValidity dumpValidity) {
 		identifier = sIdentifier;
 		module = sModule;
 		name = sName;
 		creationDate = creation;
+		fileSizeMb = nFileSizeMb;
 		description = sDescription;
 		validity = dumpValidity;
 	}
@@ -55,7 +59,15 @@ public class DumpMetadata {
 		this.creationDate = creationDate;
 	}
 
-	public String getDescription() {
+	public int getFileSizeMb() {
+        return fileSizeMb;
+    }
+
+    public void setFileSizeMb(int fileSizeMb) {
+        this.fileSizeMb = fileSizeMb;
+    }
+
+    public String getDescription() {
 		return description;
 	}
 

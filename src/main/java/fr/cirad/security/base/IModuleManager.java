@@ -124,9 +124,9 @@ public interface IModuleManager {
 	
 	
 	/**
-	 * @return Whether or not the dump feature is present
+	 * @return A string giving instructions for enabling dumps (empty string if already enabled)
 	 */
-	boolean hasDumps();
+	String getActionRequiredToEnableDumps();
 	
 	/**
 	 * @param sModule Module to get the dumps of
@@ -168,4 +168,6 @@ public interface IModuleManager {
 	 * @return True if the deletion succeeded, false otherwise
 	 */
 	boolean deleteDump(String sModule, String sDump);
+
+	int getModuleSizeMb(String module);
 }

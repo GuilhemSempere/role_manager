@@ -8,7 +8,7 @@ public enum DumpValidity {
 	OUTDATED(2),
 	
 	/** An older dump has been restored, this one is thus in a different and probably undesirable state */
-	UNWANTED(1),
+	DIVERGED(1),
 	
 	/** No existing dump */
 	NONE(0);

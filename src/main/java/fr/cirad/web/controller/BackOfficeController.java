@@ -21,19 +21,22 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.List;
-import java.util.ArrayList;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
@@ -41,7 +44,6 @@ import javax.servlet.http.HttpSession;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -55,9 +57,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
-import org.springframework.http.HttpStatus;
 
 import fr.cirad.security.ReloadableInMemoryDaoImpl;
 import fr.cirad.security.base.IModuleManager;
@@ -77,6 +77,7 @@ public class BackOfficeController {
 	static final public String FRONTEND_URL = "private";
 
 	static final public String DTO_FIELDNAME_HOST = "host";
+	static final public String DTO_FIELDNAME_SIZE = "size";
 	static final public String DTO_FIELDNAME_PUBLIC = "public";
 	static final public String DTO_FIELDNAME_HIDDEN = "hidden";
 	static final public String DTO_FIELDNAME_DUMPSTATUS = "dumpStatus";
@@ -136,7 +137,7 @@ public class BackOfficeController {
 	protected ModelAndView adminMenu()
 	{
 		ModelAndView mav = new ModelAndView();
-		mav.addObject("hasDumps", moduleManager.hasDumps());
+		mav.addObject("actionRequiredToEnableDumps", moduleManager.getActionRequiredToEnableDumps());
 		return mav;
 	}
 	
@@ -145,7 +146,7 @@ public class BackOfficeController {
 	{
 		ModelAndView mav = new ModelAndView(); 
 		mav.addObject("rolesByLevel1Type", UserPermissionController.rolesByLevel1Type);
-		mav.addObject("hasDump", moduleManager.hasDumps());
+		mav.addObject("actionRequiredToEnableDumps", moduleManager.getActionRequiredToEnableDumps());
 		return mav;
 	}
 	
@@ -196,18 +197,27 @@ public class BackOfficeController {
 		else
 			modulesToManage = userDao.getManagedEntitiesByModuleAndType(authToken.getAuthorities()).keySet();
 
-		Map<String, Map<String, Comparable>> result = new TreeMap<>();
+		Map<String, Map<String, Comparable>> result = new ConcurrentSkipListMap<>();
 		
 		Collection<String> publicModules = moduleManager.getModules(true);
-		for (String module : modulesToManage) {
-			Map<String, Comparable> aModuleEntry = new HashMap<>();
-			aModuleEntry.put(DTO_FIELDNAME_HOST, moduleManager.getModuleHost(module));
-			aModuleEntry.put(DTO_FIELDNAME_PUBLIC, publicModules.contains(module));
-			aModuleEntry.put(DTO_FIELDNAME_HIDDEN, moduleManager.isModuleHidden(module));
-			if (moduleManager.hasDumps())
-				aModuleEntry.put(DTO_FIELDNAME_DUMPSTATUS, moduleManager.getDumpStatus(module));
-			result.put(module, aModuleEntry);
-		}
+		
+		int nNumProc = Runtime.getRuntime().availableProcessors();
+        ExecutorService executor = new ThreadPoolExecutor(1, nNumProc * 3, 5, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(nNumProc * 6), new ThreadPoolExecutor.CallerRunsPolicy());
+		for (String module : modulesToManage)
+		    executor.execute(new Thread() {
+		        public void run() {
+        			Map<String, Comparable> aModuleEntry = new HashMap<>();
+        			aModuleEntry.put(DTO_FIELDNAME_SIZE, (Comparable) moduleManager.getModuleSizeMb(module));
+        			aModuleEntry.put(DTO_FIELDNAME_HOST, moduleManager.getModuleHost(module));
+        			aModuleEntry.put(DTO_FIELDNAME_PUBLIC, publicModules.contains(module));
+        			aModuleEntry.put(DTO_FIELDNAME_HIDDEN, moduleManager.isModuleHidden(module));
+        			if (moduleManager.getActionRequiredToEnableDumps().isEmpty())
+        				aModuleEntry.put(DTO_FIELDNAME_DUMPSTATUS, moduleManager.getDumpStatus(module));
+        			result.put(module, aModuleEntry);
+		        }
+            });
+		executor.shutdown();
+		executor.awaitTermination(Integer.MAX_VALUE, TimeUnit.DAYS);
 		return result;
 	}
 
@@ -257,10 +267,10 @@ public class BackOfficeController {
 	@GetMapping(moduleDumpInfoURL)
 	protected @ResponseBody Map<String, Object> getModuleDumpInfo(@RequestParam("module") String sModule) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
-		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+		if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to access dump data");
 		
-		if (!moduleManager.hasDumps())
+		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 		
 		List<DumpMetadata> dumps = moduleManager.getDumps(sModule);
@@ -274,10 +284,10 @@ public class BackOfficeController {
 	@GetMapping(newDumpURL)
 	protected String startDumpProcess(@RequestParam("module") String sModule, @RequestParam("name") String sName, @RequestParam("description") String sDescription) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
-		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+		if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to create new dumps");
 		
-		if (!moduleManager.hasDumps())
+		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");
 		
 		if (!moduleManager.isModuleAvailableForDump(sModule))
@@ -293,10 +303,10 @@ public class BackOfficeController {
 	@GetMapping(restoreDumpURL)
 	protected String startRestoreProcess(@RequestParam("module") String sModule, @RequestParam("dump") String sDump, @RequestParam("drop") boolean drop) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
-		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+		if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to restore dumps");
 		
-		if (!moduleManager.hasDumps())
+		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 		
 		if (!moduleManager.isModuleAvailableForDump(sModule))
@@ -309,10 +319,10 @@ public class BackOfficeController {
 	@GetMapping(dumpStatusPageURL)
 	protected ModelAndView dumpStatusPage(@RequestParam("processID") String processID) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
-		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+		if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to access dump status");
 		
-		if (!moduleManager.hasDumps())
+		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 
 		IBackgroundProcess process = dumpManager.getProcess(processID);
@@ -328,10 +338,10 @@ public class BackOfficeController {
 	@GetMapping(dumpStatusQueryURL)
 	protected @ResponseBody Map<String, Object> dumpStatusQuery(@RequestParam("processID") String processID, @RequestParam(name="logStart", required=false) Integer logStart) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
-		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+		if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to access dump status");
 		
-		if (!moduleManager.hasDumps())
+		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 		
 		IBackgroundProcess process = dumpManager.getProcess(processID);
@@ -356,7 +366,7 @@ public class BackOfficeController {
 			if (process.getStatus() == ProcessStatus.SUCCESS && processID.contains("restore")) {
 				List<DumpMetadata> dumps = moduleManager.getDumps(process.getModule());
 				for (DumpMetadata dump : dumps) {
-					if (dump.getValidity() == DumpValidity.UNWANTED) {
+					if (dump.getValidity() == DumpValidity.DIVERGED) {
 						result.put("warning", "Some dumps in this module are more recent than the one that has been restored. Remember to delete them if they are undesirable.");
 						break;
 					}
@@ -370,10 +380,10 @@ public class BackOfficeController {
 	@GetMapping(processListPageURL)
 	protected ModelAndView processListPage() throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
-		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+		if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to access dump status");
 		
-		if (!moduleManager.hasDumps())
+		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 		
 		ModelAndView mav = new ModelAndView();
@@ -383,10 +393,10 @@ public class BackOfficeController {
 	@GetMapping(processListStatusURL)
 	protected @ResponseBody List<Map<String, String>> processListStatus() throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
-		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+		if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to access dump status");
 		
-		if (!moduleManager.hasDumps())
+		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 		
 		Map<String, IBackgroundProcess> processes = dumpManager.getProcesses();
@@ -409,10 +419,10 @@ public class BackOfficeController {
 	@GetMapping(abortProcessURL)
 	protected @ResponseBody Map<String, Boolean> abortProcess(@RequestParam("processID") String processID) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
-		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+		if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to abort processes");
 		
-		if (!moduleManager.hasDumps())
+		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 		
 		Map<String, Boolean> result = new HashMap<String, Boolean>();
@@ -423,10 +433,10 @@ public class BackOfficeController {
 	@DeleteMapping(deleteDumpURL)
 	protected @ResponseBody Map<String, Boolean> deleteDump(@RequestParam("module") String module, @RequestParam("dump") String dump) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
-		if (!authToken.getAuthorities().contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+		if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to abort processes");
 		
-		if (!moduleManager.hasDumps())
+		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 		
 		Map<String, Boolean> result = new HashMap<String, Boolean>();
@@ -441,7 +451,7 @@ public class BackOfficeController {
 //
 //		ArrayList<String> authorisedModules = new ArrayList<String>();
 //		for (String sAModule : moduleManager.getModules())
-//			if (authorities == null || authorities.contains(new GrantedAuthorityImpl(IRoleDefinition.TOPLEVEL_ROLE_PREFIX + UserPermissionController.ROLE_STRING_SEPARATOR + sAModule)) || authorities.contains(new GrantedAuthorityImpl(IRoleDefinition.ROLE_ADMIN)))
+//			if (authorities == null || authorities.contains(new SimpleGrantedAuthority(IRoleDefinition.TOPLEVEL_ROLE_PREFIX + UserPermissionController.ROLE_STRING_SEPARATOR + sAModule)) || authorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 //				authorisedModules.add(sAModule);
 //
 //		return authorisedModules;

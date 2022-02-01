@@ -17,6 +17,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" import="fr.cirad.web.controller.BackOfficeController,fr.cirad.security.base.IRoleDefinition,org.springframework.security.core.context.SecurityContextHolder" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jstl/fmt"%>
 <c:set var="loggedUser" value="<%= SecurityContextHolder.getContext().getAuthentication().getPrincipal() %>" />
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
 
@@ -30,12 +31,27 @@
 	<script type="text/javascript" src="js/jquery-1.12.4.min.js"></script>
 	<script type="text/javascript" src="js/bootstrap.min.js"></script>
 	<script type="text/javascript">
+		var StringBuffer = function() {
+		    this.buffer = new Array();
+		};
+		StringBuffer.prototype.append = function(str) {
+		    this.buffer[this.buffer.length] = str;
+		};
+		StringBuffer.prototype.toString = function() {
+		    return this.buffer.join("");
+		};
+		if (!String.prototype.endsWith) {
+		   String.prototype.endsWith = function(suffix) {
+		     return this.indexOf(suffix, this.length - suffix.length) !== -1;
+		   };
+		}
+
 		var moduleData;
 		
 		const dumpValidityColors = new Map([
 		    ["VALID", "#88FF88"],
 		    ["OUTDATED", "#FFAA66"],
-		    ["UNWANTED", "#CC88FF"],
+		    ["DIVERGED", "#CC88FF"],
 		    ["NONE", "#FF8888"],
 		]);
 		
@@ -136,33 +152,36 @@
 		
 		function buildRow(key)
 		{
-		   	let rowContents = "<td><a title='Click to browse database' href='../?module=" + key + "' target='_blank'>" + key + "</a></td>";
+		   	let rowContents = new StringBuffer();
+		   	rowContents.append("<td><a title='Click to browse database' href='../?module=" + key + "' target='_blank'>" + key + "</a></td>");
+		   	let dbSize = parseInt(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_SIZE %>']);
+		   	rowContents.append("<td>" + (dbSize < 1024 ? (dbSize + " Mb") : ((dbSize / 1024).toFixed(1) + " Gb")) + "</td>");
 		   	
 		   	<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
 	   		if (moduleData[key] != null)
-	   			rowContents += "<td>" + moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HOST %>'] + "</td>";
+	   			rowContents.append("<td>" + moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HOST %>'] + "</td>");
 			</c:if>
 
-			rowContents += "<td>";
+			rowContents.append("<td>");
 			<c:forEach var="level1Type" items="${rolesByLevel1Type}">
-			rowContents += "<a id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink' style='text-transform:none;' href=\"javascript:openModuleContentDialog('${loggedUser.username}', '" + key + "', '${level1Type.key}');\">${level1Type.key} entities</a>";
+			rowContents.append("<a id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink' style='text-transform:none;' href=\"javascript:openModuleContentDialog('${loggedUser.username}', '" + key + "', '${level1Type.key}');\">${level1Type.key} entities</a>");
 			</c:forEach>
-			rowContents += "</td>";
+			rowContents.append("</td>");
 			
-			<c:if test="${hasDump}">
-			rowContents += '<td style="background-color:' + dumpValidityColors.get(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>']) + '">';
-			rowContents += "<a style=\"color:#113388;\" href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a></td>";
+			<c:if test="${fn:contains(loggedUser.authorities, adminRole) && actionRequiredToEnableDumps eq ''}">
+			rowContents.append('<td style="background-color:' + dumpValidityColors.get(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>']) + '">');
+			rowContents.append("<a style=\"color:#113388;\" href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a></td>");
 			</c:if>
 			
 			<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">	   		
 	   		if (moduleData[key] != null) {
-				rowContents += "<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol1' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>'] ? " checked" : "") + "></td>";
-				rowContents += "<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol2' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>'] ? " checked" : "") + "></td>";
+				rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol1' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>'] ? " checked" : "") + "></td>");
+				rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol2' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>'] ? " checked" : "") + "></td>");
 			}
-	   		rowContents += "<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'><input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'></td>";
-	   		rowContents += "<td align='center'><a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem(\"" + encodeURIComponent(key) + "\");' title='Discard module'><img src='img/delete.gif'></a></td>";
+	   		rowContents.append("<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'><input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'></td>");
+	   		rowContents.append("<td align='center'><a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem(\"" + encodeURIComponent(key) + "\");' title='Discard module'><img src='img/delete.gif'></a></td>");
 	   		</c:if>
-	   		return '<tr id="row_' + encodeURIComponent(key) + '">' + rowContents + '</tr>';
+	   		return '<tr id="row_' + encodeURIComponent(key) + '">' + rowContents.toString() + '</tr>';
 		}
 
 		function loadData()
@@ -219,7 +238,7 @@
 				    const container = $("#moduleDumpDialogContent").html("");
 				    
 				    if (dumpData.locked)
-						container.append("<p><strong>This module is busy, dump operations impossible for the moment</strong></p>");
+						container.append("<p><strong>This module is busy, dump operations can not be performed at the moment</strong></p>");
 				    
 				    if (dumpData.dumps.length == 0){
 				        container.append("<p><em>No existing dump</em></p>");
@@ -227,7 +246,7 @@
 					    const dumpTable = $('<table class="adminListTable"></table>');
 					    const headerRow = $('<tr></tr>');
 					    
-					    headerRow.append('<th>Validity</th><th>Dump</th><th>Creation date</th><th>Description</th>')
+					    headerRow.append('<th>Validity</th><th>Dump name</th><th>Archive size</th><th>Creation date</th><th>Description</th>')
 					    if (!dumpData.locked){
 							headerRow.append('<th>Restore</th><th>Delete</th>');
 					    }
@@ -237,6 +256,7 @@
 					        const row = $("<tr></tr>");
 					        row.append('<td style="background-color:' + dumpValidityColors.get(dumpInfo.validity) + '">' + dumpInfo.validity.toLowerCase() + '</td>');
 					        row.append("<td>" + dumpInfo.name + "</td>");
+					        row.append("<td>" + dumpInfo.fileSizeMb + " Mb</td>");
 					        const dumpDate = new Date();
 						    const dateString = dumpDate.getFullYear() + "-" + ("0" + (dumpDate.getMonth() + 1)).slice(-2) + "-" +  ("0" + dumpDate.getDate()).slice(-2) + " " + 
 	    							("0" + dumpDate.getHours()).slice(-2) + ":" + ("0" + dumpDate.getMinutes()).slice(-2) + ":" + ("0" + dumpDate.getSeconds()).slice(-2);
@@ -331,16 +351,22 @@
 			On host <select id="hosts"></select> named <input type="text" id="newModuleName" onkeypress="if (!isValidKeyForNewName(event)) { event.preventDefault(); event.stopPropagation(); }" onkeyup="$(this).next().prop('disabled', !isValidNewName($(this).val()));">
 			<input type="button" value="Create" class="btn btn-xs btn-primary" onclick="createModule($(this).prev().val(), $('#hosts').val());" disabled>
 		</div>
+		<c:if test='${fn:contains(loggedUser.authorities, adminRole) && !fn:startsWith(dumpFolder, "??") && !empty actionRequiredToEnableDumps}'>
+			<div class="margin-top-md text-danger">
+				DB dump support feature may be enabled as follows: <u>${actionRequiredToEnableDumps}</u>
+			</div>
+		</c:if>
 	</c:if>
-	<table class="adminListTable" id="moduleTable">
+	<table class="adminListTable margin-top-md" id="moduleTable">
 	<thead>
 	<tr>
 		<th>Database name</th>
+		<th>Storage size</th>
 		<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
 		<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_HOST %></th>
 		</c:if>
 		<th>Entity management</th>
-		<c:if test="${hasDump}">
+		<c:if test="${fn:contains(loggedUser.authorities, adminRole) && actionRequiredToEnableDumps eq ''}">
 		<th>Dump management</th>
 		</c:if>
 		<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
@@ -404,11 +430,11 @@
 						<table>
 							<tr>
 								<td><label for="newDumpName">Dump name</label></td>
-								<td><input type="text" id="newDumpName" name="name" pattern="^[\w\s-]*$" title="Only letters, digits, spaces, underscores and hyphens are allowed" /></td>
+								<td><input type="text" id="newDumpName" style="margin-left:5px; width:450px;" name="name" pattern="^[\w\s-]*$" title="Only letters, digits, spaces, underscores and hyphens are allowed" /></td>
 							</tr>
 							<tr>
 								<td><label for="newDumpDescription">Dump description</label></td>
-								<td><textarea id="newDumpDescription" name="description"></textarea></td>
+								<td><textarea class='margin-top-md' style="margin-left:5px; width:450px;" rows='5' id="newDumpDescription" name="description"></textarea></td>
 							</tr>
 						</table>
 					</div>
