@@ -155,7 +155,7 @@
 		   	let rowContents = new StringBuffer();
 		   	rowContents.append("<td><a title='Click to browse database' href='../?module=" + key + "' target='_blank'>" + key + "</a></td>");
 		   	let dbSize = parseInt(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_SIZE %>']);
-		   	rowContents.append("<td>" + (dbSize < 1024 ? (dbSize + " Mb") : ((dbSize / 1024).toFixed(1) + " Gb")) + "</td>");
+		   	rowContents.append("<td>" + (isNaN(dbSize) ? "" : (dbSize < 1024 ? (dbSize + " Mb") : ((dbSize / 1024).toFixed(1) + " Gb"))) + "</td>");
 		   	
 		   	<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
 	   		if (moduleData[key] != null)
