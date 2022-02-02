@@ -108,14 +108,12 @@
 </head>
 <body style='background-color:#f0f0f0; height:96%;'>
 	<div style="display: flex; height:100%; flex-direction:column;">
-		<h2 style="text-align:center; flex:0 0 1.25em;">Status of process ${processID} on database ${module}</h2>
+		<h3 style="text-align:center; flex:0 0 1.25em;">Logs for process ${processID} on database ${module}</h3>
 		<div style="text-align:center; text-transform:capitalize; font-size:24; flex:0 0 1.25em;">
-			<p id="statusCode" style="font-size:inherit;display:inline"></p>
-			<c:if test="${abortable}">
-			<button id="abortButton" class="btn btn-danger" onclick="abortProcess()" style="display:none;">Abort</button>
-			</c:if>
+			Status: <p id="statusCode" style="font-size:inherit; font-weight:bold; display:inline"></p>
+			<c:if test="${abortable}"><button id="abortButton" class="btn btn-danger margin-left" onclick="abortProcess()" style="display:none;">Abort</button></c:if>
 		</div>
-		<div id="statusMessage" style="text-align:center; flex:0 0 2em;"></div>
+		<div id="statusMessage" style="font-size: 11px; color:black; text-align:center; flex:0 0 2em; margin-bottom:5px;" class="margin-top-md"></div>
 		<div id="warning" style="text-align:center; flex:0 0 2em; padding:4px; margin-bottom:4px; background-color:#FFAA66; font-size:14;" hidden></div>
 		<pre id="log" style="max-width:900px; min-width:50%; margin:auto; overflow:auto; flex:auto; font-size:11px;"></pre>
 	</div>
