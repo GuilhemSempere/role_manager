@@ -59,14 +59,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
+import fr.cirad.manager.dump.DumpManager;
+import fr.cirad.manager.dump.DumpMetadata;
+import fr.cirad.manager.dump.DumpValidity;
+import fr.cirad.manager.dump.IBackgroundProcess;
+import fr.cirad.manager.dump.ProcessStatus;
 import fr.cirad.security.ReloadableInMemoryDaoImpl;
 import fr.cirad.security.base.IModuleManager;
 import fr.cirad.security.base.IRoleDefinition;
-import fr.cirad.security.dump.DumpManager;
-import fr.cirad.security.dump.DumpMetadata;
-import fr.cirad.security.dump.DumpValidity;
-import fr.cirad.security.dump.IBackgroundProcess;
-import fr.cirad.security.dump.ProcessStatus;
 import fr.cirad.web.controller.security.UserPermissionController;
 
 @Controller

@@ -21,9 +21,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import fr.cirad.security.dump.DumpMetadata;
-import fr.cirad.security.dump.DumpValidity;
-import fr.cirad.security.dump.IBackgroundProcess;
+import fr.cirad.manager.dump.DumpMetadata;
+import fr.cirad.manager.dump.DumpValidity;
+import fr.cirad.manager.dump.IBackgroundProcess;
 
 /**
  * @author sempere

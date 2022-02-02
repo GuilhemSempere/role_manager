@@ -1,4 +1,4 @@
-package fr.cirad.security.dump;
+package fr.cirad.manager.dump;
 
 import java.util.Collections;
 import java.util.Map;
