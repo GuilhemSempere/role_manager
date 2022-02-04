@@ -58,6 +58,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.util.HtmlUtils;
 
 import fr.cirad.manager.dump.DumpManager;
 import fr.cirad.manager.dump.DumpMetadata;
@@ -363,7 +364,7 @@ public class BackOfficeController {
 			result.put("processID", processID);
 			result.put("status", process.getStatus().label);
 			result.put("message", process.getStatusMessage());
-			result.put("log", log);
+			result.put("log", HtmlUtils.htmlEscape(log));
 			result.put("warning", null);
 			if (process.getStatus() == ProcessStatus.SUCCESS && processID.contains("restore")) {
 				List<DumpMetadata> dumps = moduleManager.getDumps(process.getModule());
