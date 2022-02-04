@@ -56,6 +56,14 @@
 		    ["NONE", "#FF8888"],
 		]);
 
+		const dumpValidityTips = new Map([
+		    ["VALID", "Up to date"],
+		    ["OUTDATED", "Out of date"],
+		    ["DIVERGED", "Divergent"],
+		    ["BUSY", "Writing locked"],
+		    ["NONE", "No existing dump"],
+		]);
+
 		<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
 		function createModule(moduleName, host)
 		{
@@ -170,7 +178,7 @@
 			rowContents.append("</td>");
 
 			<c:if test="${fn:contains(loggedUser.authorities, adminRole) && actionRequiredToEnableDumps eq ''}">
-			rowContents.append('<td style="background-color:' + dumpValidityColors.get(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>']) + '">');
+			rowContents.append('<td style="background-color:' + dumpValidityColors.get(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>']) + '" data-toggle="tooltip" title="' + dumpValidityTips.get(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>']) + '">');
 			rowContents.append("<a style=\"color:#113388;\" href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a></td>");
 			</c:if>
 
