@@ -34,34 +34,34 @@ public interface IModuleManager {
 	 * @return collection of db host names available in the system
 	 */
 	Collection<String> getHosts();
-	
+
 	/**
 	 * @param fTrueForPublicFalseForPrivateNullForBoth
 	 * @return collection of modules (i.e. databases) declared in the system
 	 */
 	Collection<String> getModules(Boolean fTrueForPublicFalseForPrivateNullForBoth);
-	
+
 	/**
 	 * @param entityType
 	 * @param fTrueForPublicFalseForPrivateNullForAny
 	 * @return for each module, a map containing entity id as key, entity label as value
 	 */
 	Map<String, Map<Comparable, String>> getEntitiesByModule(String entityType, Boolean fTrueForPublicFalseForPrivateNullForAny);
-	
+
 	/**
 	 * @param sModule
 	 * @return whether or not the module is hidden (should not be listed by default)
 	 */
 	boolean isModuleHidden(String sModule);
-	
+
 	/**
 	 * @param sModule
 	 * @param fAlsoDropDatabase
 	 * @return whether or not module removal succeeded
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	boolean removeDataSource(String sModule, boolean fAlsoDropDatabase) throws IOException;
-	
+
 	/**
 	 * @param sModule
 	 * @param fPublic
@@ -71,7 +71,7 @@ public interface IModuleManager {
 	 * @throws Exception
 	 */
 	boolean updateDataSource(String sModule, boolean fPublic, boolean fHidden, String ncbiTaxonIdNameAndSpecies) throws Exception;
-	
+
 	/**
 	 * @param sModule
 	 * @param sHost
@@ -81,7 +81,7 @@ public interface IModuleManager {
 	 * @throws Exception
 	 */
 	boolean createDataSource(String sModule, String sHost, String ncbiTaxonIdNameAndSpecies, Long expiryDate) throws Exception;
-	
+
 	/**
 	 * @param sModule
 	 * @param sEntityType
@@ -90,7 +90,7 @@ public interface IModuleManager {
 	 * @throws Exception
 	 */
 	boolean removeManagedEntity(String sModule, String sEntityType, Comparable entityId) throws Exception;
-	
+
 	/**
 	 * @param sModule
 	 * @param sEntityType
@@ -98,7 +98,7 @@ public interface IModuleManager {
 	 * @return whether or not entity exists in module
 	 */
 	boolean doesEntityExistInModule(String sModule, String sEntityType, Comparable entityId);
-	
+
 	/**
 	 * @param sModule
 	 * @param sEntityType
@@ -121,25 +121,25 @@ public interface IModuleManager {
 	 * @return name of the host this module's data is stored on
 	 */
 	String getModuleHost(String sModule);
-	
-	
+
+
 	/**
 	 * @return A string giving instructions for enabling dumps (empty string if already enabled)
 	 */
 	String getActionRequiredToEnableDumps();
-	
+
 	/**
 	 * @param sModule Module to get the dumps of
 	 * @return List of existing dumps for the given module
 	 */
 	List<DumpMetadata> getDumps(String sModule);
-	
+
 	/**
 	 * @param sModule Module to get the dump status of
-	 * @return The dump status of the module (VALID = There is an up to date dump, OUTDATED = All dumps are outdated, NONE = No existing dump)
+	 * @return The dump status of the module (VALID = There is an up to date dump, OUTDATED = All dumps are outdated, BUSY = Can't do anything right now, NONE = No existing dump)
 	 */
 	DumpValidity getDumpStatus(String sModule);
-	
+
 	/**
 	 * @param sModule Module to dump
 	 * @param sName Name of the new dump
@@ -147,7 +147,7 @@ public interface IModuleManager {
 	 * @return Started dump process
 	 */
 	IBackgroundProcess startDump(String sModule, String sName, String sDescription);
-	
+
 	/**
 	 * @param sModule Module to dump
 	 * @param sDump Dump to restore
@@ -155,13 +155,13 @@ public interface IModuleManager {
 	 * @return Started restore process
 	 */
 	IBackgroundProcess startRestore(String sModule, String sDump, boolean drop);
-	
+
 	/**
 	 * @param sModule Module to check
 	 * @return Whether or not a dump process can be started on the module
 	 */
 	boolean isModuleAvailableForDump(String sModule);
-	
+
 	/**
 	 * @param sModule Module the dump belongs to
 	 * @param sDump Name of the dump to delete

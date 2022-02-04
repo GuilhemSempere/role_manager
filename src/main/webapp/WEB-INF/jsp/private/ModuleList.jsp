@@ -24,7 +24,7 @@
 <html>
 
 <head>
-	<link type="text/css" rel="stylesheet" href="css/bootstrap-select.min.css "> 
+	<link type="text/css" rel="stylesheet" href="css/bootstrap-select.min.css ">
 	<link type="text/css" rel="stylesheet" href="css/bootstrap.min.css">
 	<link media="screen" type="text/css" href="css/role_manager.css" rel="StyleSheet" />
 	<link media="screen" type="text/css" href="../css/main.css" rel="StyleSheet" />
@@ -47,14 +47,15 @@
 		}
 
 		var moduleData;
-		
+
 		const dumpValidityColors = new Map([
 		    ["VALID", "#88FF88"],
 		    ["OUTDATED", "#FFAA66"],
 		    ["DIVERGED", "#CC88FF"],
+		    ["BUSY", "#AAAAAA"],
 		    ["NONE", "#FF8888"],
 		]);
-		
+
 		<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
 		function createModule(moduleName, host)
 		{
@@ -74,11 +75,11 @@
 				}
 			}).error(function(xhr) { handleError(xhr); });
 		}
-		
+
 		function handleError(xhr) {
 			if (!xhr.getAllResponseHeaders())
 				return;	// user is probably leaving the current page
-			
+
 		    if (xhr.status == 403) {
 		        alert("You do not have access to this resource");
 		        return;
@@ -95,7 +96,7 @@
 		  	}
 		  	alert(errorMsg);
 		}
-		
+
 		function removeItem(moduleName)
 		{
 			let itemRow = $("#row_" + moduleName);
@@ -131,7 +132,7 @@
 				}
 			}).error(function(xhr) { handleError(xhr); });
 		}
-		
+
 		function resetFlags(moduleName)
 		{
 			let itemRow = $("#row_" + moduleName);
@@ -139,7 +140,7 @@
 			itemRow.find(".flagCol2").prop("checked", moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>']);
 			setDirty(moduleName, false);
 		}
-		
+
 		function setDirty(moduleName, flag)
 		{
 			let itemRow = $("#row_" + moduleName);
@@ -149,14 +150,14 @@
 		}
 		</c:if>
 
-		
+
 		function buildRow(key)
 		{
 		   	let rowContents = new StringBuffer();
 		   	rowContents.append("<td><a title='Click to browse database' href='../?module=" + key + "' target='_blank'>" + key + "</a></td>");
 		   	let dbSize = parseFloat(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_SIZE %>']);
 		   	rowContents.append("<td>" + formatFileSize(dbSize) + "</td>");
-		   	
+
 		   	<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
 	   		if (moduleData[key] != null)
 	   			rowContents.append("<td>" + moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HOST %>'] + "</td>");
@@ -167,13 +168,13 @@
 			rowContents.append("<a id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink' style='text-transform:none;' href=\"javascript:openModuleContentDialog('${loggedUser.username}', '" + key + "', '${level1Type.key}');\">${level1Type.key} entities</a>");
 			</c:forEach>
 			rowContents.append("</td>");
-			
+
 			<c:if test="${fn:contains(loggedUser.authorities, adminRole) && actionRequiredToEnableDumps eq ''}">
 			rowContents.append('<td style="background-color:' + dumpValidityColors.get(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>']) + '">');
 			rowContents.append("<a style=\"color:#113388;\" href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a></td>");
 			</c:if>
-			
-			<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">	   		
+
+			<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
 	   		if (moduleData[key] != null) {
 				rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol1' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>'] ? " checked" : "") + "></td>");
 				rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol2' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>'] ? " checked" : "") + "></td>");
@@ -193,14 +194,14 @@
 				for (var key in moduleData)
 			   		tableBody.append(buildRow(key));
 			});
-			
+
 			$.getJSON('<c:url value="<%=BackOfficeController.hostListURL%>" />', {}, function(jsonResult){
 				$("#hosts").html("");
 				for (var key in jsonResult)
 					$("#hosts").append("<option value='" + jsonResult [key]+ "'>" + jsonResult [key]+ "</option>");
 			});
 		}
-		
+
     	function isValidKeyForNewName(evt)
     	{
              return isValidCharForNewName((evt.which) ? evt.which : evt.keyCode);
@@ -219,7 +220,7 @@
                 }
             return true;
         }
-        
+
 		function openModuleContentDialog(username, module, entityType)
 		{
 	    	$('#moduleContentFrame').contents().find("body").html("");
@@ -227,7 +228,7 @@
 	        $("#moduleContentDialog").modal('show');
 	        $("#moduleContentFrame").attr('src', '<c:url value="<%= BackOfficeController.moduleContentPageURL %>" />?user=' + username + '&module=' + module + '&entityType=' + entityType);
 		}
-		
+
 		function formatFileSize(sizeInBytes) {
 			if (isNaN(sizeInBytes))
 				return "";
@@ -239,7 +240,7 @@
 				return parseFloat(sizeInBytes / 1024).toFixed(1) + " KB";
 			return sizeInBytes.toFixed(1) + " B";
 		}
-		
+
 		function openModuleDumpDialog(module){
 		    $("#moduleDumpDialogTitle").html("Dump management for database <u>" + module + "</u>");
 			$("#moduleDumpDialog").modal('show');
@@ -247,51 +248,51 @@
 			$.get('<c:url value="<%= BackOfficeController.moduleDumpInfoURL %>" />', {module: module})
 				.then(function (dumpData){
 				    const container = $("#moduleDumpDialogContent").html("");
-				    
+
 				    if (dumpData.locked)
 						container.append("<p><strong>This module is busy, dump operations can not be performed at the moment</strong></p>");
-				    
+
 				    if (dumpData.dumps.length == 0){
 				        container.append("<p><em>No existing dump</em></p>");
 				    } else {
 					    const dumpTable = $('<table class="adminListTable"></table>');
 					    const headerRow = $('<tr></tr>');
-					    
+
 					    headerRow.append('<th>Validity</th><th>Dump name</th><th>Archive size</th><th>Creation date</th><th>Description</th>')
 					    if (!dumpData.locked){
 							headerRow.append('<th>Restore</th><th>Delete</th>');
 					    }
 					    dumpTable.append(headerRow);
-					    
+
 					    dumpData.dumps.forEach(function (dumpInfo) {
 					        const row = $("<tr></tr>");
 					        row.append('<td style="background-color:' + dumpValidityColors.get(dumpInfo.validity) + '">' + dumpInfo.validity.toLowerCase() + '</td>');
 					        row.append("<td>" + dumpInfo.name + "</td>");
 					        row.append("<td>" + formatFileSize(dumpInfo.fileSizeMb) + "</td>");
 					        const dumpDate = new Date();
-						    const dateString = dumpDate.getFullYear() + "-" + ("0" + (dumpDate.getMonth() + 1)).slice(-2) + "-" +  ("0" + dumpDate.getDate()).slice(-2) + " " + 
+						    const dateString = dumpDate.getFullYear() + "-" + ("0" + (dumpDate.getMonth() + 1)).slice(-2) + "-" +  ("0" + dumpDate.getDate()).slice(-2) + " " +
 	    							("0" + dumpDate.getHours()).slice(-2) + ":" + ("0" + dumpDate.getMinutes()).slice(-2) + ":" + ("0" + dumpDate.getSeconds()).slice(-2);
 					        row.append("<td>" + dateString + "</td>");
 					        row.append("<td>" + dumpInfo.description.replaceAll(/\r?\n/mg, "<br />") + "</td>");
-					        
+
 					        if (!dumpData.locked){
 								const restoreButton = $('<button class="btn btn-sm btn-primary">Restore</button>').on("click", () => confirmDumpRestore(module, dumpInfo));
 								const restoreCell = $("<td></td>").append(restoreButton);
 								row.append(restoreCell);
-								
+
 								const deleteButton = $('<a><img src="img/delete.gif" /></a>').on("click", () => deleteDump(module, dumpInfo));
 								const deleteCell = $('<td align="center"></td>').append(deleteButton);
 								row.append(deleteCell);
 					        }
-					        
+
 					        dumpTable.append(row);
 					    });
-					    
+
 					    container.append(dumpTable);
 				    }
-					
+
 				    const now = new Date();
-				    const dateString = now.getFullYear() + ("0" + (now.getMonth() + 1)).slice(-2) + ("0" + now.getDate()).slice(-2) + "_" + 
+				    const dateString = now.getFullYear() + ("0" + (now.getMonth() + 1)).slice(-2) + ("0" + now.getDate()).slice(-2) + "_" +
 				    					("0" + now.getHours()).slice(-2) + ("0" + now.getMinutes()).slice(-2) + ("0" + now.getSeconds()).slice(-2);
 				    $("#newDumpDialogTitle").html("New dump for module <strong>" + module + "</strong>");
 				    $("#newDumpName").val("dump_" + module + "_" + dateString);
@@ -307,26 +308,26 @@
 				    }
 			});
 		}
-		
+
 		function confirmDumpRestore(module, dumpInfo){
 		    const restoreURL = '<c:url value="<%= BackOfficeController.restoreDumpURL %>" />?module=' + module + '&dump=' + dumpInfo.identifier;
 		    $("#restoreConfirmationTitle").html("Restore dump " + dumpInfo.name + " ?");
-		    
+
 		    $("#dropCheck").prop("checked", true).on("change", function (){
 		    	let url = $("#confirmRestoreButton").attr("href");
 		    	url = url.replace(/&drop=.*$/, "&drop=" + $("#dropCheck").is(":checked"));
 		    	$("#confirmRestoreButton").attr("href", url);
 		    });
-		    
+
 		    $("#confirmRestoreButton").attr("href", restoreURL + "&drop=true").on("click", function (){
 		        $("#restoreConfirmationDialog").modal("hide");
 		        $("#moduleDumpDialog").modal("hide");
 		        return true;
 		    });
-		    
+
 		    $("#restoreConfirmationDialog").modal("show");
 		}
-		
+
 		function deleteDump(module, dumpInfo){
 		    if (window.confirm("Delete dump " + dumpInfo.name + " of module " + module + " ?")){
 		        const deleteURL = '<c:url value="<%= BackOfficeController.deleteDumpURL %>" />?module=' + module + '&dump=' + dumpInfo.identifier;
@@ -336,7 +337,7 @@
 		        }).then(() => window.location.reload());
 		    }
 		}
-		
+
 		function resizeIFrame() {
 			$('#moduleContentFrame').css('height', (document.body.clientHeight - 200)+'px');
 		}
@@ -348,7 +349,7 @@
 	    $(window).resize(function() {
 	    	resizeIFrame();
 	    });
-	    
+
 	    function refreshTable() {
 	        window.location.reload();
 	    }
@@ -408,7 +409,7 @@
 			</div>
 		</div>
 	</div>
-	
+
 	<div class="modal fade" tabindex="-1" role="dialog" id="moduleDumpDialog" aria-hidden="true">
 		<div class="modal-dialog modal-lg">
 			<div class="modal-content">
@@ -428,7 +429,7 @@
 			</div>
 		</div>
 	</div>
-	
+
 	<div class="modal fade" role="dialog" id="newDumpDialog" aria-hidden="true">
 		<div class="modal-dialog modal-md">
 			<div class="modal-content">
@@ -457,7 +458,7 @@
 			</div>
 		</div>
 	</div>
-	
+
 	<div class="modal fade" role="dialog" id="restoreConfirmationDialog" aria-hidden="true">
 		<div class="modal-dialog modal-md">
 			<div class="modal-content">
