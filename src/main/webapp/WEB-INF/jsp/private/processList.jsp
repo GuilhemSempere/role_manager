@@ -69,9 +69,9 @@
 		<thead>
 			<tr>
 				<th>Process ID</th>
-				<th>Module</th>
+				<th>Database</th>
 				<th>Status</th>
-				<th>Status message</th>
+				<th>Execution message</th>
 				<th>Details</th>
 			</tr>
 		</thead>
