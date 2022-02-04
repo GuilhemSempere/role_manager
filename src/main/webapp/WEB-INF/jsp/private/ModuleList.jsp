@@ -277,7 +277,7 @@
 					        row.append('<td style="background-color:' + dumpValidityColors.get(dumpInfo.validity) + '">' + dumpInfo.validity.toLowerCase() + '</td>');
 					        row.append("<td>" + dumpInfo.name + "</td>");
 					        row.append("<td>" + formatFileSize(dumpInfo.fileSizeMb) + "</td>");
-					        const dumpDate = new Date();
+					        const dumpDate = new Date(dumpInfo.creationDate);
 						    const dateString = dumpDate.getFullYear() + "-" + ("0" + (dumpDate.getMonth() + 1)).slice(-2) + "-" +  ("0" + dumpDate.getDate()).slice(-2) + " " +
 	    							("0" + dumpDate.getHours()).slice(-2) + ":" + ("0" + dumpDate.getMinutes()).slice(-2) + ":" + ("0" + dumpDate.getSeconds()).slice(-2);
 					        row.append("<td>" + dateString + "</td>");
