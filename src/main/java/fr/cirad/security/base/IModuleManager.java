@@ -169,5 +169,9 @@ public interface IModuleManager {
 	 */
 	boolean deleteDump(String sModule, String sDump);
 
-	int getModuleSizeMb(String module);
+	   /**
+     * @param sModule Module the dump belongs to
+     * @return DB's storage size in bytes
+     */
+	long getModuleSize(String sModule);
 }

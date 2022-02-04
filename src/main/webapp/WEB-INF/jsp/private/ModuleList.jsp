@@ -154,8 +154,8 @@
 		{
 		   	let rowContents = new StringBuffer();
 		   	rowContents.append("<td><a title='Click to browse database' href='../?module=" + key + "' target='_blank'>" + key + "</a></td>");
-		   	let dbSize = parseInt(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_SIZE %>']);
-		   	rowContents.append("<td>" + (isNaN(dbSize) ? "" : (dbSize < 1024 ? (dbSize + " Mb") : ((dbSize / 1024).toFixed(1) + " Gb"))) + "</td>");
+		   	let dbSize = parseFloat(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_SIZE %>']);
+		   	rowContents.append("<td>" + formatFileSize(dbSize) + "</td>");
 		   	
 		   	<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
 	   		if (moduleData[key] != null)
@@ -228,6 +228,17 @@
 	        $("#moduleContentFrame").attr('src', '<c:url value="<%= BackOfficeController.moduleContentPageURL %>" />?user=' + username + '&module=' + module + '&entityType=' + entityType);
 		}
 		
+		function formatFileSize(sizeInBytes) {
+			if (isNaN(sizeInBytes))
+				return "";
+			if (sizeInBytes >= 1073741824)
+				return parseFloat(sizeInBytes / 1073741824).toFixed(1) + " GB";
+			if (sizeInBytes >= 1048576)
+				return parseFloat(sizeInBytes / 1048576).toFixed(1) + " MB";
+			if (sizeInBytes >= 1024)
+				return parseFloat(sizeInBytes / 1024).toFixed(1) + " KB";
+			return sizeInBytes.toFixed(1) + " B";
+		}
 		
 		function openModuleDumpDialog(module){
 		    $("#moduleDumpDialogTitle").html("Dump management for database <u>" + module + "</u>");
@@ -256,7 +267,7 @@
 					        const row = $("<tr></tr>");
 					        row.append('<td style="background-color:' + dumpValidityColors.get(dumpInfo.validity) + '">' + dumpInfo.validity.toLowerCase() + '</td>');
 					        row.append("<td>" + dumpInfo.name + "</td>");
-					        row.append("<td>" + dumpInfo.fileSizeMb + " Mb</td>");
+					        row.append("<td>" + formatFileSize(dumpInfo.fileSizeMb) + "</td>");
 					        const dumpDate = new Date();
 						    const dateString = dumpDate.getFullYear() + "-" + ("0" + (dumpDate.getMonth() + 1)).slice(-2) + "-" +  ("0" + dumpDate.getDate()).slice(-2) + " " + 
 	    							("0" + dumpDate.getHours()).slice(-2) + ":" + ("0" + dumpDate.getMinutes()).slice(-2) + ":" + ("0" + dumpDate.getSeconds()).slice(-2);

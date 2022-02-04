@@ -207,7 +207,9 @@ public class BackOfficeController {
 		    executor.execute(new Thread() {
 		        public void run() {
         			Map<String, Comparable> aModuleEntry = new HashMap<>();
-        			aModuleEntry.put(DTO_FIELDNAME_SIZE, (Comparable) moduleManager.getModuleSizeMb(module));
+        			double storageSize = moduleManager.getModuleSize(module);
+        			if (storageSize > 0)
+        			    aModuleEntry.put(DTO_FIELDNAME_SIZE, (Comparable) storageSize);
         			aModuleEntry.put(DTO_FIELDNAME_HOST, moduleManager.getModuleHost(module));
         			aModuleEntry.put(DTO_FIELDNAME_PUBLIC, publicModules.contains(module));
         			aModuleEntry.put(DTO_FIELDNAME_HIDDEN, moduleManager.isModuleHidden(module));
