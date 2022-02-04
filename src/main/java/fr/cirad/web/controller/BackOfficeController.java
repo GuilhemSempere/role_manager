@@ -73,7 +73,7 @@ import fr.cirad.web.controller.security.UserPermissionController;
 public class BackOfficeController {
 
 	private static final Logger LOG = Logger.getLogger(BackOfficeController.class);
-	
+
 	static final public String FRONTEND_URL = "private";
 
 	static final public String DTO_FIELDNAME_HOST = "host";
@@ -81,7 +81,7 @@ public class BackOfficeController {
 	static final public String DTO_FIELDNAME_PUBLIC = "public";
 	static final public String DTO_FIELDNAME_HIDDEN = "hidden";
 	static final public String DTO_FIELDNAME_DUMPSTATUS = "dumpStatus";
-	
+
 	static final public String mainPageURL = "/" + FRONTEND_URL + "/main.do_";
 	static final public String homePageURL = "/" + FRONTEND_URL + "/home.do_";
 	static final public String topFrameURL = "/" + FRONTEND_URL + "/topBanner.do_";
@@ -95,7 +95,7 @@ public class BackOfficeController {
 	static final public String moduleEntityRemovalURL = "/" + FRONTEND_URL + "/removeModuleEntity.json_";
 	static final public String moduleEntityVisibilityURL = "/" + FRONTEND_URL + "/entityVisibility.json_";
     static final public String hostListURL = "/" + FRONTEND_URL + "/hosts.json_";
-    
+
     static final public String moduleDumpInfoURL = "/" + FRONTEND_URL + "/moduleDumpInfo.json_";
     static final public String newDumpURL = "/" + FRONTEND_URL + "/newDump.do_";
     static final public String restoreDumpURL = "/" + FRONTEND_URL + "/restoreDump.do_";
@@ -109,7 +109,7 @@ public class BackOfficeController {
 	@Autowired private IModuleManager moduleManager;
 	@Autowired private ReloadableInMemoryDaoImpl userDao;
 	@Autowired private DumpManager dumpManager;
-	
+
 	@RequestMapping(mainPageURL)
 	protected ModelAndView mainPage(HttpSession session) throws Exception
 	{
@@ -132,7 +132,7 @@ public class BackOfficeController {
 		mav.addObject("loggedUser", authToken != null && !authToken.getAuthorities().contains(new SimpleGrantedAuthority ("ROLE_ANONYMOUS")) ? authToken.getPrincipal() : null);
 		return mav;
 	}
-	
+
 	@RequestMapping(adminMenuURL)
 	protected ModelAndView adminMenu()
 	{
@@ -140,16 +140,16 @@ public class BackOfficeController {
 		mav.addObject("actionRequiredToEnableDumps", moduleManager.getActionRequiredToEnableDumps());
 		return mav;
 	}
-	
+
 	@RequestMapping(moduleListPageURL)
 	public ModelAndView setupList()
 	{
-		ModelAndView mav = new ModelAndView(); 
+		ModelAndView mav = new ModelAndView();
 		mav.addObject("rolesByLevel1Type", UserPermissionController.rolesByLevel1Type);
 		mav.addObject("actionRequiredToEnableDumps", moduleManager.getActionRequiredToEnableDumps());
 		return mav;
 	}
-	
+
 	@RequestMapping(moduleContentPageURL)
 	public void moduleContentPage(Model model, @RequestParam("user") String username, @RequestParam("module") String module, @RequestParam("entityType") String entityType)
 	{
@@ -163,7 +163,7 @@ public class BackOfficeController {
 		catch (UsernameNotFoundException ignored)
 		{}
 		model.addAttribute("user", user);
-		
+
 		boolean fVisibilitySupported = moduleManager.doesEntityTypeSupportVisibility(module, entityType);
 		model.addAttribute("visibilitySupported", fVisibilitySupported);
 		Map<Comparable, String> publicEntities = moduleManager.getEntitiesByModule(entityType, fVisibilitySupported ? true : null).get(module);
@@ -198,9 +198,9 @@ public class BackOfficeController {
 			modulesToManage = userDao.getManagedEntitiesByModuleAndType(authToken.getAuthorities()).keySet();
 
 		Map<String, Map<String, Comparable>> result = new ConcurrentSkipListMap<>();
-		
+
 		Collection<String> publicModules = moduleManager.getModules(true);
-		
+
 		int nNumProc = Runtime.getRuntime().availableProcessors();
         ExecutorService executor = new ThreadPoolExecutor(1, nNumProc * 3, 5, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(nNumProc * 6), new ThreadPoolExecutor.CallerRunsPolicy());
 		for (String module : modulesToManage)
@@ -229,14 +229,14 @@ public class BackOfficeController {
 	{
 		return moduleManager.updateDataSource(sModule, fPublic, fHidden, null);
 	}
-	
+
 	@RequestMapping(moduleCreationURL)
 	@PreAuthorize("hasRole(IRoleDefinition.ROLE_ADMIN)")
 	protected @ResponseBody boolean createModule(@RequestParam("module") String sModule, @RequestParam("host") String sHost) throws Exception
 	{
 		return moduleManager.createDataSource(sModule, sHost, null, null);
 	}
-	
+
 	@RequestMapping(moduleRemovalURL)
 	@PreAuthorize("hasRole(IRoleDefinition.ROLE_ADMIN)")
 	protected @ResponseBody boolean removeModule(@RequestParam("module") String sModule) throws Exception
@@ -251,10 +251,10 @@ public class BackOfficeController {
 		Collection<Comparable> allowedEntities = authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) ? null : userDao.getManagedEntitiesByModuleAndType(authToken.getAuthorities()).get(sModule).get(sEntityType);
 		if (allowedEntities != null && !allowedEntities.stream().map(c -> c.toString()).collect(Collectors.toList()).contains(sEntityId))
 			throw new Exception("You are not allowed to remove this " + sEntityType);
-		
+
 		return moduleManager.removeManagedEntity(sModule, sEntityType, sEntityId);
 	}
-	
+
 	@RequestMapping(moduleEntityVisibilityURL)
 	protected @ResponseBody boolean modifyModuleEntityVisibility(@RequestParam("module") String sModule, @RequestParam("entityType") String sEntityType, @RequestParam("entityId") String sEntityId, @RequestParam("public") boolean fPublic) throws Exception
 	{
@@ -262,19 +262,19 @@ public class BackOfficeController {
 		Collection<Comparable> allowedEntities = authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) ? null : userDao.getManagedEntitiesByModuleAndType(authToken.getAuthorities()).get(sModule).get(sEntityType);
 		if (allowedEntities != null && !allowedEntities.stream().map(c -> c.toString()).collect(Collectors.toList()).contains(sEntityId))
 			throw new Exception("You are not allowed to modify this " + sEntityType);
-		
+
 		return moduleManager.setManagedEntityVisibility(sModule, sEntityType, sEntityId, fPublic);
 	}
-	
+
 	@GetMapping(moduleDumpInfoURL)
 	protected @ResponseBody Map<String, Object> getModuleDumpInfo(@RequestParam("module") String sModule) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to access dump data");
-		
+
 		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
-		
+
 		List<DumpMetadata> dumps = moduleManager.getDumps(sModule);
 		dumps.sort((dump1, dump2) -> dump2.getCreationDate().compareTo(dump1.getCreationDate()));
 		Map<String, Object> result = new HashMap<String, Object>();
@@ -288,47 +288,47 @@ public class BackOfficeController {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to create new dumps");
-		
+
 		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");
-		
+
 		if (!moduleManager.isModuleAvailableForDump(sModule))
 			throw new Exception("The module is already busy, dump operation impossible");
-		
+
 		String dumpName = sName.replaceAll("(_|[^\\w-])+", "_");
 		if (dumpName.matches("_*"))
 			dumpName = "dump_" + sModule + "_" + DateTimeFormatter.ofPattern("uuuuMMdd_HHmmss").format(LocalDateTime.now());
 		String processID = dumpManager.startDumpProcess(sModule, dumpName, sDescription, authToken);
 		return "redirect:" + dumpStatusPageURL + "?processID=" + processID;
 	}
-	
+
 	@GetMapping(restoreDumpURL)
 	protected String startRestoreProcess(@RequestParam("module") String sModule, @RequestParam("dump") String sDump, @RequestParam("drop") boolean drop) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to restore dumps");
-		
+
 		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
-		
+
 		if (!moduleManager.isModuleAvailableForDump(sModule))
 			throw new Exception("The module is already busy, dump operation impossible");
-		
+
 		String processID = dumpManager.startRestoreProcess(sModule, sDump, drop, authToken);
 		return "redirect:" + dumpStatusPageURL + "?processID=" + processID;
 	}
-	
+
 	@GetMapping(dumpStatusPageURL)
 	protected ModelAndView dumpStatusPage(@RequestParam("processID") String processID) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to access dump status");
-		
+
 		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 
 		IBackgroundProcess process = dumpManager.getProcess(processID);
-		
+
 		ModelAndView mav = new ModelAndView("private/dumpStatus");
 		mav.addObject("processID", processID);
 		mav.addObject("abortable", process == null ? false : process.isAbortable());
@@ -336,18 +336,18 @@ public class BackOfficeController {
 		mav.addObject("abortWarning", process.getAbortWarning());
 		return mav;
 	}
-	
+
 	@GetMapping(dumpStatusQueryURL)
 	protected @ResponseBody Map<String, Object> dumpStatusQuery(@RequestParam("processID") String processID, @RequestParam(name="logStart", required=false) Integer logStart) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to access dump status");
-		
+
 		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
-		
+
 		IBackgroundProcess process = dumpManager.getProcess(processID);
-		
+
 		Map<String, Object> result = new HashMap<String, Object>();
 		if (process == null) {
 			result.put("processID", processID);
@@ -375,36 +375,36 @@ public class BackOfficeController {
 				}
 			}
 		}
-		
+
 		return result;
 	}
-	
+
 	@GetMapping(processListPageURL)
 	protected ModelAndView processListPage() throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to access dump status");
-		
+
 		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
-		
+
 		ModelAndView mav = new ModelAndView();
 		return mav;
 	}
-	
+
 	@GetMapping(processListStatusURL)
 	protected @ResponseBody List<Map<String, String>> processListStatus() throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to access dump status");
-		
+
 		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
-		
+
 		Map<String, IBackgroundProcess> processes = dumpManager.getProcesses();
 		List<String> orderedIds = new ArrayList<String>(processes.keySet());
 		Collections.sort(orderedIds);
-		
+
 		List<Map<String, String>> result = new ArrayList<Map<String, String>>();
 		for (String processID : orderedIds) {
 			IBackgroundProcess process = processes.get(processID);
@@ -412,40 +412,41 @@ public class BackOfficeController {
 			item.put("processID", processID);
 			item.put("status", process.getStatus().label);
 			item.put("message", process.getStatusMessage());
+			item.put("module", process.getModule());
 			result.add(item);
 		}
-		
+
 		return result;
 	}
-	
+
 	@GetMapping(abortProcessURL)
 	protected @ResponseBody Map<String, Boolean> abortProcess(@RequestParam("processID") String processID) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to abort processes");
-		
+
 		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
-		
+
 		Map<String, Boolean> result = new HashMap<String, Boolean>();
 		result.put("done", dumpManager.abortProcess(processID));
 		return result;
 	}
-	
+
 	@DeleteMapping(deleteDumpURL)
 	protected @ResponseBody Map<String, Boolean> deleteDump(@RequestParam("module") String module, @RequestParam("dump") String dump) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
 		if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("You are not allowed to abort processes");
-		
+
 		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
-		
+
 		Map<String, Boolean> result = new HashMap<String, Boolean>();
 		result.put("done", moduleManager.deleteDump(module, dump));
 		return result;
 	}
-	
+
 //	protected ArrayList<String> listAuthorisedModules()
 //	{
 //		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
@@ -464,7 +465,7 @@ public class BackOfficeController {
 		String sHostName = request.getHeader("X-Forwarded-Server"); // in case the app is running behind a proxy
 		if (sHostName == null)
 			sHostName = request.getServerName();
-	
+
 		// see if we can get this from the referer
 		String sReferer = request.getHeader("referer");
 		if (sReferer != null) {

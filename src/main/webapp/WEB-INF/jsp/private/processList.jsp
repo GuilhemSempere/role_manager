@@ -23,7 +23,7 @@
 <html>
 
 <head>
-	<link type="text/css" rel="stylesheet" href="css/bootstrap-select.min.css "> 
+	<link type="text/css" rel="stylesheet" href="css/bootstrap-select.min.css ">
 	<link type="text/css" rel="stylesheet" href="css/bootstrap.min.css">
 	<link media="screen" type="text/css" href="css/role_manager.css" rel="StyleSheet" />
 	<link media="screen" type="text/css" href="../css/main.css" rel="StyleSheet" />
@@ -33,26 +33,26 @@
 	const progressQueryURL = '<c:url value="<%= BackOfficeController.processListStatusURL %>" />';
 	const queryInterval = 2000;
 	const nonFinalStatus = ["idle", "running"];
-	
+
 	$(document).on("ready", function (){
 	    queryStatus();
 	});
-			
+
 	function updateStatus(processList){
 	    const table = $("#processList");
 	    table.empty();
-	    
+
 	    let tableContent = "";
 	    processList.forEach(function (status){
-	        tableContent += "<tr><td>" + status.processID + "</td><td>" + status.status + "</td><td>" + status.message + "</td>";
-	        
+	        tableContent += "<tr><td>" + status.processID + "</td><td>" + status.module + "</td><td>" + status.status + "</td><td>" + status.message + "</td>";
+
 	        const statusPageURL = '<c:url value="<%= BackOfficeController.dumpStatusPageURL %>" />?processID=' + status.processID;
 	        tableContent += '<td><a href="' + statusPageURL + '" target="_blank">Details</a></td>';
 	        tableContent += "</tr>";
 	    });
 	    table.html(tableContent);
 	}
-	
+
 	function queryStatus(){
 	    $.get(progressQueryURL).then(function (result){
 	        updateStatus(result);
@@ -69,6 +69,7 @@
 		<thead>
 			<tr>
 				<th>Process ID</th>
+				<th>Module</th>
 				<th>Status</th>
 				<th>Status message</th>
 				<th>Details</th>
