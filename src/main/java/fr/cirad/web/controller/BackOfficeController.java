@@ -17,6 +17,7 @@
 package fr.cirad.web.controller;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -40,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import org.apache.log4j.Logger;
@@ -106,6 +108,7 @@ public class BackOfficeController {
     static final public String processListStatusURL = "/" + FRONTEND_URL + "/processListStatus.json_";
     static final public String abortProcessURL = "/" + FRONTEND_URL + "/abortProcess.json_";
     static final public String deleteDumpURL = "/" + FRONTEND_URL + "/deleteDump.json_";
+    static final public String moduleDumpDownloadURL = "/" + FRONTEND_URL + "/moduleDumpDownload.json_";
 
 	@Autowired private IModuleManager moduleManager;
 	@Autowired private ReloadableInMemoryDaoImpl userDao;
@@ -240,9 +243,9 @@ public class BackOfficeController {
 
 	@RequestMapping(moduleRemovalURL)
 	@PreAuthorize("hasRole(IRoleDefinition.ROLE_ADMIN)")
-	protected @ResponseBody boolean removeModule(@RequestParam("module") String sModule) throws Exception
+	protected @ResponseBody boolean removeModule(@RequestParam("module") String sModule, @RequestParam(required=false, value="removeDumps") Boolean fRemoveDumps) throws Exception
 	{
-		return moduleManager.removeDataSource(sModule, true);
+		return moduleManager.removeDataSource(sModule, true, Boolean.TRUE.equals(fRemoveDumps));
 	}
 
 	@RequestMapping(moduleEntityRemovalURL)
@@ -284,6 +287,27 @@ public class BackOfficeController {
 		return result;
 	}
 
+    @GetMapping(moduleDumpDownloadURL)
+    protected void downloadDump(HttpServletResponse response, @RequestParam("module") String sModule, @RequestParam("dumpId") String sDumpId) throws Exception {
+        Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
+        if (!authToken.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
+            throw new Exception("You are not allowed to access dump data");
+
+        if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
+            throw new Exception("The dump feature is disabled");  // TODO : 404 ?
+        
+        try (InputStream is = moduleManager.getDumpInputStream(sModule, sDumpId)) {
+            LOG.debug("Sending dump " + sDumpId + " from database " + sModule + " into response");
+            response.setContentType("application/gzip");
+            ((HttpServletResponse) response).setHeader("Content-disposition", "inline; filename=" + sDumpId + ".gz");
+            int len;
+            byte[] buffer = new byte[1024];
+            while ((len = is.read(buffer)) > 0)
+                response.getOutputStream().write(buffer, 0, len);
+            response.getOutputStream().close();
+        }
+    }
+    
 	@GetMapping(newDumpURL)
 	protected String startDumpProcess(@RequestParam("module") String sModule, @RequestParam("name") String sName, @RequestParam("description") String sDescription) throws Exception {
 		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();

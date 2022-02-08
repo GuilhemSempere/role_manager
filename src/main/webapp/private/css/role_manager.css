@@ -62,3 +62,23 @@ table#moduleTable input.resetButton, table#moduleTable input.applyButton {
 table#moduleTable td {
 	text-align:center
 }
+
+.dumpVALID {
+	background-color:#88FF88;
+}
+
+.dumpOUTDATED {
+	background-color:#FFAA66;
+}
+
+.dumpDIVERGED {
+	background-color:#CC88FF;
+}
+
+.dumpBUSY {
+	background-color:#AAAAAA;
+}
+
+.dumpNONE {
+	background-color:#FF8888;
+}

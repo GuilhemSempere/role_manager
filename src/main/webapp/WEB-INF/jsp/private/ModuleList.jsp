@@ -48,14 +48,6 @@
 
 		var moduleData;
 
-		const dumpValidityColors = new Map([
-		    ["VALID", "#88FF88"],
-		    ["OUTDATED", "#FFAA66"],
-		    ["DIVERGED", "#CC88FF"],
-		    ["BUSY", "#AAAAAA"],
-		    ["NONE", "#FF8888"],
-		]);
-
 		const dumpValidityTips = new Map([
 		    ["VALID", "Up to date"],
 		    ["OUTDATED", "Out of date"],
@@ -110,7 +102,7 @@
 			let itemRow = $("#row_" + moduleName);
 			if (confirm("Do you really want to discard database " + moduleName + "?\nThis will delete all data it contains.")) {
 				itemRow.find("td:eq(6)").prepend("<div style='position:absolute; margin-left:60px; margin-top:5px;'><img src='img/progress.gif'></div>");
-				$.getJSON('<c:url value="<%= BackOfficeController.moduleRemovalURL %>" />', { module:moduleName }, function(deleted){
+				$.getJSON('<c:url value="<%= BackOfficeController.moduleRemovalURL %>" />', { module:moduleName<c:if test="${fn:contains(loggedUser.authorities, adminRole) && actionRequiredToEnableDumps eq ''}">, removeDumps:moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] != "NONE" && confirm("Also remove related dumps?")</c:if> }, function(deleted){
 					if (!deleted) {
 						alert("Unable to discard " + moduleName);
 						itemRow.find("td:eq(6) div").remove();
@@ -178,7 +170,7 @@
 			rowContents.append("</td>");
 
 			<c:if test="${fn:contains(loggedUser.authorities, adminRole) && actionRequiredToEnableDumps eq ''}">
-			rowContents.append('<td style="background-color:' + dumpValidityColors.get(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>']) + '" data-toggle="tooltip" title="' + dumpValidityTips.get(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>']) + '">');
+			rowContents.append('<td class="dump' + moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] + '" data-toggle="tooltip" title="' + dumpValidityTips.get(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>']) + '">');
 			rowContents.append("<a style=\"color:#113388;\" href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a></td>");
 			</c:if>
 
@@ -188,7 +180,7 @@
 				rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol2' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>'] ? " checked" : "") + "></td>");
 			}
 	   		rowContents.append("<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'><input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'></td>");
-	   		rowContents.append("<td align='center'><a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem(\"" + encodeURIComponent(key) + "\");' title='Discard module'><img src='img/delete.gif'></a></td>");
+	   		rowContents.append("<td align='center'>" + (<c:if test="${fn:contains(loggedUser.authorities, adminRole) && actionRequiredToEnableDumps eq ''}">moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] == "BUSY" ? "" : </c:if>"<a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem(\"" + encodeURIComponent(key) + "\");' title='Discard module'><img src='img/delete.gif'></a>") + "</td>");
 	   		</c:if>
 	   		return '<tr id="row_' + encodeURIComponent(key) + '">' + rowContents.toString() + '</tr>';
 		}
@@ -266,7 +258,7 @@
 					    const dumpTable = $('<table class="adminListTable"></table>');
 					    const headerRow = $('<tr></tr>');
 
-					    headerRow.append('<th>Validity</th><th>Dump name</th><th>Archive size</th><th>Creation date</th><th>Description</th>')
+					    headerRow.append('<th>Validity</th><th>Dump name</th><th>Archive size</th><th>Download</th><th>Creation date</th><th>Description</th>')
 					    if (!dumpData.locked){
 							headerRow.append('<th>Restore</th><th>Delete</th>');
 					    }
@@ -274,12 +266,13 @@
 
 					    dumpData.dumps.forEach(function (dumpInfo) {
 					        const row = $("<tr></tr>");
-					        row.append('<td style="background-color:' + dumpValidityColors.get(dumpInfo.validity) + '">' + dumpInfo.validity.toLowerCase() + '</td>');
+					        row.append('<td class="dump' + dumpInfo.validity + '">' + dumpInfo.validity.toLowerCase() + '</td>');
 					        row.append("<td>" + dumpInfo.name + "</td>");
 					        row.append("<td>" + formatFileSize(dumpInfo.fileSizeMb) + "</td>");
 					        const dumpDate = new Date(dumpInfo.creationDate);
 						    const dateString = dumpDate.getFullYear() + "-" + ("0" + (dumpDate.getMonth() + 1)).slice(-2) + "-" +  ("0" + dumpDate.getDate()).slice(-2) + " " +
 	    							("0" + dumpDate.getHours()).slice(-2) + ":" + ("0" + dumpDate.getMinutes()).slice(-2) + ":" + ("0" + dumpDate.getSeconds()).slice(-2);
+	    					row.append("<td align='center'><a target='_blank' href='<c:url value="<%= BackOfficeController.moduleDumpDownloadURL %>" />?module=" + module + "&dumpId=" + dumpInfo.identifier + "'><span class='glyphicon btn-glyphicon glyphicon-save img-circle text-muted'></span></a></td>");
 					        row.append("<td>" + dateString + "</td>");
 					        row.append("<td>" + dumpInfo.description.replaceAll(/\r?\n/mg, "<br />") + "</td>");
 

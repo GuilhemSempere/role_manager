@@ -16,7 +16,9 @@
  *******************************************************************************/
 package fr.cirad.security.base;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -57,10 +59,11 @@ public interface IModuleManager {
 	/**
 	 * @param sModule
 	 * @param fAlsoDropDatabase
+	 * @param fRemoveDumps 
 	 * @return whether or not module removal succeeded
 	 * @throws IOException
 	 */
-	boolean removeDataSource(String sModule, boolean fAlsoDropDatabase) throws IOException;
+	boolean removeDataSource(String sModule, boolean fAlsoDropDatabase, boolean fRemoveDumps) throws IOException;
 
 	/**
 	 * @param sModule
@@ -169,9 +172,18 @@ public interface IModuleManager {
 	 */
 	boolean deleteDump(String sModule, String sDump);
 
-	   /**
+	/**
      * @param sModule Module the dump belongs to
      * @return DB's storage size in bytes
      */
 	long getModuleSize(String sModule);
+
+	/**
+	 * 
+	 * @param sModule Module the dump belongs to
+	 * @param sDumpName the dump name
+	 * @return
+	 * @throws FileNotFoundException 
+	 */
+    InputStream getDumpInputStream(String sModule, String sDumpName) throws FileNotFoundException;
 }
