@@ -20,16 +20,16 @@ public class DumpManager {
 	
 	private Map<String, IBackgroundProcess> m_processes = new TreeMap<String, IBackgroundProcess>();
 	
-	public String startDumpProcess(String moduleName, String dumpName, String dumpDescription, Authentication authToken) {
-		String processID = generateProcessID("dump", authToken);
+	public String startDumpProcess(String moduleName, String dumpName, String dumpDescription, String userName) {
+		String processID = generateProcessID("dump", userName);
 		
 		IBackgroundProcess process = moduleManager.startDump(moduleName, dumpName, dumpDescription);
 		this.m_processes.put(processID, process);
 		return processID;
 	}
 	
-	public String startRestoreProcess(String moduleName, String backupName, boolean drop, Authentication authToken) {
-		String processID = generateProcessID("restore", authToken);
+	public String startRestoreProcess(String moduleName, String backupName, boolean drop, String userName) {
+		String processID = generateProcessID("restore", userName);
 		IBackgroundProcess process = moduleManager.startRestore(moduleName, backupName, drop);
 		this.m_processes.put(processID, process);
 		return processID;
@@ -66,7 +66,7 @@ public class DumpManager {
 		}
 	}
 	
-	private String generateProcessID(String processType, Authentication authToken) {
-		return "role_manager." + processType + "." + authToken.getName() + "." + System.currentTimeMillis();
+	private String generateProcessID(String processType, String userName) {
+		return "role_manager." + processType + "." + userName + "." + System.currentTimeMillis();
 	}
 }

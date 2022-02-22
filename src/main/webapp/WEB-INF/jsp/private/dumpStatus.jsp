@@ -17,7 +17,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" import="fr.cirad.web.controller.BackOfficeController,fr.cirad.security.base.IRoleDefinition,org.springframework.security.core.context.SecurityContextHolder" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
-<c:set var="loggedUser" value="<%= SecurityContextHolder.getContext().getAuthentication().getPrincipal() %>" />
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
 
 <html>
@@ -76,7 +75,7 @@
 		    $.ajax({
 		        url: progressQueryURL,
 		        method: "GET",
-		        data: {processID, logStart: logContent.length},
+		        data: {processID, module, logStart: logContent.length},
 		        dataType: "json",
 		    }).then(function (result){
 		        updateStatus(result);
@@ -96,7 +95,7 @@
 		function abortProcess(){
 			const abort = window.confirm("Abort the current process ? " + ((abortWarning != null) ? abortWarning : ""));
 			if (abort)
-			    $.get(abortProcessURL, {processID});
+			    $.get(abortProcessURL, {module, processID});
 		}
 		</c:if>
 		

@@ -3,9 +3,7 @@ package fr.cirad.manager.dump;
 import java.util.Date;
 
 public class DumpMetadata {
-	/** Name of the dumped module */
-	private String module;
-	
+
 	/** Name of the dump */
 	private String name;
 	
@@ -25,22 +23,13 @@ public class DumpMetadata {
 	private DumpValidity validity;
 	
 
-	public DumpMetadata(String sIdentifier, String sModule, String sName, Date creation, float nFileSizeMb, String sDescription, DumpValidity dumpValidity) {
+	public DumpMetadata(String sIdentifier, String sName, Date creation, float nFileSizeMb, String sDescription, DumpValidity dumpValidity) {
 		identifier = sIdentifier;
-		module = sModule;
 		name = sName;
 		creationDate = creation;
 		fileSizeMb = nFileSizeMb;
 		description = sDescription;
 		validity = dumpValidity;
-	}
-
-	public String getModule() {
-		return module;
-	}
-
-	public void setModule(String module) {
-		this.module = module;
 	}
 
 	public String getName() {

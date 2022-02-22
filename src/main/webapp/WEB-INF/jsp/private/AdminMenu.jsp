@@ -18,7 +18,7 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
-<c:set var="loggedUser" value="<%= SecurityContextHolder.getContext().getAuthentication().getPrincipal() %>" />
+<c:set var="loggedUserAuthorities" value="${userDao.getLoggedUserAuthorities()}" />
 <html>
 
 <head>
@@ -40,14 +40,14 @@
 </head>
 
 <body leftmargin="2" rightmargin="2" onLoad="window.parent.frames['managementFrame'].document.body.style.backgroundColor='#f0f0f0';">
-
+${ttt }
 <div id="leftMenu" class="margin-top margin-left">
 	<p style="font-weight:bold;">
 	</p>
 	<a class="btn btn-sm btn-primary" style="width:130px;" href="<c:url value="<%= BackOfficeController.moduleListPageURL %>" />" target="managementFrame" onClick="highlightMe(this);">Manage databases</a>
 	<br/><br/>
 	<a class="btn btn-sm btn-primary" style="width:130px;" href="<c:url value="<%= UserPermissionController.userListPageURL %>" />" target="managementFrame" onClick="highlightMe(this);">Manage users<br/>and permissions</a>
-	<c:if test="${fn:contains(loggedUser.authorities, adminRole) && actionRequiredToEnableDumps eq ''}">
+	<c:if test="${(fn:contains(loggedUserAuthorities, adminRole) || !userDao.getSupervisedModules(loggedUserAuthorities).isEmpty()) && actionRequiredToEnableDumps eq ''}">
 		<br/><br/>
 		<a class="btn btn-sm btn-primary" style="width:130px;" href="<c:url value="<%= BackOfficeController.processListPageURL %>" />" target="managementFrame" onClick="highlightMe(this);">Admin processes</a>
 	</c:if>

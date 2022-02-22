@@ -22,7 +22,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 
 <c:set var="mainPageURL" value="<%= BackOfficeController.mainPageURL %>" />
-<c:set var="loggedUser" value="<%= SecurityContextHolder.getContext().getAuthentication().getPrincipal() %>" />
+<c:set var="loggedUserAuthorities" value="${userDao.getLoggedUserAuthorities()}" />
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
 
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -31,7 +31,7 @@
 	</head>
 	<body>
 		<c:choose>
-		<c:when test="${(fn:length(moduleNames) == 1 && !fn:contains(loggedUser.authorities, adminRole))}">
+		<c:when test="${(fn:length(moduleNames) == 1 && !fn:contains(loggedUserAuthorities, adminRole))}">
 			<script language="javascript">
 				top.location.href = '<c:url value="${mainPageURL}" />?module=${moduleNames[0]}';
 			</script>
@@ -44,12 +44,6 @@
 				</c:forEach>
 			</div>
 			</c:if>
-<!-- 			<div style='width:400px; margin-left:200px;'> -->
-<!-- 				<p>Select a database to work with:</p> -->
-<%-- 				<c:forEach var="moduleName" items="${moduleNames}"> --%>
-<%-- 					<a class='moduleButton' target='_top' href="<c:url value="${mainPageURL}" />?module=${moduleName}">${moduleName}</a> --%>
-<%-- 				</c:forEach> --%>
-<!-- 			</div> -->
 		</c:otherwise>
 		</c:choose>
 	</body>

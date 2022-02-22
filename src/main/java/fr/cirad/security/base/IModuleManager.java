@@ -46,9 +46,11 @@ public interface IModuleManager {
 	/**
 	 * @param entityType
 	 * @param fTrueForPublicFalseForPrivateNullForAny
+	 * @param modules collection of modules to limit the query to (all will be accounted for if null)
 	 * @return for each module, a map containing entity id as key, entity label as value
+	 * @throws Exception 
 	 */
-	Map<String, Map<Comparable, String>> getEntitiesByModule(String entityType, Boolean fTrueForPublicFalseForPrivateNullForAny);
+	Map<String, Map<Comparable, String>> getEntitiesByModule(String entityType, Boolean fTrueForPublicFalseForPrivateNullForAny, Collection<String> modules) throws Exception;
 
 	/**
 	 * @param sModule
@@ -178,12 +180,21 @@ public interface IModuleManager {
      */
 	long getModuleSize(String sModule);
 
+    /**
+     * 
+     * @param sModule Module the dump belongs to
+     * @param sDumpName the dump name
+     * @return an InputStream pointing to the dump file
+     * @throws FileNotFoundException 
+     */
+    InputStream getDumpInputStream(String sModule, String sDumpName) throws FileNotFoundException;
+    
 	/**
 	 * 
 	 * @param sModule Module the dump belongs to
 	 * @param sDumpName the dump name
-	 * @return
+	 * @return an InputStream pointing to the dump's logfile
 	 * @throws FileNotFoundException 
 	 */
-    InputStream getDumpInputStream(String sModule, String sDumpName) throws FileNotFoundException;
+    InputStream getDumpLogInputStream(String sModule, String sDumpName) throws FileNotFoundException;
 }

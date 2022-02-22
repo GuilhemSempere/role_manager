@@ -1,7 +1,7 @@
 package fr.cirad.manager.dump;
 
 public enum ProcessStatus {
-	INEXISTANT("inexistant"),
+	INEXISTENT("inexistent"),
 	IDLE("idle"), RUNNING("running"),
 	SUCCESS("success"),
 	ERROR("error"), INTERRUPTED("interrupted");

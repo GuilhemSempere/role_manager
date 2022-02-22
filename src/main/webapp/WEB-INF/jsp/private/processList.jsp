@@ -17,7 +17,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" import="fr.cirad.web.controller.BackOfficeController,fr.cirad.security.base.IRoleDefinition,org.springframework.security.core.context.SecurityContextHolder" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
-<c:set var="loggedUser" value="<%= SecurityContextHolder.getContext().getAuthentication().getPrincipal() %>" />
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
 
 <html>
@@ -46,8 +45,8 @@
 	    processList.forEach(function (status){
 	        tableContent += "<tr><td>" + status.processID + "</td><td>" + status.module + "</td><td>" + status.status + "</td><td>" + status.message + "</td>";
 
-	        const statusPageURL = '<c:url value="<%= BackOfficeController.dumpStatusPageURL %>" />?processID=' + status.processID;
-	        tableContent += '<td><a href="' + statusPageURL + '" target="_blank">Details</a></td>';
+	        const statusPageURL = '<c:url value="<%= BackOfficeController.dumpStatusPageURL %>" />?module=' + status.module + '&processID=' + status.processID;
+	        tableContent += '<td align="center"><a href="' + statusPageURL + '" target="_blank"><img id="igvTooltip" style="cursor:pointer; cursor:hand;" src="img/magnifier.gif"></a></td>';
 	        tableContent += "</tr>";
 	    });
 	    table.html(tableContent);

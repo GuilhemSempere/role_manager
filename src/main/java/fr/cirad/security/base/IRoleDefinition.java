@@ -19,7 +19,8 @@ package fr.cirad.security.base;
 public interface IRoleDefinition {
 
 	static final public String ROLE_ADMIN = "ROLE_ADMIN";
-	static final public String CREATOR_ROLE_SUFFIX = "CREATOR";
+	static final public String ROLE_DB_SUPERVISOR = "SUPERVISOR";
+    @Deprecated static final public String CREATOR_ROLE_SUFFIX = "CREATOR"; // this is now deprecated in favor of ROLE_SUPERVISOR
 	static final public String TOPLEVEL_ROLE_PREFIX = "USER";
 	static final public String ENTITY_MANAGER_ROLE = "MANAGER";
 	public static final String DUMMY_EMPTY_ROLE = "DUMMY_EMPTY_ROLE";	// Spring-security does not like users with no role
