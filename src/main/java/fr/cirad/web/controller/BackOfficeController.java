@@ -324,7 +324,7 @@ public class BackOfficeController {
         if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
             throw new Exception("The dump feature is disabled");  // TODO : 404 ?
         
-        try (GZIPInputStream is = new GZIPInputStream(moduleManager.getDumpLogInputStream(sModule, sDumpId))) {
+        try (InputStream is = moduleManager.getDumpLogInputStream(sModule, sDumpId)) {
             LOG.debug("Sending dump " + sDumpId + " from database " + sModule + " into response");
             response.setContentType("text/plain");
             ((HttpServletResponse) response).setHeader("Content-disposition", "inline; filename=" + sDumpId + "__dump.log");

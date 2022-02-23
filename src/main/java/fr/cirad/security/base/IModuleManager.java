@@ -195,6 +195,7 @@ public interface IModuleManager {
 	 * @param sDumpName the dump name
 	 * @return an InputStream pointing to the dump's logfile
 	 * @throws FileNotFoundException 
+	 * @throws IOException 
 	 */
-    InputStream getDumpLogInputStream(String sModule, String sDumpName) throws FileNotFoundException;
+    InputStream getDumpLogInputStream(String sModule, String sDumpName) throws IOException;
 }
