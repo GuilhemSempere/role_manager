@@ -16,9 +16,7 @@
  *******************************************************************************/
 package fr.cirad.web.controller.security;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -43,7 +41,6 @@ import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
@@ -141,13 +138,13 @@ public class UserPermissionController
 		Comparable[][] result = new Comparable[users.size()][3];
 		for (int i=0; i<users.size(); i++)
 		{
-			UserWithMethod ud = (UserWithMethod)users.get(i);
+			UserWithMethod ud = (UserWithMethod) users.get(i);
 			String sAuthoritySummary;
 			if (ud.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 				sAuthoritySummary = "(ADMINISTRATOR)";
 			else
 			{
-				HashSet<String> modules = new HashSet<>(userDao.getWritableEntityTypesByModule(ud.getAuthorities()).keySet());
+				HashSet<String> modules = new HashSet<>(userDao.getSupervisedModules(ud.getAuthorities()));
 				modules.addAll(userDao.getManagedEntitiesByModuleAndType(ud.getAuthorities()).keySet());
 				modules.addAll(userDao.getCustomRolesByModuleAndEntityType(ud.getAuthorities()).keySet());
 				sAuthoritySummary = modules.stream().collect(Collectors.joining(", "));
@@ -166,27 +163,28 @@ public class UserPermissionController
 
 		UserDetails user = username != null ? userDao.loadUserByUsernameAndMethod(username, null) : new UserWithMethod(" ", "", new ArrayList<GrantedAuthority>(), true, "");
 		model.addAttribute("user", user);
-		Collection<? extends GrantedAuthority> loggedUserAuthorities = SecurityContextHolder.getContext().getAuthentication().getAuthorities();
+		Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
 		boolean fIsLoggedUserAdmin = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
 		Map<String /*module*/, Map<String /*entity-type*/, Collection<Comparable> /*entity-IDs*/>> managedEntitiesByModuleAndType = userDao.getManagedEntitiesByModuleAndType(loggedUserAuthorities);
+		Collection<String> supervisedModules = userDao.getSupervisedModules(loggedUserAuthorities);
 		
 		Collection<String> publicModules = new ArrayList<String>(moduleManager.getModules(true)), publicModulesWithoutOwnedProjects = new ArrayList();
 		if (!fIsLoggedUserAdmin)
-			for (String sModule : publicModules)	// only show modules containing entities managed by logged user
-				if (managedEntitiesByModuleAndType.get(sModule) == null)
+			for (String sModule : publicModules)	// only show modules containing entities managed by logged user, or that he is supervisor on
+				if (!supervisedModules.contains(sModule) && managedEntitiesByModuleAndType.get(sModule) == null)
 					publicModulesWithoutOwnedProjects.add(sModule);
 		model.addAttribute("publicModules", CollectionUtils.disjunction(publicModules, publicModulesWithoutOwnedProjects));
 		
 		Collection<String> privateModules = new ArrayList<String>(moduleManager.getModules(false)), privateModulesWithoutOwnedProjects = new ArrayList();
 		if (!fIsLoggedUserAdmin)
 			for (String sModule : privateModules)	// only show modules containing entities managed by logged user
-				if (managedEntitiesByModuleAndType.get(sModule) == null)
+				if (!supervisedModules.contains(sModule) && managedEntitiesByModuleAndType.get(sModule) == null)
 					privateModulesWithoutOwnedProjects.add(sModule);
 		model.addAttribute("privateModules", CollectionUtils.disjunction(privateModules, privateModulesWithoutOwnedProjects));
 	}
 
 	@RequestMapping(value = userDetailsURL, method = RequestMethod.POST)
-	protected String processForm(Model model, HttpServletRequest request) throws SecurityException, IllegalArgumentException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, IOException
+	protected String processForm(Model model, HttpServletRequest request) throws Exception
 	{
 		String sUserName = request.getParameter("username"), sPassword = request.getParameter("password");
 		boolean fGotUserName = sUserName != null && sUserName.length() > 0;
@@ -213,23 +211,26 @@ public class UserPermissionController
 		HashSet<String> entitiesOnWhichPermissionsWereExplicitlyApplied = new HashSet<>();
 		HashSet<String> grantedAuthorityLabels = new HashSet<>();	// ensures unicity 
 		
-		Collection<? extends GrantedAuthority> loggedUserAuthorities = SecurityContextHolder.getContext().getAuthentication().getAuthorities();
+		Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
 		if (user != null && user.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			grantedAuthorityLabels.add(IRoleDefinition.ROLE_ADMIN);
 		else
 		{
-			for (String sModule : moduleManager.getModules(null))
+		    Collection<String> modules = moduleManager.getModules(null);
+		    for (String sEntityType : rolesByLevel1Type.keySet())
 			{
-				for (String sEntityType : rolesByLevel1Type.keySet())
+		        Map<String, Map<Comparable, String>> entitiesByModule = moduleManager.getEntitiesByModule(sEntityType, null, modules);
+		        for (String sModule : modules)
 				{
-					LinkedHashMap<Comparable, String> moduleEntities = (LinkedHashMap<Comparable, String>) moduleManager.getEntitiesByModule(sEntityType, null).get(sModule);
-					for (Comparable entityId : moduleEntities.keySet())
-						for (String anEntityRole : rolesByLevel1Type.get(sEntityType))
-						{
-							String sRole = urlEncode(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + anEntityRole + ROLE_STRING_SEPARATOR + entityId);
-							if (request.getParameter(urlEncode(sRole)) != null)
-								grantedAuthorityLabels.add(sRole);
-						}
+					LinkedHashMap<Comparable, String> moduleEntities = (LinkedHashMap<Comparable, String>) entitiesByModule.get(sModule);
+					if (moduleEntities != null)
+    					for (Comparable entityId : moduleEntities.keySet())
+    						for (String anEntityRole : rolesByLevel1Type.get(sEntityType))
+    						{
+    							String sRole = urlEncode(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + anEntityRole + ROLE_STRING_SEPARATOR + entityId);
+    							if (request.getParameter(urlEncode(sRole)) != null)
+    								grantedAuthorityLabels.add(sRole);
+    						}
 					
 					Enumeration<String> it = request.getParameterNames();
 					while (it.hasMoreElements())
@@ -242,10 +243,10 @@ public class UserPermissionController
 							{
 								for (String sRole : urlDecode(val).split(","))
 								{
-									String[] splittedPermission = sRole.split(Pattern.quote(ROLE_STRING_SEPARATOR));
-									if (moduleManager.doesEntityExistInModule(splittedPermission[0], splittedPermission[1], splittedPermission[3]))
+									String[] splitPermission = sRole.split(Pattern.quote(ROLE_STRING_SEPARATOR));
+									if (moduleManager.doesEntityExistInModule(splitPermission[0], splitPermission[1], splitPermission[3]))
 									{
-										entitiesOnWhichPermissionsWereExplicitlyApplied.add(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + splittedPermission[3]);
+										entitiesOnWhichPermissionsWereExplicitlyApplied.add(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + splitPermission[3]);
 										grantedAuthorityLabels.add(sRole);
 									}
 									else
@@ -254,16 +255,10 @@ public class UserPermissionController
 							}
 						}
 						else
-						{
-							String sRole = sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + IRoleDefinition.CREATOR_ROLE_SUFFIX;							
+						{ // we should not be doing this for each entity type but since calling getEntitiesByModule() is expensive it's still a better option than looping first on modules, then on entities 
+							String sRole = sModule + ROLE_STRING_SEPARATOR + IRoleDefinition.ROLE_DB_SUPERVISOR;							
 							if (param.equals(urlEncode(sRole)))
-								grantedAuthorityLabels.add(sRole);	// added because specified from GUI
-							else if (user != null)
-							{
-								Collection<String> writableEntityTypes = userDao.getWritableEntityTypesByModule(user.getAuthorities()).get(sModule);
-								if ((!(loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN))) && writableEntityTypes != null && writableEntityTypes.contains(sEntityType)))
-									grantedAuthorityLabels.add(sRole);	// added because already existed
-							}
+								grantedAuthorityLabels.add(sRole);
 						}
 					}
 				}
@@ -310,7 +305,7 @@ public class UserPermissionController
 			user = new UserWithMethod(fGotUserName ? sUserName : " ", "", grantedAuthorities, true, "");
 			model.addAttribute("errors", errors);
 			setupForm(model, null);
-			model.addAttribute(user);
+			model.addAttribute("user", user);
 			return userDetailsURL.substring(0, userDetailsURL.lastIndexOf("."));
 		}
 
@@ -319,7 +314,7 @@ public class UserPermissionController
 	}
 
 	@RequestMapping(value = userPermissionURL, method = RequestMethod.GET)
-	protected void setupPermissionForm(Model model, @RequestParam("user") String username, @RequestParam("module") String module, @RequestParam("entityType") String entityType)
+	protected void setupPermissionForm(Model model, @RequestParam("user") String username, @RequestParam("module") String module, @RequestParam("entityType") String entityType) throws Exception
 	{
 		model.addAttribute(module);
 		model.addAttribute("roles", rolesByLevel1Type.get(entityType));
@@ -332,9 +327,9 @@ public class UserPermissionController
 		{}
 		model.addAttribute("user", user);
 		boolean fVisibilitySupported = moduleManager.doesEntityTypeSupportVisibility(module, entityType);
-		model.addAttribute("publicEntities", moduleManager.getEntitiesByModule(entityType, fVisibilitySupported ? true : null).get(module));
+		model.addAttribute("publicEntities", moduleManager.getEntitiesByModule(entityType, fVisibilitySupported ? true : null, Arrays.asList(module)).get(module));
 		if (fVisibilitySupported)
-			model.addAttribute("privateEntities", moduleManager.getEntitiesByModule(entityType, false).get(module));
+			model.addAttribute("privateEntities", moduleManager.getEntitiesByModule(entityType, false, Arrays.asList(module)).get(module));
 	}
 
 	@RequestMapping(userRemovalURL)

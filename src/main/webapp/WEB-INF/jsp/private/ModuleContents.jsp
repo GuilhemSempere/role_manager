@@ -19,7 +19,6 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 
-<c:set var="loggedUser" value="<%= SecurityContextHolder.getContext().getAuthentication().getPrincipal() %>" />
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
 <c:set var='entityManagerRole' value='<%= IRoleDefinition.ENTITY_MANAGER_ROLE %>' />
 <c:set var='isManager' value="${fn:contains(user.authorities, param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(entityManagerRole).concat(roleSep).concat(entity.key))}" />
@@ -29,7 +28,7 @@
 <head>
 	<script type="text/javascript" src="js/jquery-1.12.4.min.js"></script>
 	<link rel ="stylesheet" type="text/css" href="css/role_manager.css" title="style">
-	<link type="text/css" rel="stylesheet" href="css/bootstrap-select.min.css "> 
+	<link type="text/css" rel="stylesheet" href="css/bootstrap-select.min.css ">
 	<link type="text/css" rel="stylesheet" href="css/bootstrap.min.css">
 	<link media="screen" type="text/css" href="../css/main.css" rel="StyleSheet" />
 
@@ -45,10 +44,12 @@
 		        	data : { module:'${param.module}', entityType:'${param.entityType}', entityId:entityId },
 		        	success: function(deleted) {
 						itemRow.find("td:eq(2) div").remove();
-						if (!deleted)
+						if (!deleted) {
 							alert("Unable to discard " + entityName);
-						else
+			        	} else {
 							itemRow.remove();
+							parent.refreshTable();
+						}
 		        	},
 			        error: function (xhr, ajaxOptions, thrownError) {
 			            handleError(xhr, ajaxOptions, thrownError);
@@ -57,7 +58,7 @@
 			});
 		}
 	}
-	
+
     function handleError(xhr) {
       	var errorMsg;
       	if (xhr != null && xhr.responseText != null) {
@@ -117,7 +118,7 @@
 					<c:forEach var="entity" items="${privateEntities}">
 					<tr id="row_${entity.key}">
 						<td>${entity.value}</td>
-						<c:if test="${visibilitySupported}"><td><input type='checkbox' onclick='toggleVisibility("${entity.key}", "${entity.value}");'></td></c:if>	
+						<c:if test="${visibilitySupported}"><td><input type='checkbox' onclick='toggleVisibility("${entity.key}", "${entity.value}");'></td></c:if>
 						<td align='center'><a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem("${entity.key}", "${entity.value}");' title='Discard ${param.entityType}'><img src='img/delete.gif'></a></td>
 					</tr>
 					</c:forEach>

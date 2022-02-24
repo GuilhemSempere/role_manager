@@ -17,7 +17,8 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" import="fr.cirad.web.controller.security.UserPermissionController,fr.cirad.security.base.IRoleDefinition,org.springframework.security.core.context.SecurityContextHolder" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
-<c:set var="loggedUser" value="<%= SecurityContextHolder.getContext().getAuthentication().getPrincipal() %>" />
+<c:set var="loggedUserAuthorities" value="${userDao.getLoggedUserAuthorities()}" />
+<c:set var="loggedUserName" value="<%= SecurityContextHolder.getContext().getAuthentication().getName() %>" />
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
 
 <html>
@@ -31,7 +32,7 @@
 	<script type="text/javascript" src="../js/jquery.cookie.js"></script>
 	<script type="text/javascript" src="../js/listNav.js"></script>
 	<script type="text/javascript">
-		<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
+		<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
 		function removeItem(itemId)
 		{
 			if (confirm("Do you really want to discard " + itemId + "?"))
@@ -65,10 +66,10 @@
 						   		cellData = "" + jsonResult[key][subkey];
 								rowContents += "<td nowrap>" + cellData.replace(/\n/g, "<br>") + "</td>";
 							}
-							if (subkey == jsonResult[key].length - 1<c:if test="${!fn:contains(loggedUser.authorities, adminRole)}"> && jsonResult[key][0] != "${loggedUser.username}"</c:if>)
+							if (subkey == jsonResult[key].length - 1<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}"> && jsonResult[key][0] != "${loggedUserName}"</c:if>)
 							{
 								rowContents += "<td style='border:none;' nowrap>&nbsp;<a href='<c:url value="<%= UserPermissionController.userDetailsURL %>" />?user=" + encodeURIComponent(jsonResult[key][0]) + "' title='User details'><img src='../img/magnifier.gif'></a>";
-								<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
+								<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
 								if ("(ADMINISTRATOR)" != jsonResult[key][1])
 									rowContents += "&nbsp;&nbsp;&nbsp;<a href='javascript:removeItem(\"" + encodeURIComponent(jsonResult[key][0]) + "\");' title='Discard user'><img src='../img/delete.gif'></a>";
 								</c:if>
@@ -142,7 +143,7 @@
 </tr>
 </table>
 
-<c:if test="${fn:contains(loggedUser.authorities, adminRole)}">
+<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
 <br><a class="btn btn-sm btn-primary" href="<c:url value="<%=UserPermissionController.userDetailsURL%>" />">Create user</a>
 </c:if>
 

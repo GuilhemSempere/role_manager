@@ -2,8 +2,10 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
 	xmlns:secur="http://www.springframework.org/schema/security"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
-						http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd">
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+						http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+						http://www.springframework.org/schema/security
+						http://www.springframework.org/schema/security/spring-security-3.2.xsd">
 
 	
 	<!-- Contents of this file are only used if secure mode has been activated in web.xml -->
@@ -13,7 +15,7 @@
 	  <secur:intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY,IS_AUTHENTICATED_FULLY,IS_AUTHENTICATED_REMEMBERED" />
 	  
 	  <secur:form-login login-page="/private/" always-use-default-target="true" default-target-url="/private/main.do_" />
-	  <secur:access-denied-handler error-page="/WEB-INF/jsp/error/403.jsp" />	 
+	  <secur:access-denied-handler error-page="/WEB-INF/jsp/error/403.jsp" />
 	  <secur:logout logout-success-url="/private/" invalidate-session="true" /> 
 	</secur:http>
 	
@@ -22,6 +24,7 @@
 <!-- 	  	<secur:password-encoder hash="md5" /> -->
 	  </secur:authentication-provider>
 	</secur:authentication-manager>
+	
 	
 	<bean id="userDetailsService" class="fr.cirad.security.ReloadableInMemoryDaoImpl">
 		<property name="resource" value="classpath:users.properties"/>
@@ -35,5 +38,4 @@
 	       </list>
 	   </property>
 	</bean>
-	
 </beans>

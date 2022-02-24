@@ -21,10 +21,11 @@
 
 <jsp:useBean id="urlEncoder" scope="page" class="fr.cirad.web.controller.security.UserPermissionController" /><%-- dummy controller just to be able to invoke a static method --%>
 <c:set var='roleSep' value='<%= UserPermissionController.ROLE_STRING_SEPARATOR %>' />
-<c:set var="loggedUser" value="<%= SecurityContextHolder.getContext().getAuthentication().getPrincipal() %>" />
+<c:set var="loggedUserAuthorities" value="${userDao.getLoggedUserAuthorities()}" />
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
+<c:set var='supervisorRole' value='<%= IRoleDefinition.ROLE_DB_SUPERVISOR %>' />
 <c:set var='entityManagerRole' value='<%= IRoleDefinition.ENTITY_MANAGER_ROLE %>' />
-<c:set var='isManager' value="${fn:contains(user.authorities, param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(entityManagerRole).concat(roleSep).concat(entity.key))}" />
+<%-- <c:set var='isManager' value="${fn:contains(user.authorities, param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(entityManagerRole).concat(roleSep).concat(entity.key))}" /> --%>
 
 <html>
 
@@ -42,12 +43,8 @@
 	    	var permissions = permissionInput.val().split(",");
 	    	for (var i=0; i<permissions.length; i++)
 	    	{
-					var radioButton = $('input[type="radio"][value="' + permissions[i] + '"]');
-	    			radioButton.attr('checked', true);
-	    			<c:if test="${!fn:contains(loggedUser.authorities, adminRole) && isManager}">
-	    			if (permissions[i].indexOf("${entityManagerRole}") != -1)
-	    				radioButton.parent().siblings().remove();
-	    			</c:if>
+				var radioButton = $('input[type="radio"][value="' + permissions[i] + '"]');
+    			radioButton.attr('checked', true);
 	    	}
 		}
 
@@ -75,10 +72,10 @@
 					<th>${param.entityType} permissions</th>
 				</tr>
 				<c:forEach var="entity" items="${publicEntities}">
-				<c:if test="${fn:contains(loggedUser.authorities, adminRole) || fn:contains(loggedUser.authorities, param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(entityManagerRole).concat(roleSep).concat(entity.key))}">
+				<c:if test="${fn:contains(loggedUserAuthorities, adminRole) || fn:contains(loggedUserAuthorities, param.module.concat(roleSep).concat(supervisorRole)) || fn:contains(loggedUserAuthorities, param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(entityManagerRole).concat(roleSep).concat(entity.key))}">
 				<tr>
 					<td>${entity.value}</td>
-					<td nowrap align='center'>
+					<td nowrap align='left'>
 						<c:forEach var="role" items="${roles}">
 							<span>
 							<input type='radio' name='permission_${entity.key}' value='${urlEncoder.urlEncode(param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(role).concat(roleSep).concat(entity.key))}'>${role}&nbsp;
@@ -103,13 +100,13 @@
 					<th>${param.entityType} permissions</th>
 				</tr>
 				<c:forEach var="entity" items="${privateEntities}">
-				<c:if test="${fn:contains(loggedUser.authorities, adminRole) || fn:contains(loggedUser.authorities, param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(entityManagerRole).concat(roleSep).concat(entity.key))}">
+				<c:if test="${fn:contains(loggedUserAuthorities, adminRole) || fn:contains(loggedUserAuthorities, param.module.concat(roleSep).concat(supervisorRole)) || fn:contains(loggedUserAuthorities, param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(entityManagerRole).concat(roleSep).concat(entity.key))}">
 				<tr>
 					<td>${entity.value}</td>
-					<td nowrap align='center'>
+					<td nowrap align='left'>
 						<c:forEach var="role" items="${roles}">
 							<span>
-							<input type='radio' name='permission_${entity.key}' value='${urlEncoder.urlEncode(param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(role).concat(roleSep).concat(entity.key))}'>${role}
+							<input type='radio' name='permission_${entity.key}' value='${urlEncoder.urlEncode(param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(role).concat(roleSep).concat(entity.key))}'>${role}&nbsp;
 							</span>
 						</c:forEach>
 						<span>

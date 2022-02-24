@@ -88,4 +88,10 @@ public class UserWithMethod implements UserDetails {
 			this.method = method;
 		}
 	}
+	
+	@Override public boolean equals(Object otherUser) {
+	    if (otherUser == null)
+	        return false;
+	    return ((UserWithMethod) otherUser).getUsername().equals(getUsername()) && ((UserWithMethod) otherUser).getMethod().equals(getMethod());
+	}
 }

@@ -75,41 +75,6 @@
 			<td style='font-weight:bold; font-size:20px;'>
 				<a href='<c:url value="<%= BackOfficeController.mainPageURL %>" />' target="_top" style='color:#000;'><%= request.getContextPath().substring(1).toUpperCase() %> - PRIVATE AREA</a>
 			</td>
-
-<%-- 			<c:if test="${!empty param.module}"> --%>
-<!-- 				<td width='10'></td> -->
-<!-- 				<td style='color:#fff; font-size:12px;'> -->
-<%-- 					working on <b>${param.module}</b> --%>
-<!-- 				</td> -->
-<!-- 				<td width='20'></td> -->
-<!-- 				<td style='vertical-align:top;'> -->
-<!-- 					<ul id="Nav" style='margin-top:4px;'> -->
-<%-- 					   	<c:if test='${fn:contains(loggedUser.authorities, adminRole)}'> --%>
-<!-- 						<li> -->
-<!-- 							<a href="javascript:void();">Passport data</a> -->
-<!-- 							<ul class="Menu"> -->
-<%-- 								<li><a href="cropPassportFrame.jsp?module=${param.module}" target="bodyFrame">Manage passport data</a></li> --%>
-<!-- 							</ul> -->
-<!-- 						</li> -->
-<%-- 						</c:if> --%>
-<!-- 						<li> -->
-<!-- 							<a href="javascript:void();">Projects</a> -->
-<!-- 							<ul class="Menu"> -->
-<%-- 								<li><a href="cropProjectFrame.jsp?module=${param.module}" target="bodyFrame">Manage projects & samples</a></li> --%>
-<%-- 								<li><a href="cropShiftingAndPoolingFrame.jsp?module=${param.module}" target="bodyFrame">Allele shifting and pooling</a></li> --%>
-<!-- 							</ul> -->
-<!-- 						</li> -->
-<!-- 						<li> -->
-<!-- 							<a href="javascript:void();">Results</a> -->
-<!-- 							<ul class="Menu"> -->
-<%-- 								<li><a href="cropResultFrame.jsp?module=${param.module}" target="bodyFrame">View by accession / germplasm</a></li> --%>
-<%-- 								<li><a href="cropDataCheckFrame.jsp?module=${param.module}" target="bodyFrame">Accession-level inconsistency detection</a></li> --%>
-<%-- 								<li><a href="cropDatasetFrame.jsp?module=${param.module}" target="bodyFrame">Datasets</a></li> --%>
-<!-- 							</ul> -->
-<!-- 						</li> -->
-<!-- 					</ul> -->
-<!-- 				</td> -->
-<%-- 			</c:if> --%>
 		</tr>
 		</table>
 		</div>

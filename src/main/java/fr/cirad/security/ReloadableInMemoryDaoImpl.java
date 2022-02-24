@@ -45,13 +45,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
 
 import fr.cirad.security.base.IModuleManager;
 import fr.cirad.security.base.IRoleDefinition;
 import fr.cirad.web.controller.security.UserPermissionController;
 
-@Component
 public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 
     private static final Logger LOG = Logger.getLogger(ReloadableInMemoryDaoImpl.class);
@@ -280,10 +278,11 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
             return false;
         }
 
-        for (GrantedAuthority auth : authentication.getAuthorities()) {
+        Collection<? extends GrantedAuthority> loggedUserAuthorities = getLoggedUserAuthorities();
+        for (GrantedAuthority auth : loggedUserAuthorities) {
             if (auth.getAuthority().equals(IRoleDefinition.ROLE_ADMIN)) {
                 return true;
-            } else if (getWritableEntityTypesByModule(authentication.getAuthorities()).size() > 0 || getManagedEntitiesByModuleAndType(authentication.getAuthorities()).size() > 0) {
+            } else if (getSupervisedModules(loggedUserAuthorities).size() > 0 || getManagedEntitiesByModuleAndType(loggedUserAuthorities).size() > 0) {
                 return true;
             }
         }
@@ -296,31 +295,25 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
             return false;
         }
 
-        for (GrantedAuthority auth : authentication.getAuthorities()) {
+        Collection<? extends GrantedAuthority> loggedUserAuthorities = getLoggedUserAuthorities();
+        for (GrantedAuthority auth : loggedUserAuthorities) {
             if (auth.getAuthority().equals(IRoleDefinition.ROLE_ADMIN)) {
                 return true;
-            } else if (getManagedEntitiesByModuleAndType(authentication.getAuthorities()).size() > 0) {
+            } else if (getManagedEntitiesByModuleAndType(loggedUserAuthorities).size() > 0) {
                 return true;
             }
         }
         return false;
     }
 
-    public Map<String /*module*/, Collection<String /*entity-type*/>> getWritableEntityTypesByModule(Collection<? extends GrantedAuthority> authorities) {
-        Map<String, Collection<String>> result = new HashMap<>();
+    public HashSet<String /*module*/> getSupervisedModules(Collection<? extends GrantedAuthority> authorities) {
+        HashSet<String>result = new HashSet<>();
         if (authorities != null) {
+            Collection<String> modules = moduleManager.getModules(null);
             for (GrantedAuthority auth : authorities) {
-                String[] splittedPermission = auth.getAuthority().split(Pattern.quote(UserPermissionController.ROLE_STRING_SEPARATOR));
-                if (splittedPermission.length == 3) {
-                    if (moduleManager.getModules(null).contains(splittedPermission[0]) && UserPermissionController.rolesByLevel1Type.keySet().contains(splittedPermission[1]) && splittedPermission[2].equals(IRoleDefinition.CREATOR_ROLE_SUFFIX)) {
-                        Collection<String> entityTypes = result.get(splittedPermission[0]);
-                        if (entityTypes == null) {
-                            entityTypes = new HashSet<>();
-                            result.put(splittedPermission[0], entityTypes);
-                        }
-                        entityTypes.add(splittedPermission[1]);
-                    }
-                }
+                String[] splitPermission = auth.getAuthority().split(Pattern.quote(UserPermissionController.ROLE_STRING_SEPARATOR));
+                if (splitPermission.length == 2 && modules.contains(splitPermission[0]) && splitPermission[1].equals(IRoleDefinition.ROLE_DB_SUPERVISOR))
+                    result.add(splitPermission[0]);
             }
         }
         return result;
@@ -329,21 +322,22 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     public Map<String /*module*/, Map<String /*entity-type*/, Collection<Comparable> /*entity-IDs*/>> getManagedEntitiesByModuleAndType(Collection<? extends GrantedAuthority> authorities) {
         Map<String, Map<String, Collection<Comparable>>> result = new HashMap<>();
         if (authorities != null) {
+            Collection<String> modules = moduleManager.getModules(null);
             for (GrantedAuthority auth : authorities) {
-                String[] splittedPermission = auth.getAuthority().split(Pattern.quote(UserPermissionController.ROLE_STRING_SEPARATOR));
-                if (splittedPermission.length == 4) {
-                    if (moduleManager.getModules(null).contains(splittedPermission[0]) && UserPermissionController.rolesByLevel1Type.keySet().contains(splittedPermission[1]) && splittedPermission[2].equals(IRoleDefinition.ENTITY_MANAGER_ROLE)) {
-                        Map<String, Collection<Comparable>> entitiesByTypeForModule = result.get(splittedPermission[0]);
+                String[] splitPermission = auth.getAuthority().split(Pattern.quote(UserPermissionController.ROLE_STRING_SEPARATOR));
+                if (splitPermission.length == 4) {
+                    if (modules.contains(splitPermission[0]) && UserPermissionController.rolesByLevel1Type.keySet().contains(splitPermission[1]) && splitPermission[2].equals(IRoleDefinition.ENTITY_MANAGER_ROLE)) {
+                        Map<String, Collection<Comparable>> entitiesByTypeForModule = result.get(splitPermission[0]);
                         if (entitiesByTypeForModule == null) {
                             entitiesByTypeForModule = new HashMap<>();
-                            result.put(splittedPermission[0], entitiesByTypeForModule);
+                            result.put(splitPermission[0], entitiesByTypeForModule);
                         }
-                        Collection<Comparable> entities = entitiesByTypeForModule.get(splittedPermission[1]);
+                        Collection<Comparable> entities = entitiesByTypeForModule.get(splitPermission[1]);
                         if (entities == null) {
                             entities = new HashSet<>();
-                            entitiesByTypeForModule.put(splittedPermission[1], entities);
+                            entitiesByTypeForModule.put(splitPermission[1], entities);
                         }
-                        entities.add(new Scanner(splittedPermission[3]).hasNextInt() ? Integer.parseInt(splittedPermission[3]) : splittedPermission[3]);
+                        entities.add(new Scanner(splitPermission[3]).hasNextInt() ? Integer.parseInt(splitPermission[3]) : splitPermission[3]);
                     }
                 }
             }
@@ -354,26 +348,27 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     public Map<String /*module*/, Map<String /*entity-type*/, Map<String /*role*/, Collection<Comparable> /*entity-IDs*/>>> getCustomRolesByModuleAndEntityType(Collection<? extends GrantedAuthority> authorities) {
         Map<String, Map<String, Map<String, Collection<Comparable>>>> result = new HashMap<>();
         if (authorities != null) {
+            Collection<String> modules = moduleManager.getModules(null);
             for (GrantedAuthority auth : authorities) {
-                String[] splittedPermission = auth.getAuthority().split(Pattern.quote(UserPermissionController.ROLE_STRING_SEPARATOR));
-                if (splittedPermission.length == 4) {
-                    if (moduleManager.getModules(null).contains(splittedPermission[0]) && UserPermissionController.rolesByLevel1Type.keySet().contains(splittedPermission[1]) && UserPermissionController.rolesByLevel1Type.get(splittedPermission[1]).contains(splittedPermission[2])) {
-                        Map<String, Map<String, Collection<Comparable>>> rolesByEntityTypeForModule = result.get(splittedPermission[0]);
+                String[] splitPermission = auth.getAuthority().split(Pattern.quote(UserPermissionController.ROLE_STRING_SEPARATOR));
+                if (splitPermission.length == 4) {
+                    if (modules.contains(splitPermission[0]) && UserPermissionController.rolesByLevel1Type.keySet().contains(splitPermission[1]) && UserPermissionController.rolesByLevel1Type.get(splitPermission[1]).contains(splitPermission[2])) {
+                        Map<String, Map<String, Collection<Comparable>>> rolesByEntityTypeForModule = result.get(splitPermission[0]);
                         if (rolesByEntityTypeForModule == null) {
                             rolesByEntityTypeForModule = new HashMap<>();
-                            result.put(splittedPermission[0], rolesByEntityTypeForModule);
+                            result.put(splitPermission[0], rolesByEntityTypeForModule);
                         }
-                        Map<String, Collection<Comparable>> entityIDsByRoles = rolesByEntityTypeForModule.get(splittedPermission[1]);
+                        Map<String, Collection<Comparable>> entityIDsByRoles = rolesByEntityTypeForModule.get(splitPermission[1]);
                         if (entityIDsByRoles == null) {
                             entityIDsByRoles = new HashMap<>();
-                            rolesByEntityTypeForModule.put(splittedPermission[1], entityIDsByRoles);
+                            rolesByEntityTypeForModule.put(splitPermission[1], entityIDsByRoles);
                         }
-                        Collection<Comparable> entities = entityIDsByRoles.get(splittedPermission[2]);
+                        Collection<Comparable> entities = entityIDsByRoles.get(splitPermission[2]);
                         if (entities == null) {
                             entities = new HashSet<>();
-                            entityIDsByRoles.put(splittedPermission[2], entities);
+                            entityIDsByRoles.put(splitPermission[2], entities);
                         }
-                        entities.add(new Scanner(splittedPermission[3]).hasNextInt() ? Integer.parseInt(splittedPermission[3]) : splittedPermission[3]);
+                        entities.add(new Scanner(splitPermission[3]).hasNextInt() ? Integer.parseInt(splitPermission[3]) : splitPermission[3]);
                     }
                 }
             }
@@ -398,8 +393,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     }
 
     public int countByLoginLookup(String sLoginLookup) throws IOException {
-        Authentication authorities = SecurityContextHolder.getContext().getAuthentication();
-        boolean fLoggedUserIsAdmin = authorities.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
+        boolean fLoggedUserIsAdmin = getLoggedUserAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
         if (sLoginLookup == null) {
             return listUsers(!fLoggedUserIsAdmin).size();
         }
@@ -414,8 +408,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     }
 
     public List<UserDetails> listByLoginLookup(String sLoginLookup, int max, int size) throws IOException {
-        Authentication authorities = SecurityContextHolder.getContext().getAuthentication();
-        boolean fLoggedUserIsAdmin = authorities.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
+        boolean fLoggedUserIsAdmin = getLoggedUserAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
         List<UserDetails> result = new ArrayList<>();
         List<String> userList = listUsers(!fLoggedUserIsAdmin);
         String[] userArray = userList.toArray(new String[userList.size()]);
@@ -442,5 +435,22 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     
     public int getUserCount() {
     	return m_users.size();
+    }
+
+    /**
+     * @return always up-to-date authorities, contrarily to those obtained via SecurityContextHolder.getContext().getAuthentication() which requires re-authentication to account for changes
+     */
+    public Collection<? extends GrantedAuthority> getLoggedUserAuthorities()
+    {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        if ("anonymousUser".equals(username))
+            return auth.getAuthorities();
+        
+        return loadUserByUsernameAndMethod(username, null).getAuthorities();
+    }
+
+    public void updateUser(String username, UserWithMethod user) {
+        m_users.put(username, user);
     }
 }
