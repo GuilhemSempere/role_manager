@@ -207,7 +207,7 @@
 								</c:if>
 							</c:forEach>
 						</c:forEach>
-						<a id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink' class='${urlEncoder.urlEncode(moduleName)}_PermissionLink' style='text-transform:none;${fn:contains(user.authorities, moduleName.concat(roleSep).concat(level1Type.key).concat(roleSep).concat(supervisorRole)) ? " display:none;" : ""}' href="javascript:openPermissionDialog('${user.username}', '${moduleName}', '${level1Type.key}');">${level1Type.key}<br/>permissions</a>
+						<a id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink' class='${urlEncoder.urlEncode(moduleName)}_PermissionLink' style='text-transform:none;${fn:contains(user.authorities, moduleName.concat(roleSep).concat(supervisorRole)) ? " display:none;" : ""}' href="javascript:openPermissionDialog('${user.username}', '${moduleName}', '${level1Type.key}');">${level1Type.key}<br/>permissions</a>
 						<c:if test="${roles ne ''}">
 							<script type="text/javascript">updatePermissionLink("${urlEncoder.urlEncode(moduleName)}", "${level1Type.key}", "${roles}".split(",").length);</script>
 						</c:if>
@@ -255,7 +255,7 @@
 								</c:if>
 							</c:forEach>
 						</c:forEach>
-						<a id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink' class='${urlEncoder.urlEncode(moduleName)}_PermissionLink' style='text-transform:none;${fn:contains(user.authorities, moduleName.concat(roleSep).concat(level1Type.key).concat(roleSep).concat(supervisorRole)) ? " display:none;" : ""}' href="javascript:openPermissionDialog('${user.username}', '${moduleName}', '${level1Type.key}');">${level1Type.key}<br/>permissions</a>
+						<a id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink' class='${urlEncoder.urlEncode(moduleName)}_PermissionLink' style='text-transform:none;${fn:contains(user.authorities, moduleName.concat(roleSep).concat(supervisorRole)) ? " display:none;" : ""}' href="javascript:openPermissionDialog('${user.username}', '${moduleName}', '${level1Type.key}');">${level1Type.key}<br/>permissions</a>
 						<c:if test="${roles ne ''}">
 							<script type="text/javascript">updatePermissionLink("${urlEncoder.urlEncode(moduleName)}", "${level1Type.key}", "${roles}".split(",").length);</script>
 						</c:if>
@@ -274,7 +274,7 @@
 	<div style='margin-left:20px; margin-top:10px;'>
 		<p>
 		<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && user.getMethod().isEmpty()}">
-			You can modify this user's password by typing a new password here: <input id="password" type='password' name="password" style='width:100px;' autocomplete="off"> (max-length: 20)
+			You can modify this user's password by typing a new password here: <input id="password" type='password' name="password" style='width:100px;' autocomplete="new-password" /> (max-length: 20)
 		</c:if>
 		</p>
 		<table>

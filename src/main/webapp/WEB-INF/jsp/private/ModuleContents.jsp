@@ -33,6 +33,8 @@
 	<link media="screen" type="text/css" href="../css/main.css" rel="StyleSheet" />
 
 	<script type="text/javascript">
+	var dirty = false;
+
 	function removeItem(entityId, entityName)
 	{
 		let itemRow = $("#row_" + entityId);
@@ -44,12 +46,12 @@
 		        	data : { module:'${param.module}', entityType:'${param.entityType}', entityId:entityId },
 		        	success: function(deleted) {
 						itemRow.find("td:eq(2) div").remove();
-						if (!deleted) {
+						if (!deleted)
 							alert("Unable to discard " + entityName);
-			        	} else {
+			        	else {
 							itemRow.remove();
-							parent.refreshTable();
-						}
+							dirty = true;
+			        	}
 		        	},
 			        error: function (xhr, ajaxOptions, thrownError) {
 			            handleError(xhr, ajaxOptions, thrownError);
@@ -89,13 +91,14 @@
 			{
 				itemRow.find("td:eq(2) div").html("Change applied!");
 				setTimeout(function() {itemRow.find("td:eq(2) div").remove();}, 1000);
+				dirty = true;
 			}
 		});
 	}
 	</script>
 </head>
 
-<body style='background-color:#f0f0f0; text-align:center;'>
+<body style='background-color:#f0f0f0; text-align:center;' onload="$('#hlContentDialogClose', parent.document).on('click', function() { if (dirty) parent.location.reload(); });">
 	<form>
 		<table cellpadding='4' cellspacing='0' border='0'>
 		  <tr>

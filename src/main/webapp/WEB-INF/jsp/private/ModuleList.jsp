@@ -34,6 +34,9 @@
 	<script type="text/javascript" src="js/jquery-1.12.4.min.js"></script>
 	<script type="text/javascript" src="js/bootstrap.min.js"></script>
 	<script type="text/javascript">
+		if (this == top)
+			location.href = "..";
+
 		var StringBuffer = function() {
 		    this.buffer = new Array();
 		};
@@ -294,8 +297,7 @@
 				    }
 
 				    const now = new Date();
-				    const dateString = now.getFullYear() + ("0" + (now.getMonth() + 1)).slice(-2) + ("0" + now.getDate()).slice(-2) + "_" +
-				    					("0" + now.getHours()).slice(-2) + ("0" + now.getMinutes()).slice(-2) + ("0" + now.getSeconds()).slice(-2);
+				    const dateString = now.getFullYear() + ("0" + (now.getMonth() + 1)).slice(-2) + ("0" + now.getDate()).slice(-2) + "_" + ("0" + now.getHours()).slice(-2) + ("0" + now.getMinutes()).slice(-2) + ("0" + now.getSeconds()).slice(-2);
 				    $("#newDumpDialogTitle").html("New dump for module <strong>" + module + "</strong>");
 				    $("#newDumpName").val(module + "_" + dateString);
 				    $("#newDumpDescription").val("");
@@ -330,17 +332,30 @@
 		    $("#restoreConfirmationDialog").modal("show");
 		}
 
-		function deleteDump(module, dumpInfo){
+		function willBestDumpStatusChangeAfterRemovingOneOfType(targetedStatus) {
+			let result = false;
+			for (const [aStatus, aDesc] of dumpValidityTips.entries()) {
+				let statusCount = $("div#moduleDumpDialogContent table.adminListTable tr:gt(0) td.dump" + aStatus).size();
+				if (statusCount > 0) {
+					if (targetedStatus == aStatus)
+						result = statusCount == 1;
+					break;
+				}
+			}
+			return result;
+		}
+
+		function deleteDump(module, dumpInfo) {
+			let bestStatusWillChange = willBestDumpStatusChangeAfterRemovingOneOfType(dumpInfo.validity);
 		    if (window.confirm("Delete dump " + dumpInfo.name + " of database " + module + " ?")){
 		        const deleteURL = '<c:url value="<%= BackOfficeController.deleteDumpURL %>" />?module=' + module + '&dump=' + dumpInfo.identifier;
 		        $.ajax({
 		            url: deleteURL,
 		            method: "DELETE",
 		        }).then(() => {
-		        	let wasTheOnlyDump = $("div#moduleDumpDialogContent table.adminListTable tr").length == 2;
 		        	openModuleDumpDialog(module);
-					if (wasTheOnlyDump)
-		        		refreshTable();
+					if (bestStatusWillChange)
+		        		refreshDatabaseList();
 		        });
 		    }
 		}
@@ -357,7 +372,7 @@
 	    	resizeIFrame();
 	    });
 
-	    function refreshTable() {
+	    function refreshDatabaseList() {
 	        window.location.reload();
 	    }
 	</script>

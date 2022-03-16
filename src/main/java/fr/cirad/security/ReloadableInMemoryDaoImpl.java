@@ -273,11 +273,6 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     }
 
     public boolean canLoggedUserWriteToSystem() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || "anonymousUser".equals(authentication.getName())) {
-            return false;
-        }
-
         Collection<? extends GrantedAuthority> loggedUserAuthorities = getLoggedUserAuthorities();
         for (GrantedAuthority auth : loggedUserAuthorities) {
             if (auth.getAuthority().equals(IRoleDefinition.ROLE_ADMIN)) {
@@ -290,11 +285,6 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     }
     
     public boolean doesLoggedUserOwnEntities() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || "anonymousUser".equals(authentication.getName())) {
-            return false;
-        }
-
         Collection<? extends GrantedAuthority> loggedUserAuthorities = getLoggedUserAuthorities();
         for (GrantedAuthority auth : loggedUserAuthorities) {
             if (auth.getAuthority().equals(IRoleDefinition.ROLE_ADMIN)) {
@@ -376,22 +366,6 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         return result;
     }
 
-    public void allowManagingEntity(String sModule, String entityType, Comparable entityId, String username) throws IOException {
-        UserWithMethod owner = (UserWithMethod)loadUserByUsernameAndMethod(username, null);
-		if (owner.getAuthorities() != null && (owner.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN))))
-			return;	// no need to grant any role to administrators
-
-        SimpleGrantedAuthority role = new SimpleGrantedAuthority(sModule + UserPermissionController.ROLE_STRING_SEPARATOR + entityType + UserPermissionController.ROLE_STRING_SEPARATOR + IRoleDefinition.ENTITY_MANAGER_ROLE + UserPermissionController.ROLE_STRING_SEPARATOR + entityId);
-        if (!owner.getAuthorities().contains(role)) {
-            HashSet<GrantedAuthority> authoritiesToSave = new HashSet<>();
-            authoritiesToSave.add(role);
-            for (GrantedAuthority authority : owner.getAuthorities()) {
-                authoritiesToSave.add(authority);
-            }
-            saveOrUpdateUser(username, owner.getPassword(), authoritiesToSave, owner.isEnabled(), owner.getMethod());
-        }
-    }
-
     public int countByLoginLookup(String sLoginLookup) throws IOException {
         boolean fLoggedUserIsAdmin = getLoggedUserAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
         if (sLoginLookup == null) {
@@ -442,7 +416,14 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
      */
     public Collection<? extends GrantedAuthority> getLoggedUserAuthorities()
     {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return getUserAuthorities(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    /**
+     * @return always up-to-date authorities, contrarily to those obtained via SecurityContextHolder.getContext().getAuthentication() which requires re-authentication to account for changes
+     */
+    public Collection<? extends GrantedAuthority> getUserAuthorities(Authentication auth)
+    {
         String username = auth.getName();
         if ("anonymousUser".equals(username))
             return auth.getAuthorities();

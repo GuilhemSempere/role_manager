@@ -29,6 +29,9 @@
 	<script type="text/javascript" src="js/jquery-1.12.4.min.js"></script>
 	<script type="text/javascript" src="js/bootstrap.min.js"></script>
 	<script type="text/javascript">
+	if (this == top)
+		location.href = "..";
+
 	const progressQueryURL = '<c:url value="<%= BackOfficeController.processListStatusURL %>" />';
 	const queryInterval = 2000;
 	const nonFinalStatus = ["idle", "running"];

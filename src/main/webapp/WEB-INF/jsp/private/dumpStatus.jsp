@@ -101,7 +101,7 @@
 		
 		window.onbeforeunload = function(e) {
 			if (window.opener != null)
-			    window.opener.refreshTable();
+			    window.opener.location.reload();
 		}
 	</script>
 </head>
