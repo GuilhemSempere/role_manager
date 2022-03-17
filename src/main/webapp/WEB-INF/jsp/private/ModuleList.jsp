@@ -268,7 +268,7 @@
 
 					    dumpData.dumps.forEach(function (dumpInfo) {
 					        const row = $("<tr></tr>");
-					        row.append('<td class="dump' + dumpInfo.validity + '">' + dumpInfo.validity.toLowerCase() + '</td>');
+					        row.append('<td class="dump' + (dumpData.locked ? "BUSY" : dumpInfo.validity) + '" align="center">' + dumpInfo.validity.toLowerCase() + '</td>');
 					        row.append("<td>" + dumpInfo.name + "</td>");
 	    					row.append("<td align='center'><a target='_blank' href='<c:url value="<%= BackOfficeController.moduleDumpDownloadURL %>" />?module=" + module + "&dumpId=" + dumpInfo.identifier + "'><span class='glyphicon btn-glyphicon glyphicon-save img-circle text-muted'></span></a></td>");
 					        row.append("<td>" + formatFileSize(dumpInfo.fileSizeMb) + "</td>");
@@ -292,7 +292,7 @@
 					        dumpTable.append(row);
 					    });
 
-					    container.append($("<div class='small text-red'>If you download dump archives, do not rename them or they might not be recognized by the system</div>"));
+					    container.append($("<div class='small text-red'>If you download dump archives, do not rename them or the system might be unable to restore them</div>"));
 					    container.append(dumpTable);
 				    }
 
