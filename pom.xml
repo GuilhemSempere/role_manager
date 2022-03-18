@@ -5,7 +5,7 @@
     <groupId>fr.cirad</groupId>
     <artifactId>role_manager</artifactId>
     <name>Spring-based role management addon</name>
-    <version>1.2-snapshot</version>
+    <version>1.2-beta</version>
    	<packaging>jar</packaging>
     
     <description>

@@ -30,7 +30,7 @@
          ================================= -->
     <target name="default" description="Creates a jar with static resources in META-INF/resources">
         <echo message="running ant build (target :: default)"/>
-	    <jar destfile="jar/role_manager-1.0-beta.jar">
+	    <jar destfile="jar/role_manager-1.2-beta.jar">
 	    	<fileset dir="target/classes" includes="**/*.class" />	    	
 	    	<zipfileset dir="src/main/webapp" prefix="META-INF/resources" />
 	    </jar>
