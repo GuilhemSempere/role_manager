@@ -52,9 +52,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
+import fr.cirad.manager.IModuleManager;
 import fr.cirad.security.ReloadableInMemoryDaoImpl;
 import fr.cirad.security.UserWithMethod;
-import fr.cirad.security.base.IModuleManager;
 import fr.cirad.security.base.IRoleDefinition;
 
 @Controller

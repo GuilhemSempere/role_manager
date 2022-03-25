@@ -46,7 +46,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import fr.cirad.security.base.IModuleManager;
+import fr.cirad.manager.IModuleManager;
 import fr.cirad.security.base.IRoleDefinition;
 import fr.cirad.web.controller.security.UserPermissionController;
 

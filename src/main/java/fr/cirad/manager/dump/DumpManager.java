@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
-import fr.cirad.security.base.IModuleManager;
+import fr.cirad.manager.IModuleManager;
 
 @Component
 public class DumpManager {

@@ -14,12 +14,13 @@
  * See <http://www.gnu.org/licenses/agpl.html> for details about GNU General
  * Public License V3.
  *******************************************************************************/
-package fr.cirad.security.base;
+package fr.cirad.manager;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -198,4 +199,17 @@ public interface IModuleManager {
 	 * @throws IOException 
 	 */
     InputStream getDumpLogInputStream(String sModule, String sDumpName) throws IOException;
+    
+    /**
+     *
+	 * @param sModule Module to update modification date for
+	 * @param lastModification the date to set
+	 * @param restored flag telling whether or not this modification is a restore
+     * @param sModule
+     */
+    void updateDatabaseLastModification(String sModule, Date lastModification, boolean restored);
+
+	void lockModuleForWriting(String module);
+
+	void unlockModuleForWriting(String module);
 }
