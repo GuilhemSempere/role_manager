@@ -60,7 +60,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
@@ -119,28 +119,28 @@ public class BackOfficeController {
 	@Autowired private ReloadableInMemoryDaoImpl userDao;
 	@Autowired private DumpManager dumpManager;
 
-	@RequestMapping(mainPageURL)
+	@GetMapping(mainPageURL)
 	protected ModelAndView mainPage(HttpSession session) throws Exception
 	{
 		ModelAndView mav = new ModelAndView();
 		return mav;
 	}
 
-	@RequestMapping(homePageURL)
+	@GetMapping(homePageURL)
 	public ModelAndView homePage()
 	{
 		ModelAndView mav = new ModelAndView();
 		return mav;
 	}
 
-	@RequestMapping(topFrameURL)
+	@GetMapping(topFrameURL)
 	protected ModelAndView topFrame()
 	{
 		ModelAndView mav = new ModelAndView();
 		return mav;
 	}
 
-	@RequestMapping(adminMenuURL)
+	@GetMapping(adminMenuURL)
 	protected ModelAndView adminMenu()
 	{
 		ModelAndView mav = new ModelAndView();
@@ -148,7 +148,7 @@ public class BackOfficeController {
 		return mav;
 	}
 
-	@RequestMapping(moduleListPageURL)
+	@GetMapping(moduleListPageURL)
 	public ModelAndView setupList()
 	{
 		ModelAndView mav = new ModelAndView();
@@ -157,7 +157,7 @@ public class BackOfficeController {
 		return mav;
 	}
 
-	@RequestMapping(moduleContentPageURL)
+	@GetMapping(moduleContentPageURL)
 	public void moduleContentPage(Model model, @RequestParam("user") String username, @RequestParam("module") String module, @RequestParam("entityType") String entityType) throws Exception
 	{
 		model.addAttribute(module);
@@ -181,22 +181,22 @@ public class BackOfficeController {
 		if (!loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) && !userDao.getSupervisedModules(loggedUserAuthorities).contains(module))
 		    allowedEntities = userDao.getManagedEntitiesByModuleAndType(loggedUserAuthorities).get(module).get(entityType);
 		for (Map<Comparable, String> entityMap : Arrays.asList(publicEntities, privateEntities))
-		{
-			Map<Comparable, String> allowedEntityMap = new TreeMap<Comparable, String>();
-			for (Comparable key : entityMap.keySet())
-				if (allowedEntities == null || allowedEntities.contains(key))
-					allowedEntityMap.put(key, entityMap.get(key));
-			model.addAttribute((publicEntities == entityMap ? "public" : "private") + "Entities", allowedEntityMap);
-		}
+			if (entityMap != null) {
+				Map<Comparable, String> allowedEntityMap = new TreeMap<Comparable, String>();
+				for (Comparable key : entityMap.keySet())
+					if (allowedEntities == null || allowedEntities.contains(key))
+						allowedEntityMap.put(key, entityMap.get(key));
+				model.addAttribute((publicEntities == entityMap ? "public" : "private") + "Entities", allowedEntityMap);
+			}
 	}
 
 	@PreAuthorize("hasRole(IRoleDefinition.ROLE_ADMIN)")
-    @RequestMapping(hostListURL)
+	@GetMapping(hostListURL)
 	protected @ResponseBody Collection<String> getHostList() throws IOException {
     	return moduleManager.getHosts();
     }
 
-	@RequestMapping(moduleListDataURL)
+	@GetMapping(moduleListDataURL)
 	protected @ResponseBody Map<String, Map<String, Comparable>> listModules() throws Exception
 	{
 		Collection<? extends GrantedAuthority> authorities = userDao.getLoggedUserAuthorities();
@@ -232,28 +232,28 @@ public class BackOfficeController {
 		return result;
 	}
 
-	@RequestMapping(moduleVisibilityURL)
+	@GetMapping(moduleVisibilityURL)
 	@PreAuthorize("hasRole(IRoleDefinition.ROLE_ADMIN)")
 	protected @ResponseBody boolean modifyModuleVisibility(@RequestParam("module") String sModule, @RequestParam("public") boolean fPublic, @RequestParam("hidden") boolean fHidden) throws Exception
 	{
 		return moduleManager.updateDataSource(sModule, fPublic, fHidden, null);
 	}
 
-	@RequestMapping(moduleCreationURL)
+	@GetMapping(moduleCreationURL)
 	@PreAuthorize("hasRole(IRoleDefinition.ROLE_ADMIN)")
 	protected @ResponseBody boolean createModule(@RequestParam("module") String sModule, @RequestParam("host") String sHost) throws Exception
 	{
 		return moduleManager.createDataSource(sModule, sHost, null, null);
 	}
 
-	@RequestMapping(moduleRemovalURL)
+	@DeleteMapping(moduleRemovalURL)
 	@PreAuthorize("hasRole(IRoleDefinition.ROLE_ADMIN)")
 	protected @ResponseBody boolean removeModule(@RequestParam("module") String sModule, @RequestParam(required=false, value="removeDumps") Boolean fRemoveDumps) throws Exception
 	{
 		return moduleManager.removeDataSource(sModule, true, Boolean.TRUE.equals(fRemoveDumps));
 	}
 
-	@RequestMapping(moduleEntityRemovalURL)
+	@DeleteMapping(moduleEntityRemovalURL)
 	protected @ResponseBody boolean removeModuleEntity(@RequestParam("module") String sModule, @RequestParam("entityType") String sEntityType, @RequestParam("entityId") String sEntityId) throws Exception
 	{
 	    Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
@@ -264,7 +264,7 @@ public class BackOfficeController {
 		return moduleManager.removeManagedEntity(sModule, sEntityType, sEntityId);
 	}
 
-	@RequestMapping(moduleEntityVisibilityURL)
+	@PostMapping(moduleEntityVisibilityURL)
 	protected @ResponseBody boolean modifyModuleEntityVisibility(@RequestParam("module") String sModule, @RequestParam("entityType") String sEntityType, @RequestParam("entityId") String sEntityId, @RequestParam("public") boolean fPublic) throws Exception
 	{
 	    Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();

@@ -39,11 +39,18 @@
 		function removeItem(itemId)
 		{
 			if (confirm("Do you really want to discard " + itemId + "?"))
-				$.getJSON('<c:url value="<%= UserPermissionController.userRemovalURL %>" />', { user:itemId }, function(deleted){
-					if (deleted)
-						loadCurrentPage();
-					else
-						alert("Unable to discard " + itemId);
+			    $.ajax({
+		            url: '<c:url value="<%= UserPermissionController.userRemovalURL %>" />?user=' + itemId,
+		            method: "DELETE",
+		        	success: function(deleted) {
+						if (deleted)
+							loadCurrentPage();
+						else
+							alert("Unable to discard " + itemId);
+		        	},
+			        error: function (xhr, ajaxOptions, thrownError) {
+			        	handleError(xhr);
+			        }
 				});
 		}
 		</c:if>

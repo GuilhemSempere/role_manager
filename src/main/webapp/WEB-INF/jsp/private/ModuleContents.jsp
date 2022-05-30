@@ -42,8 +42,8 @@
 		{
 			itemRow.find("td:eq(2)").prepend("<div style='position:absolute; margin-left:60px; margin-top:5px;'><img src='img/progress.gif'></div>");
 		    $.ajax({
-		        	url: '<c:url value="<%= BackOfficeController.moduleEntityRemovalURL %>" />',
-		        	data : { module:'${param.module}', entityType:'${param.entityType}', entityId:entityId },
+		        	url: '<c:url value="<%= BackOfficeController.moduleEntityRemovalURL %>" />?module=${param.module}&entityType=${param.entityType}&entityId=' + entityId,
+		            method: "DELETE",
 		        	success: function(deleted) {
 						itemRow.find("td:eq(2) div").remove();
 						if (!deleted)
@@ -80,19 +80,28 @@
 		let visibilityCell = itemRow.find("td:eq(1)");
 		let setAsPublic = visibilityCell.find("input").is(":checked");
 		itemRow.find("td:eq(2)").prepend("<div style='position:absolute; margin-left:60px; margin-top:5px;'><img src='img/progress.gif'></div>");
-		$.getJSON('<c:url value="<%= BackOfficeController.moduleEntityVisibilityURL %>" />', { module:'${param.module}', entityType:'${param.entityType}', entityId:entityId, public:setAsPublic }, function(updated){
-			if (!updated)
-			{
-				itemRow.find("td:eq(2) div").remove();
-				visibilityCell.find("input").prop("checked", !setAsPublic);
-				alert("Unable to set visibility to " + (setAsPublic ? "public" : "private") + " for " + entityName);
-			}
-			else
-			{
-				itemRow.find("td:eq(2) div").html("Change applied!");
-				setTimeout(function() {itemRow.find("td:eq(2) div").remove();}, 1000);
-				dirty = true;
-			}
+		
+	    $.ajax({
+        	url: '<c:url value="<%= BackOfficeController.moduleEntityVisibilityURL %>" />',
+            method: "POST",
+        	data : { module:'${param.module}', entityType:'${param.entityType}', entityId:entityId, public:setAsPublic },
+        	success: function(updated) {
+    			if (!updated)
+    			{
+    				itemRow.find("td:eq(2) div").remove();
+    				visibilityCell.find("input").prop("checked", !setAsPublic);
+    				alert("Unable to set visibility to " + (setAsPublic ? "public" : "private") + " for " + entityName);
+    			}
+    			else
+    			{
+    				itemRow.find("td:eq(2) div").html("Change applied!");
+    				setTimeout(function() {itemRow.find("td:eq(2) div").remove();}, 1000);
+    				dirty = true;
+    			}
+        	},
+	        error: function (xhr, ajaxOptions, thrownError) {
+	            handleError(xhr, ajaxOptions, thrownError);
+	        }
 		});
 	}
 	</script>

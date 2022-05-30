@@ -102,17 +102,26 @@
 			let itemRow = $("#row_" + moduleName);
 			if (confirm("Do you really want to discard database " + moduleName + "?\nThis will delete all data it contains.")) {
 				itemRow.find("td:eq(6)").prepend("<div style='position:absolute; margin-left:60px; margin-top:5px;'><img src='img/progress.gif'></div>");
-				$.getJSON('<c:url value="<%= BackOfficeController.moduleRemovalURL %>" />', { module:moduleName<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && actionRequiredToEnableDumps eq ''}">, removeDumps:moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] != "NONE" && confirm("Also remove related dumps?")</c:if> }, function(deleted){
-					if (!deleted) {
-						alert("Unable to discard " + moduleName);
-						itemRow.find("td:eq(6) div").remove();
-					}
-					else
-					{
-						delete moduleData[moduleName];
-						itemRow.remove();
-					}
-				}).error(function(xhr) { itemRow.find("td:eq(6) div").remove(); handleError(xhr); });
+
+			    $.ajax({
+		            url: '<c:url value="<%= BackOfficeController.moduleRemovalURL %>" />?module=' + moduleName<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && actionRequiredToEnableDumps eq ''}"> + '&removeDumps=' + (moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] != "NONE" && confirm("Also remove related dumps?"))</c:if>,
+		            method: "DELETE",
+		        	success: function(deleted) {
+						if (!deleted) {
+							alert("Unable to discard " + moduleName);
+							itemRow.find("td:eq(6) div").remove();
+						}
+						else
+						{
+							delete moduleData[moduleName];
+							itemRow.remove();
+						}
+		        	},
+			        error: function (xhr, ajaxOptions, thrownError) {
+			        	itemRow.find("td:eq(6) div").remove();
+			        	handleError(xhr);
+			        }
+				});
 			}
 		}
 
@@ -348,9 +357,8 @@
 		function deleteDump(module, dumpInfo) {
 			let bestStatusWillChange = willBestDumpStatusChangeAfterRemovingOneOfType(dumpInfo.validity);
 		    if (window.confirm("Delete dump " + dumpInfo.name + " of database " + module + " ?")){
-		        const deleteURL = '<c:url value="<%= BackOfficeController.deleteDumpURL %>" />?module=' + module + '&dump=' + dumpInfo.identifier;
 		        $.ajax({
-		            url: deleteURL,
+		            url: '<c:url value="<%= BackOfficeController.deleteDumpURL %>" />?module=' + module + '&dump=' + dumpInfo.identifier,
 		            method: "DELETE",
 		        }).then(() => {
 		        	openModuleDumpDialog(module);

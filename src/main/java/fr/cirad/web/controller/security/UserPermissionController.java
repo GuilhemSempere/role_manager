@@ -46,8 +46,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
@@ -119,19 +120,19 @@ public class UserPermissionController
 			}
     }
 
-	@RequestMapping(userListPageURL)
+	@GetMapping(userListPageURL)
 	protected ModelAndView setupList() throws Exception
 	{
 		return new ModelAndView();
     }
 
-	@RequestMapping(userListCountURL)
+	@GetMapping(userListCountURL)
 	protected @ResponseBody int countUsersByLoginLookup(@RequestParam("loginLookup") String sLoginLookup) throws Exception
 	{
 		return userDao.countByLoginLookup(sLoginLookup);
 	}
 
-	@RequestMapping(userListDataURL)
+	@GetMapping(userListDataURL)
 	protected @ResponseBody Comparable[][] listUsersByLoginLookup(@RequestParam("loginLookup") String sLoginLookup, @RequestParam("page") int page, @RequestParam("size") int size) throws Exception
 	{
 		List<UserDetails> users = userDao.listByLoginLookup(sLoginLookup, Math.max(0, page), size);
@@ -156,7 +157,7 @@ public class UserPermissionController
 		return result;
 	}
 
-	@RequestMapping(value = userDetailsURL, method = RequestMethod.GET)
+	@GetMapping(value = userDetailsURL)
 	protected void setupForm(Model model, @RequestParam(value="user", required=false) String username)
 	{
 		model.addAttribute("rolesByLevel1Type", rolesByLevel1Type);
@@ -183,7 +184,7 @@ public class UserPermissionController
 		model.addAttribute("privateModules", CollectionUtils.disjunction(privateModules, privateModulesWithoutOwnedProjects));
 	}
 
-	@RequestMapping(value = userDetailsURL, method = RequestMethod.POST)
+	@PostMapping(value = userDetailsURL)
 	protected String processForm(Model model, HttpServletRequest request) throws Exception
 	{
 		String sUserName = request.getParameter("username"), sPassword = request.getParameter("password");
@@ -313,7 +314,7 @@ public class UserPermissionController
 		return "redirect:" + userListPageURL;
 	}
 
-	@RequestMapping(value = userPermissionURL, method = RequestMethod.GET)
+	@GetMapping(value = userPermissionURL)
 	protected void setupPermissionForm(Model model, @RequestParam("user") String username, @RequestParam("module") String module, @RequestParam("entityType") String entityType) throws Exception
 	{
 		model.addAttribute(module);
@@ -332,7 +333,7 @@ public class UserPermissionController
 			model.addAttribute("privateEntities", moduleManager.getEntitiesByModule(entityType, false, Arrays.asList(module)).get(module));
 	}
 
-	@RequestMapping(userRemovalURL)
+	@DeleteMapping(userRemovalURL)
 	protected @ResponseBody boolean removeUser(@RequestParam("user") String sUserName) throws Exception
 	{
 		UserDetails user = userDao.loadUserByUsernameAndMethod(sUserName, null);
