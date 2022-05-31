@@ -173,7 +173,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
             saveUsers();
         }
     	} catch (Throwable t) {
-    		t.printStackTrace();
+    		LOG.error(t);
     		throw t;
     	}
     }
