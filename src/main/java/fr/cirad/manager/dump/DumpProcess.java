@@ -92,11 +92,13 @@ public class DumpProcess implements IBackgroundProcess {
 
 				String password = null;
 				if (credentials != null) {
-					String[] loginAndAuthDb = credentials.split("@");
-					String[] userAndPass = loginAndAuthDb[0].split(":");
+					int nLastAtSignPos = credentials.lastIndexOf("@");
+					String[] userAndPass = credentials.substring(0, nLastAtSignPos).split(":");
 					password = userAndPass[1];
-					args.add("--username"); args.add(userAndPass[0]);
-					args.add("--authenticationDatabase"); args.add(loginAndAuthDb[1]);
+					args.add("--username");
+					args.add(userAndPass[0]);
+					args.add("--authenticationDatabase");
+					args.add(credentials.substring(1 + nLastAtSignPos));
                     args.add("--passwordPrompt");
 				}
 
@@ -132,10 +134,12 @@ public class DumpProcess implements IBackgroundProcess {
 				String password = null;
 				if (drop) args.add("--drop");
 				if (credentials != null) {
-					String[] loginAndAuthDb = credentials.split("@");
-					String[] userAndPass = loginAndAuthDb[0].split(":");
-					args.add("--username"); args.add(userAndPass[0]);
-					args.add("--authenticationDatabase"); args.add(loginAndAuthDb[1]);
+					int nLastAtSignPos = credentials.lastIndexOf("@");
+					String[] userAndPass = credentials.substring(0, nLastAtSignPos).split(":");
+					args.add("--username");
+					args.add(userAndPass[0]);
+					args.add("--authenticationDatabase");
+					args.add(credentials.substring(1 + nLastAtSignPos));
 					args.add("--passwordPrompt");
 					password = userAndPass[1];
 				}
