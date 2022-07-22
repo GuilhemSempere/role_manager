@@ -16,8 +16,11 @@
  *******************************************************************************/
 package fr.cirad.web.controller;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -42,6 +45,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -106,6 +110,7 @@ public class BackOfficeController {
     static final public String moduleDumpInfoURL = "/" + FRONTEND_URL + "/moduleDumpInfo.json_";
     static final public String newDumpURL = "/" + FRONTEND_URL + "/newDump.do_";
     static final public String restoreDumpURL = "/" + FRONTEND_URL + "/restoreDump.do_";
+    static final public String dumpRestoreWarningURL = "/" + FRONTEND_URL + "/dumpRestoreWarning.do_";
     static final public String dumpStatusPageURL = "/" + FRONTEND_URL + "/dumpStatus.do_";
     static final public String dumpStatusQueryURL = "/" + FRONTEND_URL + "/dumpProgress.json_";
     static final public String processListPageURL = "/" + FRONTEND_URL + "/processList.do_";
@@ -367,6 +372,49 @@ public class BackOfficeController {
 
 		String processID = dumpManager.startRestoreProcess(sModule, sDump, drop, SecurityContextHolder.getContext().getAuthentication().getName());
 		return "redirect:" + dumpStatusPageURL + "?processID=" + processID + "&module=" + sModule;
+	}
+	
+	@GetMapping(dumpRestoreWarningURL)
+	protected @ResponseBody String getRestoreWarning(@RequestParam("module") String sModule, @RequestParam("dump") String sDumpId) throws Exception {
+		String sMessage = "";
+		String dbName = null;
+		boolean fFoundCompletionMessage = false;
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader((moduleManager.getDumpLogInputStream(sModule, sDumpId))))) {
+            while (reader.ready()) {
+                String line = reader.readLine();
+                
+                if (dbName == null) {
+                	int nDbNamePos = line.indexOf(" --db=");	
+                	if (nDbNamePos > -1)
+                		dbName = line.substring(6 + nDbNamePos, line.indexOf(" ", 6 + nDbNamePos));
+                }
+                
+                if (line.toLowerCase().contains("mux completed successfully"))
+                	fFoundCompletionMessage = true;
+            }
+            
+            if (!fFoundCompletionMessage)
+            	sMessage += " Dump logfile does not mention succesful completion.";
+
+            if (dbName != null) {
+	            String[] splitDbName = dbName.split("_");
+	            String sDumpModuleName;
+	            switch (splitDbName.length) {
+	            	case 1:
+	            	case 2:
+	            		sDumpModuleName = splitDbName[splitDbName.length - 1];
+	            		break;
+	            	default:
+	            		sDumpModuleName = Stream.of(splitDbName).skip(1).limit(splitDbName.length - 2).collect(Collectors.joining("_"));
+	            }
+	            if (!sDumpModuleName.equals(sModule))
+	            	sMessage += " Dump database name (" + sDumpModuleName + ") does not match the target database (" + sModule + ").";
+            }
+		}
+		catch (FileNotFoundException fnfe) {
+			return " No logfile found for this dump, unable to check how safe it would be to restore it";
+		}
+		return sMessage;
 	}
 
 	@GetMapping(dumpStatusPageURL)

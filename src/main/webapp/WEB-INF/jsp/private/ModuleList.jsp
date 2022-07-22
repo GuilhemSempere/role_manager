@@ -337,8 +337,14 @@
 		        $("#moduleDumpDialog").modal("hide");
 		        return true;
 		    });
-
-		    $("#restoreConfirmationDialog").modal("show");
+		    
+	        $.ajax({
+	            url: '<c:url value="<%= BackOfficeController.dumpRestoreWarningURL %>" />?module=' + module + '&dump=' + dumpInfo.identifier,
+	            method: "GET",
+	        }).then((warningMessage) => {
+			    $("#restoreConfirmationDialog").modal("show");
+		    	$("#warningMsg").html(warningMessage.length > 0 ? "<span style='font-weight:bold; color:#ff8888;'>WARNING:</span>" + warningMessage : "Restoring this dump seems safe");
+	        });
 		}
 
 		function willBestDumpStatusChangeAfterRemovingOneOfType(targetedStatus) {
@@ -496,6 +502,7 @@
 					<div id="restoreConfirmationTitle" style="font-weight:bold; margin-bottom:5px;"></div>
 				</div>
 				<div class="modal-body">
+					<p class="alert alert-warning" id="warningMsg"></p>
 					<input type="checkbox" name="dropCheck" id="dropCheck" autocomplete="off" />
 					<label for="dropCheck">Drop the database before restoring</label>
 					<p><em>Only untick this if you know what you are doing</em></p>
