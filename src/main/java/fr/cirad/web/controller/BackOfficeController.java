@@ -396,20 +396,8 @@ public class BackOfficeController {
             if (!fFoundCompletionMessage)
             	sMessage += " Dump logfile does not mention succesful completion.";
 
-            if (dbName != null) {
-	            String[] splitDbName = dbName.split("_");
-	            String sDumpModuleName;
-	            switch (splitDbName.length) {
-	            	case 1:
-	            	case 2:
-	            		sDumpModuleName = splitDbName[splitDbName.length - 1];
-	            		break;
-	            	default:
-	            		sDumpModuleName = Stream.of(splitDbName).skip(1).limit(splitDbName.length - 2).collect(Collectors.joining("_"));
-	            }
-	            if (!sDumpModuleName.equals(sModule))
-	            	sMessage += " Dump database name (" + sDumpModuleName + ") does not match the target database (" + sModule + ").";
-            }
+            if (dbName != null && !(dbName + "_").contains("_" + sModule + "_"))
+            	sMessage += " Mongodump database name (" + dbName + ") does not seem to match the target database (" + sModule + ").";
 		}
 		catch (FileNotFoundException fnfe) {
 			return " No logfile found for this dump, unable to check how safe it would be to restore it";
