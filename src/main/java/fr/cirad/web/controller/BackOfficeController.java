@@ -45,7 +45,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -379,20 +378,22 @@ public class BackOfficeController {
 		String sMessage = "";
 		String dbName = null;
 		boolean fFoundCompletionMessage = false;
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader((moduleManager.getDumpLogInputStream(sModule, sDumpId))))) {
-            while (reader.ready()) {
-                String line = reader.readLine();
-                
+		InputStream is = moduleManager.getDumpLogInputStream(sModule, sDumpId);
+
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {			
+			String line;			
+			while ((line = reader.readLine()) != null) {
                 if (dbName == null) {
                 	int nDbNamePos = line.indexOf(" --db=");	
                 	if (nDbNamePos > -1)
                 		dbName = line.substring(6 + nDbNamePos, line.indexOf(" ", 6 + nDbNamePos));
                 }
-                
+
+                LOG.debug(line);
                 if (line.toLowerCase().contains("mux completed successfully"))
                 	fFoundCompletionMessage = true;
             }
-            
+
             if (!fFoundCompletionMessage)
             	sMessage += " Dump logfile does not mention succesful completion.";
 

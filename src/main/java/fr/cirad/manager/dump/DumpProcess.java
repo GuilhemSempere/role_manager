@@ -7,7 +7,12 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
 import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.LocalDateTime;
@@ -21,12 +26,9 @@ import java.util.zip.GZIPInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 import org.apache.commons.compress.compressors.gzip.GzipParameters;
 import org.apache.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import fr.cirad.manager.IModuleManager;
 
-//@Component
 public class DumpProcess implements IBackgroundProcess {
     
     private static final Logger LOG = Logger.getLogger(DumpProcess.class);
@@ -160,11 +162,34 @@ public class DumpProcess implements IBackgroundProcess {
         if (gzippedLogFile.exists())
             logInputStream = new GZIPInputStream(new FileInputStream(gzippedLogFile));
         else if (plainLogFile.exists()) {   // Windows script does not gzip logfiles: let's do it now
-            try (GzipCompressorOutputStream gos = new GzipCompressorOutputStream(new FileOutputStream(gzippedLogFile), new GzipParameters() {{setFilename(plainLogFile.getName());}} )) {
-                Files.copy(plainLogFile.toPath(), gos);
-                plainLogFile.delete();
+        	
+        	// Windows logfile encoding is (at least sometimes) UTF-16 and we need to specify that in order to be able to read the stream correctly
+        	InputStream plainFileInputStream = new FileInputStream(plainLogFile);
+        	Charset charset = Charset.forName("UTF-8");
+        	CharsetDecoder decoder = charset.newDecoder();      	
+            byte[] buffer = new byte[512];
+            if ((plainFileInputStream.read(buffer) != -1)) {
+                try {
+                    decoder.decode(ByteBuffer.wrap(buffer));
+                } catch (CharacterCodingException e) {
+                	charset = Charset.forName("UTF-16");
+                    LOG.debug("Compressing logfile by reading it as " + charset.displayName());
+                }
+            }
+            plainFileInputStream.close();
+        	
+            try (	InputStreamReader isr = new InputStreamReader(new FileInputStream(plainLogFile), charset);
+            		GzipCompressorOutputStream gos = new GzipCompressorOutputStream(new FileOutputStream(gzippedLogFile), new GzipParameters() {{setFilename(plainLogFile.getName());}} )) {
+                int c;
+                while ((c = isr.read()) != -1)
+                	gos.write((byte) c);
+                
                 logInputStream = new GZIPInputStream(new FileInputStream(gzippedLogFile));
             }
+        	
+        	if (gzippedLogFile.exists() && gzippedLogFile.length() > 0)
+        		plainLogFile.delete();
+            logInputStream = new GZIPInputStream(new FileInputStream(gzippedLogFile));
         }
         else
             throw new FileNotFoundException("Could find neither gzipped nor plain log file: " + logFile);
