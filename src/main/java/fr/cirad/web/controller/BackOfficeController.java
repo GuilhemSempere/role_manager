@@ -35,6 +35,7 @@ import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -64,6 +65,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
@@ -102,6 +104,7 @@ public class BackOfficeController {
 	static final public String moduleCreationURL = "/" + FRONTEND_URL + "/createModule.json_";
 	static final public String moduleVisibilityURL = "/" + FRONTEND_URL + "/moduleVisibility.json_";
 	static final public String moduleContentPageURL = "/" + FRONTEND_URL + "/ModuleContents.do_";
+	static final public String moduleEntityInfoURL = "/" + FRONTEND_URL + "/moduleEntityInfo.json_";
 	static final public String moduleEntityRemovalURL = "/" + FRONTEND_URL + "/removeModuleEntity.json_";
 	static final public String moduleEntityVisibilityURL = "/" + FRONTEND_URL + "/entityVisibility.json_";
     static final public String hostListURL = "/" + FRONTEND_URL + "/hosts.json_";
@@ -166,6 +169,9 @@ public class BackOfficeController {
 	{
 		model.addAttribute(module);
 		model.addAttribute("roles", UserPermissionController.rolesByLevel1Type.get(entityType));
+		HashMap<String, LinkedHashSet<String>> subEntityTypeToRolesMap = UserPermissionController.rolesByLevel2Type.get(entityType);
+		model.addAttribute("subEntityTypes", subEntityTypeToRolesMap.keySet());
+
 		UserDetails user = null;	// we need to support the case where the user does not exist yet
 		try
 		{
@@ -184,14 +190,31 @@ public class BackOfficeController {
 		Collection<Comparable> allowedEntities = null;
 		if (!loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) && !userDao.getSupervisedModules(loggedUserAuthorities).contains(module))
 		    allowedEntities = userDao.getManagedEntitiesByModuleAndType(loggedUserAuthorities).get(module).get(entityType);
+		
+		Map<Comparable /*main entity ID */, Map<String /* sub entity type */, Map<Comparable /* sub entity ID */, String /* sub entity name */>>> subEntityMap = new HashMap<>();
 		for (Map<Comparable, String> entityMap : Arrays.asList(publicEntities, privateEntities))
 			if (entityMap != null) {
 				Map<Comparable, String> allowedEntityMap = new TreeMap<Comparable, String>();
-				for (Comparable key : entityMap.keySet())
+				
+				for (Comparable key : entityMap.keySet()) {
 					if (allowedEntities == null || allowedEntities.contains(key))
 						allowedEntityMap.put(key, entityMap.get(key));
+					
+					for (String subEntityType : subEntityTypeToRolesMap.keySet()) {
+						Map<Comparable, String> subEntities = moduleManager.getSubEntities(entityType + "." + subEntityType, module, new Comparable[] {key});
+						if (subEntities != null && !subEntities.isEmpty()) {
+							Map<String, Map<Comparable, String>> subEntitiesForCurrentMainEntity = subEntityMap.get(key);
+							if (subEntitiesForCurrentMainEntity == null) {
+								subEntitiesForCurrentMainEntity = new HashMap<>();
+								subEntityMap.put(key, subEntitiesForCurrentMainEntity);
+							}
+							subEntitiesForCurrentMainEntity.put(subEntityType, subEntities);
+						}
+					}
+				}
 				model.addAttribute((publicEntities == entityMap ? "public" : "private") + "Entities", allowedEntityMap);
 			}
+		model.addAttribute("subEntities", subEntityMap);
 	}
 
 	@PreAuthorize("hasRole(IRoleDefinition.ROLE_ADMIN)")
@@ -256,16 +279,49 @@ public class BackOfficeController {
 	{
 		return moduleManager.removeDataSource(sModule, true, Boolean.TRUE.equals(fRemoveDumps));
 	}
+	
+	@PostMapping(moduleEntityInfoURL)
+	protected @ResponseBody String moduleEntityInfo(@RequestBody Map<String, Object> body) throws Exception
+	{	    
+	    String sModule = (String) body.get("module"), sEntityType = (String) body.get("entityType");
+	    Collection<Comparable> entityIDs = (Collection<Comparable>) body.get("allLevelEntityIDs");
+	    
+	    // we only support checking permissions on top level entities
+	    String topLevelEntityType = sEntityType.split("\\.")[0];
+	    Comparable topLevelEntityId = entityIDs.iterator().next();
+
+	    Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
+	    Map<String, Collection<Comparable>> rolesOnEntities = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) || userDao.getSupervisedModules(loggedUserAuthorities).contains(sModule) ? null : userDao.getCustomRolesByModuleAndEntityType(loggedUserAuthorities).get(sModule).get(topLevelEntityType);
+	    if (rolesOnEntities != null)
+		    for (Collection<Comparable> entities : rolesOnEntities.values())
+				if (entities != null && entities.stream().map(c -> c.toString()).collect(Collectors.toList()).contains(topLevelEntityId)) {
+					rolesOnEntities = null;	// if this is null at the end then we consider we can allow access
+					break;
+				}
+	    
+	    if (rolesOnEntities != null)
+	    	throw new Exception("You are not allowed to access information for this " + topLevelEntityType);
+
+		return moduleManager.managedEntityInfo(sModule, sEntityType, entityIDs);
+	}
 
 	@DeleteMapping(moduleEntityRemovalURL)
-	protected @ResponseBody boolean removeModuleEntity(@RequestParam("module") String sModule, @RequestParam("entityType") String sEntityType, @RequestParam("entityId") String sEntityId) throws Exception
+	protected @ResponseBody boolean removeModuleEntity(@RequestBody Map<String, Object> body) throws Exception
 	{
 	    Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
-		Collection<Comparable> allowedEntities = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) || userDao.getSupervisedModules(loggedUserAuthorities).contains(sModule) ? null : userDao.getManagedEntitiesByModuleAndType(loggedUserAuthorities).get(sModule).get(sEntityType);
-		if (allowedEntities != null && !allowedEntities.stream().map(c -> c.toString()).collect(Collectors.toList()).contains(sEntityId))
+	    
+	    String sModule = (String) body.get("module"), sEntityType = (String) body.get("entityType");
+	    Collection<Comparable> entityIDs = (Collection<Comparable>) body.get("allLevelEntityIDs");
+	    
+	    // we only support checking permissions on top level entities
+	    String topLevelEntityType = sEntityType.split("\\.")[0];
+	    Comparable topLevelEntityId = entityIDs.iterator().next();
+
+		Collection<Comparable> allowedEntities = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) || userDao.getSupervisedModules(loggedUserAuthorities).contains(sModule) ? null : userDao.getManagedEntitiesByModuleAndType(loggedUserAuthorities).get(sModule).get(topLevelEntityType);
+		if (allowedEntities != null && !allowedEntities.stream().map(c -> c.toString()).collect(Collectors.toList()).contains(topLevelEntityId))
 			throw new Exception("You are not allowed to remove this " + sEntityType);
 
-		return moduleManager.removeManagedEntity(sModule, sEntityType, sEntityId);
+		return moduleManager.removeManagedEntity(sModule, sEntityType, entityIDs);
 	}
 
 	@PostMapping(moduleEntityVisibilityURL)

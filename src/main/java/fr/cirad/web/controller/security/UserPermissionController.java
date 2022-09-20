@@ -31,8 +31,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.ResourceBundle.Control;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -74,9 +76,12 @@ public class UserPermissionController
 
 	public static final String LEVEL1 = "LEVEL1";
 	public static final String LEVEL1_ROLES = "LEVEL1_ROLES";
+	public static final String LEVEL2 = "LEVEL2";
+	public static final String LEVEL2_ROLES = "LEVEL2_ROLES";
 	public static final String ROLE_STRING_SEPARATOR = "$";
 
 	public static final HashMap<String, LinkedHashSet<String>> rolesByLevel1Type = new HashMap<>();
+	public static final HashMap<String, HashMap<String, LinkedHashSet<String>>> rolesByLevel2Type = new HashMap<>();
 
 	@Autowired private IModuleManager moduleManager;
 	@Autowired private ReloadableInMemoryDaoImpl userDao;
@@ -97,27 +102,55 @@ public class UserPermissionController
     {
 		ResourceBundle bundle = ResourceBundle.getBundle("roles", resourceControl);
 		String level1EntityTypes = "";
-		try
-		{
+		try {
 			level1EntityTypes = bundle.getString(LEVEL1);
 		}
-		catch (Exception e)
-		{
+		catch (Exception e) {
 			LOG.warn("No entity types found to manage permissions for in roles.properties (you may specify some by adding a LEVEL1 property with comma-separated strings as a value)");
 		}
-        String[] level1Types = StringUtils.tokenizeToStringArray(level1EntityTypes, ",");
+        Set<String> level1Types = Stream.of(level1EntityTypes.trim().split("\\s*,\\s*")).collect(Collectors.toSet());
         for (String level1Type : level1Types)
-        	try
-        	{
+        	try {
         		LinkedHashSet<String> levelRoles = new LinkedHashSet<String>();
         		levelRoles.add(IRoleDefinition.ENTITY_MANAGER_ROLE);	// this one must exist even if not declared in roles.properties
         		levelRoles.addAll(Arrays.asList(StringUtils.tokenizeToStringArray(bundle.getString(LEVEL1_ROLES + "_" + level1Type), ",")));
         		rolesByLevel1Type.put(level1Type, levelRoles);
         	}
-			catch (Exception e)
-			{
+			catch (Exception e) {
 				LOG.warn("No roles to manage " + level1Type + " entities in roles.properties (you may specify some by adding a LEVEL1_ROLES_" + level1Type + " property with comma-separated strings as a value)");
 			}
+        
+		String level2EntityTypes = "";
+		try {
+			level2EntityTypes = bundle.getString(LEVEL2);
+		}
+		catch (Exception ignored) {}
+        String[] level2Types = StringUtils.tokenizeToStringArray(level2EntityTypes, ",");
+        for (String level2Type : level2Types) {
+        	String[] splitLevel2Type = level2Type.split("\\.");
+        	if (splitLevel2Type.length != 2) { 
+        		LOG.warn("Ignoring invalid level 2 entity type defined in roles.properties: '" + level2Type + "' (levels should be dot-separated)");
+        		continue;
+        	}
+        	if (!level1Types.contains(splitLevel2Type[0])) {
+        		LOG.warn("Ignoring invalid level 2 entity type defined in roles.properties: '" + level2Type + "', unknown parent level '" + splitLevel2Type[0] + "'");
+        		continue;
+        	}
+        	try {
+        		LinkedHashSet<String> levelRoles = new LinkedHashSet<String>();
+        		levelRoles.add(IRoleDefinition.ENTITY_MANAGER_ROLE);	// this one must exist even if not declared in roles.properties
+        		levelRoles.addAll(Arrays.asList(StringUtils.tokenizeToStringArray(bundle.getString(LEVEL2_ROLES + "_" + level2Type), ",")));
+        		HashMap<String, LinkedHashSet<String>> roleMapForSubType = rolesByLevel2Type.get(splitLevel2Type[0]);
+        		if (roleMapForSubType == null) {
+        			roleMapForSubType = new HashMap<>();
+        			rolesByLevel2Type.put(splitLevel2Type[0], roleMapForSubType);
+        		}
+        		roleMapForSubType.put(splitLevel2Type[1], levelRoles);
+        	}
+			catch (Exception e) {
+				LOG.warn("No roles to manage " + level2Type + " entities in roles.properties (you may specify some by adding a LEVEL2_ROLES_" + level2Type + " property with comma-separated strings as a value)");
+			}
+        }
     }
 
 	@GetMapping(userListPageURL)

@@ -31,25 +31,41 @@
 	<link type="text/css" rel="stylesheet" href="css/bootstrap-select.min.css ">
 	<link type="text/css" rel="stylesheet" href="css/bootstrap.min.css">
 	<link media="screen" type="text/css" href="../css/main.css" rel="StyleSheet" />
+	
+	<style type="text/css">
+		td.subEntities div {
+			display:inline;
+			border:1px solid #cccc80;
+			background-color:#ffffc0;
+			margin:0 2px;
+			padding:0px 8px
+		}
+	</style>
+
 
 	<script type="text/javascript">
 	var dirty = false;
 
-	function removeItem(entityId, entityName)
+	function removeItem(entityType, allLevelEntityIDs, entityName)
 	{
-		let itemRow = $("#row_" + entityId);
-		if (confirm("Do you really want to discard ${param.entityType} " + entityName + "?\nThis will delete all data it contains."))
+		let itemRow = $("#row_" + allLevelEntityIDs[0]);
+		if (confirm("Do you really want to discard " + entityType.replace(".", " ") + " " + entityName + "?\nThis will delete all data it contains."))
 		{
 			itemRow.find("td:eq(2)").prepend("<div style='position:absolute; margin-left:60px; margin-top:5px;'><img src='img/progress.gif'></div>");
 		    $.ajax({
-		        	url: '<c:url value="<%= BackOfficeController.moduleEntityRemovalURL %>" />?module=${param.module}&entityType=${param.entityType}&entityId=' + entityId,
+		        	url: '<c:url value="<%= BackOfficeController.moduleEntityRemovalURL %>" />',
 		            method: "DELETE",
+		            contentType: "application/json;charset=utf-8",
+		        	data : JSON.stringify({ module:'${param.module}', entityType:entityType, allLevelEntityIDs:allLevelEntityIDs }),
 		        	success: function(deleted) {
 						itemRow.find("td:eq(2) div").remove();
 						if (!deleted)
 							alert("Unable to discard " + entityName);
 			        	else {
-							itemRow.remove();
+			        		if (allLevelEntityIDs.length == 1)
+								itemRow.remove();
+			        		else
+			        			 $("#subEntity_" + allLevelEntityIDs.join("_")).remove();
 							dirty = true;
 			        	}
 		        	},
@@ -104,6 +120,26 @@
 	        }
 		});
 	}
+	
+	function displaySubEntityInfo(subEntityType, mainEntityId, subEntityId) {
+	    $.ajax({
+        	url: '<c:url value="<%= BackOfficeController.moduleEntityInfoURL %>" />',
+            method: "POST",
+            contentType: "application/json;charset=utf-8",
+        	data : JSON.stringify({ module:'${param.module}', entityType:'${param.entityType}.' + subEntityType, allLevelEntityIDs:[mainEntityId, subEntityId] }),
+        	success: function(description) {
+				alert(description);
+        	},
+	        error: function (xhr, ajaxOptions, thrownError) {
+	            handleError(xhr, ajaxOptions, thrownError);
+	            location.reload();
+	        }
+		});
+	}
+	
+	function removeSubEntity(subEntityType, subEntityId) {
+		alert(subEntityType + " -> " + subEntityId);
+	}
 	</script>
 </head>
 
@@ -117,13 +153,29 @@
 				<tr>
 					<th>${param.entityType} name</th>
 					<c:if test="${visibilitySupported}"><th>Public</th></c:if>
-					<th>Removal</th>
+					<c:forEach var="subEntityType" items="${subEntityTypes}">
+						<th>${subEntityType} sub-entities</th>
+					</c:forEach>
+					<th>removal</th>
 				</tr>
 				<c:forEach var="entity" items="${publicEntities}">
 				<tr id="row_${entity.key}">
 					<td>${entity.value}</td>
 					<c:if test="${visibilitySupported}"><td><input type='checkbox' checked onclick='toggleVisibility("${entity.key}", "${entity.value}");'></td></c:if>
-					<td align='center'><a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem("${entity.key}", "${entity.value}");' title='Discard ${param.entityType}'><img src='img/delete.gif'></a></td>
+					<c:forEach var="subEntityType" items="${subEntityTypes}">
+					<td class="subEntities" style="padding-bottom:2px;">
+						<c:forEach var="subEntity" items="${subEntities[entity.key][subEntityType]}">
+							<div id="subEntity_${entity.key}_${subEntity.key}">
+							<a href="#" onclick='displaySubEntityInfo("${subEntityType}", "${entity.key}", "${subEntity.key}");'><span role='button' title="Click for details" class="glyphicon glyphicon-info-sign" style="color:green;"></span></a>
+							${subEntity.value}
+							<c:if test="${subEntities[entity.key][subEntityType].size() > 1}">
+							<a href="#" onclick='removeItem("${param.entityType}.${subEntityType}", ["${entity.key}", "${subEntity.key}"], "${subEntity.value}");'><span role='button' title="Remove ${subEntityType}" class="glyphicon glyphicon-trash" style="color:red;"></span></a>
+							</c:if>
+							</div>
+						</c:forEach>
+					</td>
+					</c:forEach>
+					<td align='center'><a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem("${param.entityType}", ["${entity.key}"], "${entity.value}");' title='Discard ${param.entityType}'><img src='img/delete.gif'></a></td>
 				</tr>
 				</c:forEach>
 				<c:if test="${privateEntities ne null}">

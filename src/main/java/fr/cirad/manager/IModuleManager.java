@@ -91,11 +91,11 @@ public interface IModuleManager {
 	/**
 	 * @param sModule
 	 * @param sEntityType
-	 * @param entityId
+	 * @param entityIDs
 	 * @return whether or not entity removal succeeded
 	 * @throws Exception
 	 */
-	boolean removeManagedEntity(String sModule, String sEntityType, Comparable entityId) throws Exception;
+	boolean removeManagedEntity(String sModule, String sEntityType, Collection<Comparable> entityIDs) throws Exception;
 
 	/**
 	 * @param sModule
@@ -212,4 +212,15 @@ public interface IModuleManager {
 	void lockModuleForWriting(String module);
 
 	void unlockModuleForWriting(String module);
+
+	Map<Comparable, String> getSubEntities(String entityType, String sModule, Comparable[] parentEntityIDs) throws Exception;
+
+	/**
+	 * @param sModule
+	 * @param entityType (sub-entities must be prefixed with "<parentEntityType>.")
+	 * @param entityIDs[] array with IDs leading to the targeted entity (number of cells must match the entity level) 
+	 * @return
+	 * @throws Exception 
+	 */
+	String managedEntityInfo(String sModule, String entityType, Collection<Comparable> entityIDs) throws Exception;
 }
