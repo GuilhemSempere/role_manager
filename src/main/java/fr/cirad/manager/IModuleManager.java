@@ -223,4 +223,6 @@ public interface IModuleManager {
 	 * @throws Exception 
 	 */
 	String managedEntityInfo(String sModule, String entityType, Collection<Comparable> entityIDs) throws Exception;
+
+	void cleanupDb(String sModule);
 }
