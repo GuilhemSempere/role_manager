@@ -74,14 +74,14 @@
 						   	for (var subkey in jsonResult[key])
 							{
 						   		cellData = "" + jsonResult[key][subkey];
-								rowContents += "<td nowrap>" + cellData.replace(/\n/g, "<br>") + "</td>";
+								rowContents += "<td style='max-width:600px;'>" + cellData.replace(/\n/g, "<br>") + "</td>";
 							}
 							if (subkey == jsonResult[key].length - 1<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}"> && jsonResult[key][0] != "${loggedUserName}"</c:if>)
 							{
-								rowContents += "<td style='border:none;' nowrap>&nbsp;<a href='<c:url value="<%= UserPermissionController.userDetailsURL %>" />?user=" + encodeURIComponent(jsonResult[key][0]) + "' title='User details'><img src='../img/magnifier.gif'></a>";
+								rowContents += "<td style='border:none;' nowrap>&nbsp;<a href='<c:url value="<%= UserPermissionController.userDetailsURL %>" />?user=" + encodeURIComponent(jsonResult[key][0]) + "' title='Details for user " + jsonResult[key][0] + "'><img src='../img/magnifier.gif'></a>";
 								<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
 								if ("(ADMINISTRATOR)" != jsonResult[key][1])
-									rowContents += "&nbsp;&nbsp;&nbsp;<a href='javascript:removeItem(\"" + encodeURIComponent(jsonResult[key][0]) + "\");' title='Discard user'><img src='../img/delete.gif'></a>";
+									rowContents += "&nbsp;&nbsp;&nbsp;<a href='javascript:removeItem(\"" + encodeURIComponent(jsonResult[key][0]) + "\");' title='Discard user " + jsonResult[key][0] + "'><img src='../img/delete.gif'></a>";
 								</c:if>
 								rowContents += "</td>";
 				   			}
@@ -122,6 +122,10 @@
 
 <body style='background-color:#f0f0f0;' onload="applySorting();">
 
+<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+<a class="btn btn-sm btn-primary" href="<c:url value="<%=UserPermissionController.userDetailsURL%>" />" style='position:absolute; margin-top:5px;left:300px;'>Create user</a>
+</c:if>
+
 <form onsubmit="return false;">
 <table>
 <tr>
@@ -146,16 +150,12 @@
 <tr>
 	<th>Login</th>
 	<th>Accessible modules</th>
-	<th>Authentication method</th>
+	<th>Auth method</th>
 </tr>
 <tr>
 	<td colspan='6' height='200'></td>
 </tr>
 </table>
-
-<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
-<br><a class="btn btn-sm btn-primary" href="<c:url value="<%=UserPermissionController.userDetailsURL%>" />">Create user</a>
-</c:if>
 
 </body>
 
