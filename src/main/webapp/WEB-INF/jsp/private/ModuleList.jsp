@@ -275,15 +275,15 @@
 					    dumpTable.append(headerRow);
 
 					    dumpData.dumps.forEach(function (dumpInfo) {
+					    	const downloadable = dumpInfo.validity != 'NONE' && dumpInfo.validity != 'BUSY';
 					        const row = $("<tr></tr>");
-					        row.append('<td class="dump' + (dumpData.locked ? "BUSY" : dumpInfo.validity) + '" align="center">' + dumpInfo.validity.toLowerCase() + '</td>');
+					        row.append('<td class="dump' + dumpInfo.validity + '" align="center">' + dumpInfo.validity.toLowerCase() + '</td>');
 					        row.append("<td>" + dumpInfo.name + "</td>");
-	    					row.append("<td align='center'><a target='_blank' href='<c:url value="<%= BackOfficeController.moduleDumpDownloadURL %>" />?module=" + module + "&dumpId=" + dumpInfo.identifier + "'><span class='glyphicon btn-glyphicon glyphicon-save img-circle text-muted'></span></a></td>");
+	    					row.append("<td align='center'>" + (!downloadable ? "" : "<a target='_blank' href='<c:url value="<%= BackOfficeController.moduleDumpDownloadURL %>" />?module=" + module + "&dumpId=" + dumpInfo.identifier + "'><span class='glyphicon btn-glyphicon glyphicon-save img-circle text-muted'></span></a>") + "</td>");
 					        row.append("<td>" + formatFileSize(dumpInfo.fileSizeMb) + "</td>");
 					        const dumpDate = new Date(dumpInfo.creationDate);
-						    const dateString = dumpDate.getFullYear() + "-" + ("0" + (dumpDate.getMonth() + 1)).slice(-2) + "-" +  ("0" + dumpDate.getDate()).slice(-2) + " " +
-	    							("0" + dumpDate.getHours()).slice(-2) + ":" + ("0" + dumpDate.getMinutes()).slice(-2) + ":" + ("0" + dumpDate.getSeconds()).slice(-2);
-	    					row.append("<td align='center'><a target='_blank' href='<c:url value="<%= BackOfficeController.moduleDumpLogDownloadURL %>" />?module=" + module + "&dumpId=" + dumpInfo.identifier + "'><span class='glyphicon btn-glyphicon glyphicon-book img-circle text-muted'></span></a></td>");
+						    const dateString = dumpDate.getFullYear() + "-" + ("0" + (dumpDate.getMonth() + 1)).slice(-2) + "-" +  ("0" + dumpDate.getDate()).slice(-2) + " " + ("0" + dumpDate.getHours()).slice(-2) + ":" + ("0" + dumpDate.getMinutes()).slice(-2) + ":" + ("0" + dumpDate.getSeconds()).slice(-2);
+	    					row.append("<td align='center'>" + (!downloadable ? "" : "<a target='_blank' href='<c:url value="<%= BackOfficeController.moduleDumpLogDownloadURL %>" />?module=" + module + "&dumpId=" + dumpInfo.identifier + "'><span class='glyphicon btn-glyphicon glyphicon-book img-circle text-muted'></span></a>") + "</td>");
 					        row.append("<td>" + dateString + "</td>");
 					        row.append("<td>" + dumpInfo.description.replaceAll(/\r?\n/mg, "<br />") + "</td>");
 
