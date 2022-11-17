@@ -30,7 +30,7 @@
 	</script>
 </head>
 
-<body onload="document.forms[0].j_username.focus();">
+<body onload="document.forms[0].username.focus();">
 
 <%
 	Exception lastException = (Exception) session.getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
@@ -61,13 +61,13 @@
 							<tr>
 								<td width="50">Login</td>
 								<td>
-									<input type='text' name='j_username' value=''>
+									<input type='text' name='username' value=''>
 								</td>
 							</tr>
 							<tr>
 								<td>Password</td>
 								<td>
-									<input type='password' name='j_password'>
+									<input type='password' name='password'>
 								</td>
 							</tr>
 							<tr>

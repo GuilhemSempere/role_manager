@@ -89,6 +89,8 @@ public interface IModuleManager {
 	boolean createDataSource(String sModule, String sHost, String ncbiTaxonIdNameAndSpecies, Long expiryDate) throws Exception;
 
 	/**
+	 * A single entity is to be removed here. The collection of IDs is for dealing with nested sub-entities (provide ID of each parent entity, ending with the target)
+	 * 
 	 * @param sModule
 	 * @param sEntityType
 	 * @param entityIDs

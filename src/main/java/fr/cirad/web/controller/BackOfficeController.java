@@ -170,6 +170,8 @@ public class BackOfficeController {
 		model.addAttribute(module);
 		model.addAttribute("roles", UserPermissionController.rolesByLevel1Type.get(entityType));
 		HashMap<String, LinkedHashSet<String>> subEntityTypeToRolesMap = UserPermissionController.rolesByLevel2Type.get(entityType);
+		if (subEntityTypeToRolesMap == null)
+			subEntityTypeToRolesMap = new HashMap<>();
 		model.addAttribute("subEntityTypes", subEntityTypeToRolesMap.keySet());
 
 		UserDetails user = null;	// we need to support the case where the user does not exist yet
