@@ -39,12 +39,12 @@
 		function doOnLoad(module)
 		{
 			var permissionInput = $(window.parent.document).find("input[type='hidden'][name='${param.entityType}Permission_" + module + "']");
-			$('input[type="radio"][value=""]').each(function() {$(this).attr('checked', true);});
+			$('input[type="radio"][value=""]').each(function() {$(this).prop('checked', true);});
 	    	var permissions = permissionInput.val().split(",");
 	    	for (var i=0; i<permissions.length; i++)
 	    	{
 				var radioButton = $('input[type="radio"][value="' + permissions[i] + '"]');
-    			radioButton.attr('checked', true);
+    			radioButton.prop('checked', true);
 	    	}
 		}
 
@@ -53,7 +53,7 @@
 			$(entityBoxContainerId + " input").each(function() {
 				$(this).attr('disabled', !enableThem);
 				if (!enableThem)
-					$(this).attr('checked', false);
+					$(this).prop('checked', false);
 			});
 		}
 	</script>
