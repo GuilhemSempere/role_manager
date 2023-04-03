@@ -82,3 +82,7 @@ table#moduleTable td {
 .dumpNONE {
 	background-color:#FF8888;
 }
+
+.dumpUNSUPPORTED {
+	background-color: none;
+}

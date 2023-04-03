@@ -74,7 +74,7 @@ import org.springframework.web.util.HtmlUtils;
 import fr.cirad.manager.IModuleManager;
 import fr.cirad.manager.dump.DumpManager;
 import fr.cirad.manager.dump.DumpMetadata;
-import fr.cirad.manager.dump.DumpValidity;
+import fr.cirad.manager.dump.DumpStatus;
 import fr.cirad.manager.dump.IBackgroundProcess;
 import fr.cirad.manager.dump.ProcessStatus;
 import fr.cirad.security.ReloadableInMemoryDaoImpl;
@@ -514,7 +514,7 @@ public class BackOfficeController {
 			if (process.getStatus() == ProcessStatus.SUCCESS && processID.contains("restore")) {
 				List<DumpMetadata> dumps = moduleManager.getDumps(process.getModule());
 				for (DumpMetadata dump : dumps) {
-					if (dump.getValidity() == DumpValidity.DIVERGED) {
+					if (dump.getValidity() == DumpStatus.DIVERGED) {
 						result.put("warning", "Some dumps in this module are more recent than the one that has been restored. Remember to delete them if they are undesirable.");
 						break;
 					}
@@ -607,19 +607,6 @@ public class BackOfficeController {
 		result.put("done", moduleManager.deleteDump(sModule, dump));
 		return result;
 	}
-
-//	protected ArrayList<String> listAuthorisedModules()
-//	{
-//		Authentication authToken = SecurityContextHolder.getContext().getAuthentication();
-//		Collection<? extends GrantedAuthority> authorities = authToken == null ? null : loggedUserAuthorities;
-//
-//		ArrayList<String> authorisedModules = new ArrayList<String>();
-//		for (String sAModule : moduleManager.getModules())
-//			if (authorities == null || authorities.contains(new SimpleGrantedAuthority(IRoleDefinition.TOPLEVEL_ROLE_PREFIX + UserPermissionController.ROLE_STRING_SEPARATOR + sAModule)) || authorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
-//				authorisedModules.add(sAModule);
-//
-//		return authorisedModules;
-//    }
 
 	public static String determinePublicHostName(HttpServletRequest request) throws SocketException, UnknownHostException {
 		int nPort = request.getServerPort();

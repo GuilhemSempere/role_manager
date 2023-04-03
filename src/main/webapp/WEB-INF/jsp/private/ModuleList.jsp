@@ -59,6 +59,7 @@
 		    ["DIVERGED", "Diverged: Database was restored using a dump that wasn't the most recent one"],
 		    ["BUSY", "Busy: Database is locked (either data is being imported or a dump is being created / restored)"],
 		    ["NONE", "Unavailable: No dump exists for this database"],
+		    ["UNSUPPORTED", "Unsupported: No dumps may be managed for this database"]
 		]);
 		
 		let permissions = new Set([<c:forEach var="authority" items="${loggedUserAuthorities}">"${authority}", </c:forEach>]);
@@ -178,10 +179,10 @@
 			rowContents.append("</td>");
 
 			<c:if test="${actionRequiredToEnableDumps eq ''}">
-			rowContents.append('<td class="dump' + moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] + '" data-toggle="tooltip" title="' + dumpValidityTips.get(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>']) + '">');
-
-			<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}">if (permissions.has(key + "$" + "${supervisorRole}"))</c:if>	rowContents.append("<a style=\"color:#113388;\" href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a>");
-			rowContents.append("</td>");
+				rowContents.append('<td class="dump' + moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] + '" data-toggle="tooltip" title="' + dumpValidityTips.get(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>']) + '">');
+				if ('UNSUPPORTED' != moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'])
+					<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}">if (permissions.has(key + "$" + "${supervisorRole}"))</c:if>	rowContents.append("<a style=\"color:#113388;\" href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a>");
+				rowContents.append("</td>");
 			</c:if>
 
 			<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">

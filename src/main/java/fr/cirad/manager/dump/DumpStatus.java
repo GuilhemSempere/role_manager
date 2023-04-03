@@ -1,6 +1,6 @@
 package fr.cirad.manager.dump;
 
-public enum DumpValidity {
+public enum DumpStatus {
 	/** The dump is valid and more recent than the last modification */
 	VALID(4),
 
@@ -14,12 +14,14 @@ public enum DumpValidity {
 	BUSY(1),
 
 	/** No existing dump */
-	NONE(0);
+	NONE(0),
 
+	/** No existing dump */
+	UNSUPPORTED(-1);
 
 	public int validity;
 
-	private DumpValidity(int level) {
+	private DumpStatus(int level) {
 		validity = level;
 	}
 }

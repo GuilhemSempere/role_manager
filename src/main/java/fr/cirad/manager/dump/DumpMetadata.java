@@ -20,10 +20,10 @@ public class DumpMetadata {
 	private String identifier;
 	
 	/** Validity of the dump */
-	private DumpValidity validity;
+	private DumpStatus validity;
 	
 
-	public DumpMetadata(String sIdentifier, String sName, Date creation, float nFileSizeMb, String sDescription, DumpValidity dumpValidity) {
+	public DumpMetadata(String sIdentifier, String sName, Date creation, float nFileSizeMb, String sDescription, DumpStatus dumpValidity) {
 		identifier = sIdentifier;
 		name = sName;
 		creationDate = creation;
@@ -72,11 +72,11 @@ public class DumpMetadata {
 		this.identifier = identifier;
 	}
 	
-	public DumpValidity getValidity() {
+	public DumpStatus getValidity() {
 		return validity;
 	}
 
-	public void setValidity(DumpValidity validity) {
+	public void setValidity(DumpStatus validity) {
 		this.validity = validity;
 	}
 }

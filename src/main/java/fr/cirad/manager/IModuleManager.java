@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import fr.cirad.manager.dump.DumpMetadata;
-import fr.cirad.manager.dump.DumpValidity;
+import fr.cirad.manager.dump.DumpStatus;
 import fr.cirad.manager.dump.IBackgroundProcess;
 
 /**
@@ -146,7 +146,7 @@ public interface IModuleManager {
 	 * @param sModule Module to get the dump status of
 	 * @return The dump status of the module (VALID = There is an up to date dump, OUTDATED = All dumps are outdated, BUSY = Can't do anything right now, NONE = No existing dump)
 	 */
-	DumpValidity getDumpStatus(String sModule);
+	DumpStatus getDumpStatus(String sModule);
 
 	/**
 	 * @param sModule Module to dump
