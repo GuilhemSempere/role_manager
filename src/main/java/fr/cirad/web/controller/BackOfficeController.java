@@ -436,9 +436,8 @@ public class BackOfficeController {
 		String sMessage = "";
 		String dbName = null;
 		boolean fFoundCompletionMessage = false;
-		InputStream is = moduleManager.getDumpLogInputStream(sModule, sDumpId);
 
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {			
+		try (InputStream is = moduleManager.getDumpLogInputStream(sModule, sDumpId); BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {			
 			String line;			
 			while ((line = reader.readLine()) != null) {
                 if (dbName == null) {
