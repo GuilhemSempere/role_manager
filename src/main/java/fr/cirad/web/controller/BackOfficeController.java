@@ -106,7 +106,8 @@ public class BackOfficeController {
 	static final public String moduleContentPageURL = "/" + FRONTEND_URL + "/ModuleContents.do_";
 	static final public String moduleEntityInfoURL = "/" + FRONTEND_URL + "/moduleEntityInfo.json_";
 	static final public String moduleEntityRemovalURL = "/" + FRONTEND_URL + "/removeModuleEntity.json_";
-	static final public String moduleEntityVisibilityURL = "/" + FRONTEND_URL + "/entityVisibility.json_";
+	static final public String moduleEntityVisibilityUpdateURL = "/" + FRONTEND_URL + "/entityVisibility.json_";
+	static final public String moduleEntityDescriptionUpdateURL = "/" + FRONTEND_URL + "/entityDescUpdate.json_";
     static final public String hostListURL = "/" + FRONTEND_URL + "/hosts.json_";
 
     static final public String moduleDumpInfoURL = "/" + FRONTEND_URL + "/moduleDumpInfo.json_";
@@ -183,10 +184,11 @@ public class BackOfficeController {
 		{}
 		model.addAttribute("user", user);
 
-		boolean fVisibilitySupported = moduleManager.doesEntityTypeSupportVisibility(module, entityType);
+		boolean fVisibilitySupported = moduleManager.doesEntityTypeSupportVisibility(module, entityType), fDescriptionSupported = moduleManager.doesEntityTypeSupportDescription(module, entityType);
 		model.addAttribute("visibilitySupported", fVisibilitySupported);
-		Map<Comparable, String> publicEntities = moduleManager.getEntitiesByModule(entityType, fVisibilitySupported ? true : null, Arrays.asList(module)).get(module);
-		Map<Comparable, String> privateEntities = fVisibilitySupported ? moduleManager.getEntitiesByModule(entityType, false, Arrays.asList(module)).get(module) : new HashMap<>();
+		model.addAttribute("descriptionSupported", fDescriptionSupported);
+		Map<Comparable, String[]> publicEntities = moduleManager.getEntitiesByModule(entityType, fVisibilitySupported ? true : null, Arrays.asList(module), fDescriptionSupported).get(module);
+		Map<Comparable, String[]> privateEntities = fVisibilitySupported ? moduleManager.getEntitiesByModule(entityType, false, Arrays.asList(module), fDescriptionSupported).get(module) : new HashMap<>();
 
 		Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
 		Collection<Comparable> allowedEntities = null;
@@ -194,9 +196,9 @@ public class BackOfficeController {
 		    allowedEntities = userDao.getManagedEntitiesByModuleAndType(loggedUserAuthorities).get(module).get(entityType);
 		
 		Map<Comparable /*main entity ID */, Map<String /* sub entity type */, Map<Comparable /* sub entity ID */, String /* sub entity name */>>> subEntityMap = new HashMap<>();
-		for (Map<Comparable, String> entityMap : Arrays.asList(publicEntities, privateEntities))
+		for (Map<Comparable, String[]> entityMap : Arrays.asList(publicEntities, privateEntities))
 			if (entityMap != null) {
-				Map<Comparable, String> allowedEntityMap = new TreeMap<Comparable, String>();
+				Map<Comparable, String[]> allowedEntityMap = new TreeMap<>();
 				
 				for (Comparable key : entityMap.keySet()) {
 					if (allowedEntities == null || allowedEntities.contains(key))
@@ -326,7 +328,7 @@ public class BackOfficeController {
 		return moduleManager.removeManagedEntity(sModule, sEntityType, entityIDs);
 	}
 
-	@PostMapping(moduleEntityVisibilityURL)
+	@PostMapping(moduleEntityVisibilityUpdateURL)
 	protected @ResponseBody boolean modifyModuleEntityVisibility(@RequestParam("module") String sModule, @RequestParam("entityType") String sEntityType, @RequestParam("entityId") String sEntityId, @RequestParam("public") boolean fPublic) throws Exception
 	{
 	    Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
@@ -335,6 +337,17 @@ public class BackOfficeController {
 			throw new Exception("You are not allowed to modify this " + sEntityType);
 
 		return moduleManager.setManagedEntityVisibility(sModule, sEntityType, sEntityId, fPublic);
+	}
+	
+	@PostMapping(moduleEntityDescriptionUpdateURL)
+	protected @ResponseBody boolean modifyModuleEntityDescription(@RequestParam("module") String sModule, @RequestParam("entityType") String sEntityType, @RequestParam("entityId") String sEntityId, @RequestParam("desc") String desc) throws Exception
+	{
+	    Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
+		Collection<Comparable> allowedEntities = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) || userDao.getSupervisedModules(loggedUserAuthorities).contains(sModule) ? null : userDao.getManagedEntitiesByModuleAndType(loggedUserAuthorities).get(sModule).get(sEntityType);
+		if (allowedEntities != null && !allowedEntities.stream().map(c -> c.toString()).collect(Collectors.toList()).contains(sEntityId))
+			throw new Exception("You are not allowed to modify this " + sEntityType);
+
+		return moduleManager.setManagedEntityDescription(sModule, sEntityType, sEntityId, desc);
 	}
 
 	@GetMapping(moduleDumpInfoURL)

@@ -253,10 +253,10 @@ public class UserPermissionController
 		    Collection<String> modules = moduleManager.getModules(null);
 		    for (String sEntityType : rolesByLevel1Type.keySet())
 			{
-		        Map<String, Map<Comparable, String>> entitiesByModule = moduleManager.getEntitiesByModule(sEntityType, null, modules);
+		        Map<String, Map<Comparable, String[]>> entitiesByModule = moduleManager.getEntitiesByModule(sEntityType, null, modules, false);
 		        for (String sModule : modules)
 				{
-					LinkedHashMap<Comparable, String> moduleEntities = (LinkedHashMap<Comparable, String>) entitiesByModule.get(sModule);
+					LinkedHashMap<Comparable, String[]> moduleEntities = (LinkedHashMap<Comparable, String[]>) entitiesByModule.get(sModule);
 					if (moduleEntities != null)
     					for (Comparable entityId : moduleEntities.keySet())
     						for (String anEntityRole : rolesByLevel1Type.get(sEntityType))
@@ -361,9 +361,9 @@ public class UserPermissionController
 		{}
 		model.addAttribute("user", user);
 		boolean fVisibilitySupported = moduleManager.doesEntityTypeSupportVisibility(module, entityType);
-		model.addAttribute("publicEntities", moduleManager.getEntitiesByModule(entityType, fVisibilitySupported ? true : null, Arrays.asList(module)).get(module));
+		model.addAttribute("publicEntities", moduleManager.getEntitiesByModule(entityType, fVisibilitySupported ? true : null, Arrays.asList(module), false).get(module));
 		if (fVisibilitySupported)
-			model.addAttribute("privateEntities", moduleManager.getEntitiesByModule(entityType, false, Arrays.asList(module)).get(module));
+			model.addAttribute("privateEntities", moduleManager.getEntitiesByModule(entityType, false, Arrays.asList(module), false).get(module));
 	}
 
 	@DeleteMapping(userRemovalURL)

@@ -74,7 +74,7 @@
 				<c:forEach var="entity" items="${publicEntities}">
 				<c:if test="${fn:contains(loggedUserAuthorities, adminRole) || fn:contains(loggedUserAuthorities, param.module.concat(roleSep).concat(supervisorRole)) || fn:contains(loggedUserAuthorities, param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(entityManagerRole).concat(roleSep).concat(entity.key))}">
 				<tr>
-					<td>${entity.value}</td>
+					<td>${entity.value[0]}</td>
 					<td nowrap align='left'>
 						<c:forEach var="role" items="${roles}">
 							<span>

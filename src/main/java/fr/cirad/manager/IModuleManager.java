@@ -48,10 +48,10 @@ public interface IModuleManager {
 	 * @param entityType
 	 * @param fTrueForPublicFalseForPrivateNullForAny
 	 * @param modules collection of modules to limit the query to (all will be accounted for if null)
-	 * @return for each module, a map containing entity id as key, entity label as value
+	 * @return for each module, a map containing entity id as key, and as value a String array, of size 1 (entity label) or 2 (entity desription)
 	 * @throws Exception 
 	 */
-	Map<String, Map<Comparable, String>> getEntitiesByModule(String entityType, Boolean fTrueForPublicFalseForPrivateNullForAny, Collection<String> modules) throws Exception;
+	Map<String, Map<Comparable, String[]>> getEntitiesByModule(String entityType, Boolean fTrueForPublicFalseForPrivateNullForAny, Collection<String> modules, boolean fIncludeEntityDescriptions) throws Exception;
 
 	/**
 	 * @param sModule
@@ -113,6 +113,13 @@ public interface IModuleManager {
 	 * @return whether or not entities of the given type may be declared public/private in this module
 	 */
 	boolean doesEntityTypeSupportVisibility(String sModule, String sEntityType);
+
+	/**
+	 * @param sModule
+	 * @param sEntityType
+	 * @return whether or not entities of the given type have a textual description field
+	 */
+	boolean doesEntityTypeSupportDescription(String sModule, String sEntityType);
 
 	/**
 	 * @param sModule
@@ -184,7 +191,6 @@ public interface IModuleManager {
 	long getModuleSize(String sModule);
 
     /**
-     * 
      * @param sModule Module the dump belongs to
      * @param sDumpName the dump name
      * @return an InputStream pointing to the dump file
@@ -193,7 +199,6 @@ public interface IModuleManager {
     InputStream getDumpInputStream(String sModule, String sDumpName) throws FileNotFoundException;
     
 	/**
-	 * 
 	 * @param sModule Module the dump belongs to
 	 * @param sDumpName the dump name
 	 * @return an InputStream pointing to the dump's logfile
@@ -203,7 +208,6 @@ public interface IModuleManager {
     InputStream getDumpLogInputStream(String sModule, String sDumpName) throws IOException;
     
     /**
-     *
 	 * @param sModule Module to update modification date for
 	 * @param lastModification the date to set
 	 * @param restored flag telling whether or not this modification is a restore
@@ -225,6 +229,16 @@ public interface IModuleManager {
 	 * @throws Exception 
 	 */
 	String managedEntityInfo(String sModule, String entityType, Collection<Comparable> entityIDs) throws Exception;
+
+	/**
+	 * @param sModule
+	 * @param sEntityType
+	 * @param entityId
+	 * @param desc
+	 * @return whether or not setting entity description succeeded
+	 * @throws Exception
+	 */
+	boolean setManagedEntityDescription(String sModule, String sEntityType, String sEntityId, String desc) throws Exception;
 
 	void cleanupDb(String sModule);
 }
