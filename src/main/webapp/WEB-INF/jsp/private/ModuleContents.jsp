@@ -193,8 +193,8 @@
 				<c:forEach var="entity" items="${publicEntities}">
 				<tr id="row_${entity.key}">
 					<td>${entity.value[0]}</td>
-					<c:if test="${descriptionSupported}"><td><textarea cols='60' rows='3' onchange='parentNode.style.backgroundColor="#FFA500"; if (confirm("Save description for ${param.entityType} ${entity.value[0]}?")) saveDesc("${entity.key}", this);'>${entity.value[1]}</textarea></td></c:if>
-					<c:if test="${visibilitySupported}"><td><input type='checkbox' checked onclick='toggleVisibility("${entity.key}", "${entity.value}");'></td></c:if>
+					<c:if test="${descriptionSupported}"><td><textarea style='font-size:10px;' cols='55' rows='2' onchange='parentNode.style.backgroundColor="#FFA500"; if (confirm("Save description for ${param.entityType} ${entity.value[0]}?")) saveDesc("${entity.key}", this);'>${entity.value[1]}</textarea></td></c:if>
+					<c:if test="${visibilitySupported}"><td align='center'><input type='checkbox' checked onclick='toggleVisibility("${entity.key}", "${entity.value}");'></td></c:if>
 					<c:forEach var="subEntityType" items="${subEntityTypes}">
 					<td class="subEntities" style="padding-bottom:2px;">
 						<c:forEach var="subEntity" items="${subEntities[entity.key][subEntityType]}">
@@ -213,12 +213,26 @@
 				</c:forEach>
 				<c:if test="${privateEntities ne null}">
 					<c:forEach var="entity" items="${privateEntities}">
-					<tr id="row_${entity.key}">
-						<td>${entity.value}</td>
-						<c:if test="${visibilitySupported}"><td><input type='checkbox' onclick='toggleVisibility("${entity.key}", "${entity.value}");'></td></c:if>
-						<td align='center'><a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem("${entity.key}", "${entity.value}");' title='Discard ${param.entityType}'><img src='img/delete.gif'></a></td>
-					</tr>
+				<tr id="row_${entity.key}">
+					<td>${entity.value[0]}</td>
+					<c:if test="${descriptionSupported}"><td><textarea style='font-size:10px;' cols='55' rows='2' onchange='parentNode.style.backgroundColor="#FFA500"; if (confirm("Save description for ${param.entityType} ${entity.value[0]}?")) saveDesc("${entity.key}", this);'>${entity.value[1]}</textarea></td></c:if>
+					<c:if test="${visibilitySupported}"><td align='center'><input type='checkbox' onclick='toggleVisibility("${entity.key}", "${entity.value}");'></td></c:if>
+					<c:forEach var="subEntityType" items="${subEntityTypes}">
+					<td class="subEntities" style="padding-bottom:2px;">
+						<c:forEach var="subEntity" items="${subEntities[entity.key][subEntityType]}">
+							<div id="subEntity_${entity.key}_${subEntity.key}">
+							<a href="#" onclick='displaySubEntityInfo("${subEntityType}", "${entity.key}", "${subEntity.key}");'><span role='button' title="Click for details" class="glyphicon glyphicon-info-sign" style="color:green;"></span></a>
+							${subEntity.value}
+							<c:if test="${subEntities[entity.key][subEntityType].size() > 1}">
+							<a href="#" onclick='removeItem("${param.entityType}.${subEntityType}", ["${entity.key}", "${subEntity.key}"], "${subEntity.value}");'><span role='button' title="Remove ${subEntityType}" class="glyphicon glyphicon-trash" style="color:red;"></span></a>
+							</c:if>
+							</div>
+						</c:forEach>
+					</td>
 					</c:forEach>
+					<td align='center'><a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem("${param.entityType}", ["${entity.key}"], "${entity.value}");' title='Discard ${param.entityType}'><img src='img/delete.gif'></a></td>
+				</tr>
+				</c:forEach>
 				</c:if>
 			  </table>
 		  </tr>

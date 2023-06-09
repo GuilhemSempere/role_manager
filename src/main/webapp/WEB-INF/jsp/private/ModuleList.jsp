@@ -375,7 +375,7 @@
 		}
 
 		function resizeIFrame() {
-			$('#moduleContentFrame').css('height', (document.body.clientHeight - 200)+'px');
+			$('#moduleContentFrame').css('height', (document.body.clientHeight - 150)+'px');
 		}
 
 	    $(document).ready(function() {
