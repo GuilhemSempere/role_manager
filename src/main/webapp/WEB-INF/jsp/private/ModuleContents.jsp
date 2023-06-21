@@ -142,28 +142,16 @@
 	}
 	
 	function saveDesc(entityId, textAreaNode) {
-// 		let itemRow = $("#row_" + entityId);
-// 		let visibilityCell = itemRow.find("td:eq(1)");
-// 		let setAsPublic = visibilityCell.find("input").is(":checked");
-// 		itemRow.find("td:eq(2)").prepend("<div style='position:absolute; margin-left:60px; margin-top:5px;'><img src='img/progress.gif'></div>");
-		
 	    $.ajax({
         	url: '<c:url value="<%= BackOfficeController.moduleEntityDescriptionUpdateURL %>" />',
             method: "POST",
         	data : { module:'${param.module}', entityType:'${param.entityType}', entityId:entityId, desc:textAreaNode.value },
         	success: function(updated) {
     			if (!updated)
-    			{
-//     				itemRow.find("td:eq(2) div").remove();
-//     				visibilityCell.find("input").prop("checked", !setAsPublic);
     				alert("Unable to update description for " + entityName);
-    			}
-    			else
-    			{
-//     				itemRow.find("td:eq(2) div").html("Change applied!");
-//     				setTimeout(function() {itemRow.find("td:eq(2) div").remove();}, 1000);
-//     				dirty = true;
-    				textAreaNode.parentNode.style.backgroundColor=null;
+    			else {
+    				textAreaNode.parentNode.style.backgroundColor = null;
+    				dirty = true;
     			}
         	},
 	        error: function (xhr, ajaxOptions, thrownError) {

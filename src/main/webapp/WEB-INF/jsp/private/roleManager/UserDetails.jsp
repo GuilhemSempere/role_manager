@@ -114,7 +114,7 @@
 		}
 
 		function resizeIFrame() {
-			$('#permissionFrame').css('height', (document.body.clientHeight - 200)+'px');
+			$('#permissionFrame').css('height', (document.body.clientHeight - 180)+'px');
 		}
 		
 	    $(document).ready(function() {
@@ -302,7 +302,7 @@
 					<div id="permissionDialogTitle" style='font-weight:bold; margin-bottom:5px;'></div>
 					<iframe style='margin-bottom:10px; width:100%;' id="permissionFrame" name="permissionFrame"></iframe>
 					<br>
-					<form>
+					<form style="margin:0;">
 						<input type='button' class='btn btn-sm btn-primary' value='Apply' id="applyButton" onclick="storePermissions();">
 						&nbsp;&nbsp;&nbsp;
 						<input type='button' class='btn btn-sm btn-primary' value='Cancel' id="hlContentDialogClose" onclick="$('#permissionDialog').modal('hide');">
