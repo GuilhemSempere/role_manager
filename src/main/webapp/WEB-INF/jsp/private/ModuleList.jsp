@@ -375,7 +375,7 @@
 		}
 
 		function resizeIFrame() {
-			$('#moduleContentFrame').css('height', (document.body.clientHeight - 150)+'px');
+			$('#moduleContentFrame').css('height', (document.body.clientHeight - 180)+'px');
 		}
 
 	    $(document).ready(function() {
@@ -438,7 +438,7 @@
 					<div id="moduleContentDialogTitle" style='font-weight:bold; margin-bottom:5px;'></div>
 					<iframe style='margin-bottom:10px; width:100%;' id="moduleContentFrame" name="moduleContentFrame"></iframe>
 					<br>
-					<form>
+					<form style="margin:0;">
 						<input type='button' class='btn btn-sm btn-primary' value='Close' id="hlContentDialogClose" onclick="$('#moduleContentDialog').modal('hide');" />
 					</form>
 				</div>
