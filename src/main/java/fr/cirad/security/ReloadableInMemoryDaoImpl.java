@@ -434,4 +434,40 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     public void updateUser(String username, UserWithMethod user) {
         m_users.put(username, user);
     }
+
+    public void allowManagingEntity(String sModule, String entityType, Comparable entityId, String username) throws IOException {
+        UserDetails owner = loadUserByUsername(username);
+		if (owner.getAuthorities() != null && (owner.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN))))
+			return;	// no need to grant any role to administrators
+
+        SimpleGrantedAuthority role = new SimpleGrantedAuthority(sModule + UserPermissionController.ROLE_STRING_SEPARATOR + entityType + UserPermissionController.ROLE_STRING_SEPARATOR + IRoleDefinition.ENTITY_MANAGER_ROLE + UserPermissionController.ROLE_STRING_SEPARATOR + entityId);
+        if (!owner.getAuthorities().contains(role)) {
+            HashSet<String> authoritiesToSave = new HashSet<>();
+            authoritiesToSave.add(role.getAuthority());
+            for (GrantedAuthority ga : owner.getAuthorities()) {
+                authoritiesToSave.add(ga.getAuthority());
+            }
+            saveOrUpdateUser(username, owner.getPassword(), authoritiesToSave.toArray(new String[authoritiesToSave.size()]), owner.isEnabled());
+        }
+    }
+    
+    public Map<String /*module*/, Collection<String /*entity-type*/>> getWritableEntityTypesByModule(Collection<? extends GrantedAuthority> authorities) {
+        Map<String, Collection<String>> result = new HashMap<>();
+        if (authorities != null) {
+            for (GrantedAuthority auth : authorities) {
+                String[] splittedPermission = auth.getAuthority().split(Pattern.quote(UserPermissionController.ROLE_STRING_SEPARATOR));
+                if (splittedPermission.length == 3) {
+                    if (moduleManager.getModules(null).contains(splittedPermission[0]) && UserPermissionController.rolesByLevel1Type.keySet().contains(splittedPermission[1]) && splittedPermission[2].equals(IRoleDefinition.CREATOR_ROLE_SUFFIX)) {
+                        Collection<String> entityTypes = result.get(splittedPermission[0]);
+                        if (entityTypes == null) {
+                            entityTypes = new HashSet<>();
+                            result.put(splittedPermission[0], entityTypes);
+                        }
+                        entityTypes.add(splittedPermission[1]);
+                    }
+                }
+            }
+        }
+        return result;
+    }
 }
