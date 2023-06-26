@@ -63,6 +63,11 @@ table#moduleTable td {
 	text-align:center
 }
 
+.modal-content {
+    max-height: 95vh;
+    overflow-y: auto;
+}
+
 .dumpVALID {
 	background-color:#88FF88;
 }
