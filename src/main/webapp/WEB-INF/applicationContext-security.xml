@@ -12,7 +12,7 @@
 	
 	<secur:http realm="Default WebApp Security Administration" request-matcher="regex" access-decision-manager-ref="accessDecisionManager">
 	  <secur:intercept-url pattern="^.*/private/.*\.do_.*$" access="IS_AUTHENTICATED_FULLY" />
-	  <secur:intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY,IS_AUTHENTICATED_FULLY,IS_AUTHENTICATED_REMEMBERED" />
+	  <secur:intercept-url pattern="/**" access="isAnonymous() or isRememberMe() or isFullyAuthenticated()" />
 	  
 	  <secur:form-login login-page="/private/" always-use-default-target="true" default-target-url="/private/main.do_" />
 	  <secur:access-denied-handler error-page="/WEB-INF/jsp/error/403.jsp" />
