@@ -40,7 +40,7 @@
 </head>
 
 <body leftmargin="2" rightmargin="2" onLoad="window.parent.frames['managementFrame'].document.body.style.backgroundColor='#f0f0f0';">
-${ttt }
+
 <div id="leftMenu" class="margin-top margin-left">
 	<p style="font-weight:bold;">
 	</p>
