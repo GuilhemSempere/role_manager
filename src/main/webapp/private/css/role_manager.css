@@ -25,7 +25,7 @@ table.adminListTable td, table.adminListTable td * {
 }
 
 table.adminListTable {
-	border-left: 1px solid #000000;
+	border: 1px solid #000000;
 	border-spacing: 0px;
 	border-collapse: collapse;
 }

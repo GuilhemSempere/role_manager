@@ -14,28 +14,37 @@
  * See <http://www.gnu.org/licenses/agpl.html> for details about GNU General
  * Public License V3.
 --%>
-<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" import="fr.cirad.web.controller.security.UserPermissionController,fr.cirad.security.base.IRoleDefinition,org.springframework.security.core.context.SecurityContextHolder" %>
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"
+	import="fr.cirad.web.controller.security.UserPermissionController,fr.cirad.security.base.IRoleDefinition,org.springframework.security.core.context.SecurityContextHolder"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
 <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form"%>
 
-<c:set var="loggedUserAuthorities" value="${userDao.getLoggedUserAuthorities()}" />
+<c:set var="loggedUserAuthorities"
+	value="${userDao.getLoggedUserAuthorities()}" />
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
-<c:set var='supervisorRole' value='<%= IRoleDefinition.ROLE_DB_SUPERVISOR %>' />
-<c:set var='roleSep' value='<%= UserPermissionController.ROLE_STRING_SEPARATOR %>' />
+<c:set var='supervisorRole'
+	value='<%= IRoleDefinition.ROLE_DB_SUPERVISOR %>' />
+<c:set var='roleSep'
+	value='<%= UserPermissionController.ROLE_STRING_SEPARATOR %>' />
 <c:set var='trimmedUsername' value='${fn:trim(user.username)}' />
-<jsp:useBean id="urlEncoder" scope="page" class="fr.cirad.web.controller.security.UserPermissionController" /><%-- dummy controller just to be able to invoke a static method --%>
+<jsp:useBean id="urlEncoder" scope="page"
+	class="fr.cirad.web.controller.security.UserPermissionController" /><%-- dummy controller just to be able to invoke a static method --%>
 
 <html>
 
 <head>
-	<link type="text/css" rel="stylesheet" href="../css/bootstrap-select.min.css "> 
-	<link type="text/css" rel="stylesheet" href="../css/bootstrap.min.css">
-	<link media="screen" type="text/css" href="../css/role_manager.css" rel="StyleSheet" />
-	<link media="screen" type="text/css" href="../../css/main.css" rel="StyleSheet" />
-	<script type="text/javascript" src="../js/jquery-1.12.4.min.js"></script>
-	<script type="text/javascript" src="../js/bootstrap.min.js"></script>
-	<script type="text/javascript">
+<link type="text/css" rel="stylesheet"
+	href="../css/bootstrap-select.min.css ">
+<link type="text/css" rel="stylesheet" href="../css/bootstrap.min.css">
+<link media="screen" type="text/css" href="../css/role_manager.css"
+	rel="StyleSheet" />
+<link media="screen" type="text/css" href="../../css/main.css"
+	rel="StyleSheet" />
+<script type="text/javascript" src="../js/jquery-1.12.4.min.js"></script>
+<script type="text/javascript" src="../js/bootstrap.min.js"></script>
+<script type="text/javascript">
 		function doOnLoad()
 		{
 			if ($("#username").val() != null)
@@ -147,165 +156,219 @@
 	</script>
 </head>
 
-<body style='background-color:#f0f0f0;' onload="doOnLoad();">
+<body style='background-color: #f0f0f0;' onload="doOnLoad();">
 	<form:form modelAttribute="user" name="userForm">
-	<div class="cruPageTitle"><p>User:
-	<c:choose>
-		<c:when test="${!empty trimmedUsername}">
-			<b>${user.username}</b>
-			<form:hidden path="username" />
-			<span style='margin-left:100px;' id="cloneButtonSpan"></span>
-		</c:when>
-		<c:otherwise>
-			<form:input path="username" autocomplete="off"/>
-		</c:otherwise>
-	</c:choose>
-	</p>
-	<p>Authentication method: <b>${user.method eq "" ? "Local" : user.method}</b></p>
-	</div>
-	<br>
+		<div class="cruPageTitle">
+			<p>
+				User:
+				<c:choose>
+					<c:when test="${!empty trimmedUsername}">
+						<b>${user.username}</b>
+						<form:hidden path="username" />
+						<span style='margin-left: 100px;' id="cloneButtonSpan"></span>
+					</c:when>
+					<c:otherwise>
+						<form:input path="username" autocomplete="off" />
+					</c:otherwise>
+				</c:choose>
+			</p>
+			<p>
+				Authentication method: <b>${user.method eq "" ? "Local" : user.method}</b>
+			</p>
+		</div>
+		<br>
 
-	<c:if test="${!fn:contains(user.authorities, adminRole)}">
-		<table cellpadding='4' cellspacing='0' border='0'>
-		  <tr>
-		    <td width='5'>&nbsp;</td>
-			<th valign='top'>
-			  <div style='margin-bottom:10px; background-color:#f0f0f0;'>&nbsp;Permissions for this user&nbsp;</div>
-			  <c:if test="${fn:length(publicModules) > 0}">
-			  <table cellpadding='2' cellspacing='0' class='adminListTable'>
-				<tr height="32">
-					<th nowrap>Public database</th>
-					<c:forEach var="moduleName" items="${publicModules}">
-						<th style='min-width:100px;'>
-							${moduleName}
-						</th>
-					</c:forEach>
-				</tr>
-				<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
- 				<tr>
- 					<td>Supervision role</td>
-					<c:forEach var="moduleName" items="${publicModules}">
-					<td align='center' valign="middle">					
-						<input type='checkbox' onclick='$("a.${urlEncoder.urlEncode(moduleName)}_PermissionLink").toggle();' name='${urlEncoder.urlEncode(moduleName.concat(roleSep).concat(supervisorRole))}'${fn:contains(user.authorities, moduleName.concat(roleSep).concat(supervisorRole)) ? " checked" : ""}> DB Supervisor
-					</td>
-					</c:forEach>
-				</tr>
-				</c:if>
-				<c:forEach var="level1Type" items="${rolesByLevel1Type}">
- 				<tr>
- 					<td>Permissions on<br/><b>${level1Type.key}</b> entities</td>
-					<c:forEach var="moduleName" items="${publicModules}">
-					<td align='center' valign="middle">					
-<%-- 						<c:set var="topLevelRole" value='${topLevelRolePrefix.concat(roleSep).concat(moduleName)}'></c:set> --%>
-						<c:set var="roles" value='' />
-						<c:forEach var="auth" items="${user.authorities}">
-							<c:set var="encodedAuth" value='${urlEncoder.urlEncode(auth)}' />
-							<c:forEach var="level1TypeRole" items="${level1Type.value}">
-								<c:set var="rolePrefix" value='${urlEncoder.urlEncode(moduleName.concat(roleSep).concat(level1Type.key).concat(roleSep).concat(level1TypeRole).concat(roleSep))}' />
-								<c:if test="${fn:startsWith(encodedAuth, rolePrefix)}">
-							    	<c:set var="roles" value='${roles}${roles == "" ? "" : ","}${encodedAuth}' />
-								</c:if>
-							</c:forEach>
-						</c:forEach>
-						<a id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink' class='${urlEncoder.urlEncode(moduleName)}_PermissionLink' style='text-transform:none;${fn:contains(user.authorities, moduleName.concat(roleSep).concat(supervisorRole)) ? " display:none;" : ""}' href="javascript:openPermissionDialog('${user.username}', '${moduleName}', '${level1Type.key}');">${level1Type.key}<br/>permissions</a>
-						<c:if test="${roles ne ''}">
-							<script type="text/javascript">updatePermissionLink("${urlEncoder.urlEncode(moduleName)}", "${level1Type.key}", "${roles}".split(",").length);</script>
-						</c:if>
-						<br/><input type='hidden' name="${urlEncoder.urlEncode(level1Type.key.concat('Permission_').concat(moduleName))}" value="${roles}">
-					</td>
-					</c:forEach>
-				</tr>
-				</c:forEach>
-			  </table>
-			  <br/>
-			  </c:if>
-			  <c:if test="${fn:length(privateModules) > 0}">
-			  <table cellpadding='2' cellspacing='0' class='adminListTable'>
-				<tr height="32">
-					<th nowrap>Private database</th>
-					<c:forEach var="moduleName" items="${privateModules}">
-						<th style='min-width:100px;'>
-							${moduleName}
-						</th>
-					</c:forEach>
-				</tr>
-				<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
- 				<tr>
- 					<td>Supervision role</td>
-					<c:forEach var="moduleName" items="${privateModules}">
-					<td align='center' valign="middle">					
-						<input type='checkbox' onclick='$("a.${urlEncoder.urlEncode(moduleName)}_PermissionLink").toggle();' name='${urlEncoder.urlEncode(moduleName.concat(roleSep).concat(supervisorRole))}'${fn:contains(user.authorities, moduleName.concat(roleSep).concat(supervisorRole)) ? " checked" : ""}> DB Supervisor
-					</td>
-					</c:forEach>
-				</tr>
-				</c:if>
-				<c:forEach var="level1Type" items="${rolesByLevel1Type}">
- 				<tr>
- 					<td>Permissions on<br/><b>${level1Type.key}</b> entities</td>
-					<c:forEach var="moduleName" items="${privateModules}">
-					<td align='center' valign="middle">					
-<%-- 						<c:set var="topLevelRole" value='${topLevelRolePrefix.concat(roleSep).concat(moduleName)}'></c:set> --%>
-						<c:set var="roles" value='' />
-						<c:forEach var="auth" items="${user.authorities}">
-							<c:set var="encodedAuth" value='${urlEncoder.urlEncode(auth)}' />
-							<c:forEach var="level1TypeRole" items="${level1Type.value}">
-								<c:set var="rolePrefix" value='${urlEncoder.urlEncode(moduleName.concat(roleSep).concat(level1Type.key).concat(roleSep).concat(level1TypeRole).concat(roleSep))}' />
-								<c:if test="${fn:startsWith(encodedAuth, rolePrefix)}">
-							    	<c:set var="roles" value='${roles}${roles == "" ? "" : ","}${encodedAuth}' />
-								</c:if>
-							</c:forEach>
-						</c:forEach>
-						<a id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink' class='${urlEncoder.urlEncode(moduleName)}_PermissionLink' style='text-transform:none;${fn:contains(user.authorities, moduleName.concat(roleSep).concat(supervisorRole)) ? " display:none;" : ""}' href="javascript:openPermissionDialog('${user.username}', '${moduleName}', '${level1Type.key}');">${level1Type.key}<br/>permissions</a>
-						<c:if test="${roles ne ''}">
-							<script type="text/javascript">updatePermissionLink("${urlEncoder.urlEncode(moduleName)}", "${level1Type.key}", "${roles}".split(",").length);</script>
-						</c:if>
-						<br/><input type='hidden' name="${urlEncoder.urlEncode(level1Type.key.concat('Permission_').concat(moduleName))}" value="${roles}">
-					</td>
-					</c:forEach>
-				</tr>
-				</c:forEach>
-			  </table>
-			  </c:if>
-		  </th>
-		  </tr>
-		</table>
-	</c:if>
+		<c:if test="${!fn:contains(user.authorities, adminRole)}">
+			<table>
+				<tr>
+					<th valign='top'>
+						<div style='margin-bottom: 10px; background-color: #f0f0f0;'>&nbsp;Permissions
+							for this user&nbsp;</div> <c:if test="${fn:length(publicModules) > 0}">
+							<table class='adminListTable'>
+								<thead>
+									<tr>
+										<th colspan="10" nowrap style="background-color: #022a50;">Public
+											database</th>
+									</tr>
+								</thead>
+								<c:forEach var="i" begin="0"
+									end="${fn:length(publicModules)/10}">
+									<tr height="32">
+										<!-- <th nowrap>Public database</th> -->
+										<c:forEach var="moduleName" items="${publicModules}"
+											begin="${i*10}" end="${(i+1)*10-1}">
+											<th style='min-width: 100px;'>${moduleName}</th>
+										</c:forEach>
+									</tr>
+									<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+										<tr>
+											<!-- <td>Supervision role</td> -->
+											<c:forEach var="moduleName" items="${publicModules}"
+												begin="${i*10}" end="${(i+1)*10-1}">
+												<td align='center' valign="middle"><input
+													type='checkbox'
+													onclick='$("a.${urlEncoder.urlEncode(moduleName)}_PermissionLink").toggle();'
+													name='${urlEncoder.urlEncode(moduleName.concat(roleSep).concat(supervisorRole))}'
+													${fn:contains(user.authorities, moduleName.concat(roleSep).concat(supervisorRole)) ? " checked" : ""}>
+													DB Supervisor</td>
+											</c:forEach>
+										</tr>
+									</c:if>
+									<c:forEach var="level1Type" items="${rolesByLevel1Type}">
+										<tr>
+											<%-- <td>Permissions on<br/><b>${level1Type.key}</b> entities</td> --%>
+											<c:forEach var="moduleName" items="${publicModules}"
+												begin="${i*10}" end="${(i+1)*10-1}">
+												<td align='center' valign="middle">
+													<%-- <c:set var="topLevelRole" value='${topLevelRolePrefix.concat(roleSep).concat(moduleName)}'></c:set> --%>
+													<c:set var="roles" value='' /> <c:forEach var="auth"
+														items="${user.authorities}">
+														<c:set var="encodedAuth"
+															value='${urlEncoder.urlEncode(auth)}' />
+														<c:forEach var="level1TypeRole"
+															items="${level1Type.value}">
+															<c:set var="rolePrefix"
+																value='${urlEncoder.urlEncode(moduleName.concat(roleSep).concat(level1Type.key).concat(roleSep).concat(level1TypeRole).concat(roleSep))}' />
+															<c:if test="${fn:startsWith(encodedAuth, rolePrefix)}">
+																<c:set var="roles"
+																	value='${roles}${roles == "" ? "" : ","}${encodedAuth}' />
+															</c:if>
+														</c:forEach>
+													</c:forEach> <a
+													id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink'
+													class='${urlEncoder.urlEncode(moduleName)}_PermissionLink'
+													style='text-transform:none;${fn:contains(user.authorities, moduleName.concat(roleSep).concat(supervisorRole)) ? " display:none;" : ""}'
+													href="javascript:openPermissionDialog('${user.username}', '${moduleName}', '${level1Type.key}');">${level1Type.key}<br />permissions
+												</a> <c:if test="${roles ne ''}">
+														<script type="text/javascript">updatePermissionLink("${urlEncoder.urlEncode(moduleName)}", "${level1Type.key}", "${roles}".split(",").length);</script>
+													</c:if> <br /> <input type='hidden'
+													name="${urlEncoder.urlEncode(level1Type.key.concat('Permission_').concat(moduleName))}"
+													value="${roles}">
+												</td>
+											</c:forEach>
+										</tr>
+									</c:forEach>
+								</c:forEach>
+							</table>
 
-	<div style='margin-left:20px; margin-top:10px;'>
-		<p>
-		<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && user.getMethod().isEmpty()}">
-			You can modify this user's password by typing a new password here: <input id="password" type='password' name="password" style='width:100px;' autocomplete="new-password" /> (max-length: 20)
+							<br />
+
+						</c:if> <c:if test="${fn:length(privateModules) > 0}">
+							<table class='adminListTable'>
+								<thead>
+									<tr>
+										<th colspan="10" nowrap style="background-color: #022a50;">Private
+											database</th>
+									</tr>
+								</thead>
+								<c:forEach var="i" begin="0"
+									end="${fn:length(privateModules)/10}">
+									<tr height="32">
+										<!-- <th nowrap>Public database</th> -->
+										<c:forEach var="moduleName" items="${privateModules}"
+											begin="${i*10}" end="${(i+1)*10-1}">
+											<th style='min-width: 100px;'>${moduleName}</th>
+										</c:forEach>
+									</tr>
+									<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+										<tr>
+											<!-- <td>Supervision role</td> -->
+											<c:forEach var="moduleName" items="${privateModules}"
+												begin="${i*10}" end="${(i+1)*10-1}">
+												<td align='center' valign="middle"><input
+													type='checkbox'
+													onclick='$("a.${urlEncoder.urlEncode(moduleName)}_PermissionLink").toggle();'
+													name='${urlEncoder.urlEncode(moduleName.concat(roleSep).concat(supervisorRole))}'
+													${fn:contains(user.authorities, moduleName.concat(roleSep).concat(supervisorRole)) ? " checked" : ""}>
+													DB Supervisor</td>
+											</c:forEach>
+										</tr>
+									</c:if>
+									<c:forEach var="level1Type" items="${rolesByLevel1Type}">
+										<tr>
+											<%-- <td>Permissions on<br/><b>${level1Type.key}</b> entities</td> --%>
+											<c:forEach var="moduleName" items="${privateModules}"
+												begin="${i*10}" end="${(i+1)*10-1}">
+												<td align='center' valign="middle">
+													<%-- <c:set var="topLevelRole" value='${topLevelRolePrefix.concat(roleSep).concat(moduleName)}'></c:set> --%>
+													<c:set var="roles" value='' /> <c:forEach var="auth"
+														items="${user.authorities}">
+														<c:set var="encodedAuth"
+															value='${urlEncoder.urlEncode(auth)}' />
+														<c:forEach var="level1TypeRole"
+															items="${level1Type.value}">
+															<c:set var="rolePrefix"
+																value='${urlEncoder.urlEncode(moduleName.concat(roleSep).concat(level1Type.key).concat(roleSep).concat(level1TypeRole).concat(roleSep))}' />
+															<c:if test="${fn:startsWith(encodedAuth, rolePrefix)}">
+																<c:set var="roles"
+																	value='${roles}${roles == "" ? "" : ","}${encodedAuth}' />
+															</c:if>
+														</c:forEach>
+													</c:forEach> <a
+													id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink'
+													class='${urlEncoder.urlEncode(moduleName)}_PermissionLink'
+													style='text-transform:none;${fn:contains(user.authorities, moduleName.concat(roleSep).concat(supervisorRole)) ? " display:none;" : ""}'
+													href="javascript:openPermissionDialog('${user.username}', '${moduleName}', '${level1Type.key}');">${level1Type.key}<br />permissions
+												</a> <c:if test="${roles ne ''}">
+														<script type="text/javascript">updatePermissionLink("${urlEncoder.urlEncode(moduleName)}", "${level1Type.key}", "${roles}".split(",").length);</script>
+													</c:if> <br /> <input type='hidden'
+													name="${urlEncoder.urlEncode(level1Type.key.concat('Permission_').concat(moduleName))}"
+													value="${roles}">
+												</td>
+											</c:forEach>
+										</tr>
+									</c:forEach>
+								</c:forEach>
+							</table>
+						</c:if>
+					</th>
+				</tr>
+			</table>
 		</c:if>
-		</p>
-		<table>
-			<tr>
-				<td><input type='submit' value='Save user details' class='btn btn-sm btn-primary active' style='display:inline;'></td>
-				<td>
-					<c:if test="${fn:length(errors) > 0}">
-						<span class="formErrors" style='margin-left:10px;'>
-						<c:forEach var="error" items="${errors}">
+
+		<div style="margin-top: 10px;">
+			<p>
+				<c:if
+					test="${fn:contains(loggedUserAuthorities, adminRole) && user.getMethod().isEmpty()}">
+			You can modify this user's password by typing a new password here: <input
+						id="password" type='password' name="password"
+						style='width: 100px;' autocomplete="new-password" /> (max-length: 20)
+		</c:if>
+			</p>
+			<table>
+				<tr>
+					<td><input type='submit' value='Save user details'
+						class='btn btn-sm btn-primary active' style='display: inline;'></td>
+					<td><c:if test="${fn:length(errors) > 0}">
+							<span class="formErrors" style='margin-left: 10px;'> <c:forEach
+									var="error" items="${errors}">
 							${error}<br>
-						</c:forEach>
-						</span>
-					</c:if>
-				</td>
-			</tr>
-		</table>
-	</div>
+								</c:forEach>
+							</span>
+						</c:if></td>
+				</tr>
+			</table>
+		</div>
 
 	</form:form>
-	
-	<div class="modal fade" tabindex="-1" role="dialog" id="permissionDialog" aria-hidden="true">
+
+	<div class="modal fade" tabindex="-1" role="dialog"
+		id="permissionDialog" aria-hidden="true">
 		<div class="modal-dialog modal-lg">
 			<div class="modal-content">
 				<div class="modal-header" id="projectInfoContainer">
-					<div id="permissionDialogTitle" style='font-weight:bold; margin-bottom:5px;'></div>
-					<iframe style='margin-bottom:10px; width:100%;' id="permissionFrame" name="permissionFrame"></iframe>
+					<div id="permissionDialogTitle"
+						style='font-weight: bold; margin-bottom: 5px;'></div>
+					<iframe style='margin-bottom: 10px; width: 100%;'
+						id="permissionFrame" name="permissionFrame"></iframe>
 					<br>
-					<form style="margin:0;">
-						<input type='button' class='btn btn-sm btn-primary' value='Apply' id="applyButton" onclick="storePermissions();">
-						&nbsp;&nbsp;&nbsp;
-						<input type='button' class='btn btn-sm btn-primary' value='Cancel' id="hlContentDialogClose" onclick="$('#permissionDialog').modal('hide');">
+					<form style="margin: 0;">
+						<input type='button' class='btn btn-sm btn-primary' value='Apply'
+							id="applyButton" onclick="storePermissions();">
+						&nbsp;&nbsp;&nbsp; <input type='button'
+							class='btn btn-sm btn-primary' value='Cancel'
+							id="hlContentDialogClose"
+							onclick="$('#permissionDialog').modal('hide');">
 					</form>
 				</div>
 			</div>
