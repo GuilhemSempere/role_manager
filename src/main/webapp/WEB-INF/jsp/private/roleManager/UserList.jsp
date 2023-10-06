@@ -78,14 +78,14 @@
 							}
 							if (subkey == jsonResult[key].length - 1<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}"> && jsonResult[key][0] != "${loggedUserName}"</c:if>)
 							{
-								rowContents += "<td style='border:none;' nowrap>&nbsp;<a href='<c:url value="<%= UserPermissionController.userDetailsURL %>" />?user=" + encodeURIComponent(jsonResult[key][0]) + "' title='Details for user " + jsonResult[key][0] + "'><img src='../img/magnifier.gif'></a>";
+								rowContents += "<td nowrap>&nbsp;<a href='<c:url value="<%= UserPermissionController.userDetailsURL %>" />?user=" + encodeURIComponent(jsonResult[key][0]) + "' title='Details for user " + jsonResult[key][0] + "'><img src='../img/magnifier.gif'></a>";
 								<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
 								if ("(ADMINISTRATOR)" != jsonResult[key][1])
 									rowContents += "&nbsp;&nbsp;&nbsp;<a href='javascript:removeItem(\"" + encodeURIComponent(jsonResult[key][0]) + "\");' title='Discard user " + jsonResult[key][0] + "'><img src='../img/delete.gif'></a>";
 								</c:if>
 								rowContents += "</td>";
 				   			}
-					   		add_new_row('#userResultTable', '<tr>' + rowContents + '</tr>');
+					   		add_new_row('#userResultTable', '<tr onmouseover="this.style.backgroundColor=\'#8fffbe\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents + '</tr>');
 					   		nAddedRows++;
 				   		}
 				   		else
@@ -147,14 +147,19 @@
 </table>
 
 <table class="adminListTable" id="userResultTable">
+<thead> 
 <tr>
 	<th>Login</th>
 	<th>Accessible modules</th>
 	<th>Auth method</th>
+	<th>Action(s)</th>
 </tr>
+</thead>
+<tbody>
 <tr>
 	<td colspan='6' height='200'></td>
 </tr>
+</tbody>
 </table>
 
 </body>
