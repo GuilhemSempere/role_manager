@@ -25,7 +25,7 @@ table.adminListTable td, table.adminListTable td * {
 }
 
 table.adminListTable {
-	border-left: 1px solid #000000;
+	border: 1px solid #000000;
 	border-spacing: 0px;
 	border-collapse: collapse;
 }
@@ -91,3 +91,68 @@ table#moduleTable td {
 .dumpUNSUPPORTED {
 	background-color: none;
 }
+
+.databaseListContainer {
+	display: flex;
+	flex-direction: column;
+	border: 1px solid #ccc;
+	margin: 10px;
+	flex: 1;
+}
+
+.databaseListHeader {
+	background-color: #022a50;
+	color: #fff;
+	font-weight: bold;
+	padding: 10px;
+	border-bottom: 1px solid #ccc;
+}
+
+.databaseListModules {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	width: 97vw ;
+}
+
+.databaseModule {
+	display: flex;
+	margin: 2px;
+	flex-direction: column;
+	border: 1px solid #2fa4e7;
+}
+
+.databaseColumn {
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.databaseCell {
+	flex: 1;
+	padding: 8px;
+	text-align: center;
+	width: 100%;
+	justify-content: center;
+	display: flex;
+	flex-direction: row;
+	gap: 10px;
+}
+
+.databaseSpan {
+	white-space: nowrap;
+	margin: 4px 0 0 0;
+}
+
+.databaseColumn .databaseCell:first-child {
+	background-color: #1d9ce5;
+	color: white;
+}
+
+.separator {
+	width: 100%;
+	border-top: 1px dashed #2fa4e7;
+}
+
+

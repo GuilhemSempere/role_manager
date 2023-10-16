@@ -193,7 +193,7 @@
 	   		rowContents.append("<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'><input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'></td>");
 	   		rowContents.append("<td align='center'>" + (<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && actionRequiredToEnableDumps eq ''}">moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] == "BUSY" ? "" : </c:if>"<a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem(\"" + encodeURIComponent(key) + "\");' title='Discard module'><img src='img/delete.gif'></a>") + "</td>");
 	   		</c:if>
-	   		return '<tr id="row_' + encodeURIComponent(key) + '">' + rowContents.toString() + '</tr>';
+	   		return '<tr id="row_' + encodeURIComponent(key) + '" onmouseover="this.style.backgroundColor=\'#99eebb\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents.toString() + '</tr>';
 		}
 
 		function loadData()
@@ -406,29 +406,29 @@
 		</c:if>
 	</c:if>
 	<table class="adminListTable margin-top-md" id="moduleTable">
-	<thead>
-	<tr>
-		<th>Database name</th>
-		<th>Storage size</th>
-		<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
-		<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_HOST %></th>
-		</c:if>
-		<th>Entity management</th>
-		<c:if test="${actionRequiredToEnableDumps eq ''}">
-		<th>Dump management</th>
-		</c:if>
-		<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
-		<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
-		<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_PUBLIC %></th>
-		<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_HIDDEN %></th>
-		<th>Changes</th>
-		</c:if>
-		<th>Removal</th>
-		</c:if>
-	</tr>
-	</thead>
-	<tbody>
-	</tbody>
+		<thead>
+ 			<tr>
+ 				<th>Database name</th>
+				<th>Storage size</th>
+				<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+				<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_HOST %></th>
+				</c:if>
+				<th>Entity management</th>
+				<c:if test="${actionRequiredToEnableDumps eq ''}">
+				<th>Dump management</th>
+				</c:if>
+				<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+				<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+				<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_PUBLIC %></th>
+				<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_HIDDEN %></th>
+				<th>Changes</th>
+				</c:if>
+				<th>Removal</th>
+				</c:if>
+			</tr>
+		</thead>
+		<tbody>
+		</tbody>
 	</table>
 
 	<div class="modal fade" tabindex="-1" role="dialog" id="moduleContentDialog" aria-hidden="true">
