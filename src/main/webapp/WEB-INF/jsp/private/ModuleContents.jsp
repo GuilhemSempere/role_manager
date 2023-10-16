@@ -179,7 +179,7 @@
 					<th>removal</th>
 				</tr>
 				<c:forEach var="entity" items="${publicEntities}">
-				<tr id="row_${entity.key}">
+				<tr id="row_${entity.key}" onmouseover="this.style.backgroundColor='#99eebb';" onmouseout="this.style.backgroundColor='';">
 					<td>${entity.value[0]}</td>
 					<c:if test="${descriptionSupported}"><td><textarea style='font-size:10px;' cols='55' rows='2' onchange='parentNode.style.backgroundColor="#FFA500"; if (confirm("Save description for ${param.entityType} ${entity.value[0]}?")) saveDesc("${entity.key}", this);'>${entity.value[1]}</textarea></td></c:if>
 					<c:if test="${visibilitySupported}"><td align='center'><input type='checkbox' checked onclick='toggleVisibility("${entity.key}", "${entity.value}");'></td></c:if>
@@ -201,7 +201,7 @@
 				</c:forEach>
 				<c:if test="${privateEntities ne null}">
 					<c:forEach var="entity" items="${privateEntities}">
-				<tr id="row_${entity.key}">
+				<tr id="row_${entity.key}" onmouseover="this.style.backgroundColor='#99eebb';" onmouseout="this.style.backgroundColor='';">
 					<td>${entity.value[0]}</td>
 					<c:if test="${descriptionSupported}"><td><textarea style='font-size:10px;' cols='55' rows='2' onchange='parentNode.style.backgroundColor="#FFA500"; if (confirm("Save description for ${param.entityType} ${entity.value[0]}?")) saveDesc("${entity.key}", this);'>${entity.value[1]}</textarea></td></c:if>
 					<c:if test="${visibilitySupported}"><td align='center'><input type='checkbox' onclick='toggleVisibility("${entity.key}", "${entity.value}");'></td></c:if>

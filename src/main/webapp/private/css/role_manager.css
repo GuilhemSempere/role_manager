@@ -117,8 +117,9 @@ table#moduleTable td {
 
 .databaseModule {
 	display: flex;
+	margin: 2px;
 	flex-direction: column;
-	border: 1px solid #ccc;
+	border: 1px solid #2fa4e7;
 }
 
 .databaseColumn {
@@ -151,7 +152,7 @@ table#moduleTable td {
 
 .separator {
 	width: 100%;
-	border: 1px solid #ccc;
+	border-top: 1px dashed #2fa4e7;
 }
 
 

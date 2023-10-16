@@ -159,7 +159,7 @@
 <body style='background-color: #f0f0f0;' onload="doOnLoad();">
 	<form:form modelAttribute="user" name="userForm">
 		<div class="cruPageTitle">
-			<p>
+			<div style="display:inline-block;">
 				User:
 				<c:choose>
 					<c:when test="${!empty trimmedUsername}">
@@ -171,36 +171,32 @@
 						<form:input path="username" autocomplete="off" />
 					</c:otherwise>
 				</c:choose>
-			</p>
-			<p>
+			</div>
+			<div style="display:inline-block; margin-left:50px;">
 				Authentication method: <b>${user.method eq "" ? "Local" : user.method}</b>
-			</p>
+			</div>
 		</div>
 		<br>
 
 		<c:if test="${!fn:contains(user.authorities, adminRole)}">
 			<table>
 				<tr>
-					<th valign='top'>
-						<div style='margin-bottom: 10px; background-color: #f0f0f0;'>&nbsp;Permissions
-							for this user&nbsp;</div>
+					<td valign='top'>
+						<div style='margin-bottom: 10px; background-color: #f0f0f0;'>&nbsp;Permissions for this user&nbsp;</div>
 						<c:if test="${fn:length(publicModules) > 0}">
 						<div class="databaseListContainer">
-							<div class="databaseListHeader" style="background-color: #022a50;">Public database</div>
+							<div class="databaseListHeader" style="background-color: #075a80;">Public databases</div>
 							<div class="databaseListModules">
 								<c:forEach var="moduleName" items="${publicModules}">
 									<div class="databaseModule">
 										<c:forEach var="level1Type" items="${rolesByLevel1Type}">
 											<div class="databaseColumn">
 												<div class="databaseCell">
-													<!-- Contenu de la première colonne -->
-													<span>
+													<b>
 															${moduleName}
-													</span>
+													</b>
 												</div>
-												<div class="separator"></div>
 												<div class="databaseCell">
-													<!-- Contenu de la deuxième colonne -->
 													<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
 														<input type="checkbox" onclick='$("a.${urlEncoder.urlEncode(moduleName)}_PermissionLink").toggle();'
 															   name='${urlEncoder.urlEncode(moduleName.concat(roleSep).concat(supervisorRole))}'
@@ -209,9 +205,7 @@
 													</c:if>
 												</div>
 												<div class="separator"></div>
-
 												<div class="databaseCell">
-													<!-- Contenu de la troisième colonne -->
 													<c:set var="roles" value="" />
 													<c:forEach var="auth" items="${user.authorities}">
 														<c:set var="encodedAuth" value='${urlEncoder.urlEncode(auth)}' />
@@ -246,21 +240,18 @@
 
 						<c:if test="${fn:length(privateModules) > 0}">
 							<div class="databaseListContainer">
-								<div class="databaseListHeader" style="background-color: #022a50;">Private database</div>
+								<div class="databaseListHeader" style="background-color: #075a80;">Private databases</div>
 								<div class="databaseListModules">
 									<c:forEach var="moduleName" items="${privateModules}">
 										<div class="databaseModule">
 											<c:forEach var="level1Type" items="${rolesByLevel1Type}">
 												<div class="databaseColumn">
 													<div class="databaseCell">
-														<!-- Contenu de la première colonne -->
-														<span>
+														<b>
 																${moduleName}
-														</span>
+														</b>
 													</div>
-													<div class="separator"></div>
 													<div class="databaseCell">
-														<!-- Contenu de la deuxième colonne -->
 														<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
 															<input type="checkbox" onclick='$("a.${urlEncoder.urlEncode(moduleName)}_PermissionLink").toggle();'
 																   name='${urlEncoder.urlEncode(moduleName.concat(roleSep).concat(supervisorRole))}'
@@ -269,9 +260,7 @@
 														</c:if>
 													</div>
 													<div class="separator"></div>
-
 													<div class="databaseCell">
-														<!-- Contenu de la troisième colonne -->
 														<c:set var="roles" value="" />
 														<c:forEach var="auth" items="${user.authorities}">
 															<c:set var="encodedAuth" value='${urlEncoder.urlEncode(auth)}' />
@@ -303,7 +292,7 @@
 								</div>
 							</div>
 						</c:if>
-					</th>
+					</td>
 				</tr>
 			</table>
 		</c:if>

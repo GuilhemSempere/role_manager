@@ -85,7 +85,7 @@
 								</c:if>
 								rowContents += "</td>";
 				   			}
-					   		add_new_row('#userResultTable', '<tr onmouseover="this.style.backgroundColor=\'#8fffbe\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents + '</tr>');
+					   		add_new_row('#userResultTable', '<tr onmouseover="this.style.backgroundColor=\'#99eebb\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents + '</tr>');
 					   		nAddedRows++;
 				   		}
 				   		else
