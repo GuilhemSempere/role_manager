@@ -196,7 +196,7 @@
 						</c:forEach>
 					</td>
 					</c:forEach>
-					<td align='center'><a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem("${param.entityType}", ["${entity.key}"], "${entity.value}");' title='Discard ${param.entityType}'><img src='img/delete.gif'></a></td>
+					<td align='center'><a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem("${param.entityType}", ["${entity.key}"], "${entity.value[0]}");' title='Discard ${param.entityType}'><img src='img/delete.gif'></a></td>
 				</tr>
 				</c:forEach>
 				<c:if test="${privateEntities ne null}">
@@ -218,7 +218,7 @@
 						</c:forEach>
 					</td>
 					</c:forEach>
-					<td align='center'><a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem("${param.entityType}", ["${entity.key}"], "${entity.value}");' title='Discard ${param.entityType}'><img src='img/delete.gif'></a></td>
+					<td align='center'><a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem("${param.entityType}", ["${entity.key}"], "${entity.value[0]}");' title='Discard ${param.entityType}'><img src='img/delete.gif'></a></td>
 				</tr>
 				</c:forEach>
 				</c:if>
