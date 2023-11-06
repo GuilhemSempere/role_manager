@@ -49,9 +49,10 @@
 				authentication</p>
 			<div
 				style="padding-top: 46px; display: flex; flex-direction: column; gap: 32px; align-items: center; justify-content: center; position: relative">
-				<input type='text' name='login' value=''
+				<input type='text' name='username' value=''
 					style="border: none; outline: none; padding: 12px 0; border-bottom: 2px solid gray; font-size: 16px; width: 100%"
-					placeholder="Username"> <input type='password'
+					placeholder="Username">
+					<input type='password'
 					name='password'
 					style="border: none; outline: none; padding: 12px 0; border-bottom: 2px solid gray; font-size: 16px; width: 100%"
 					placeholder="Password">
