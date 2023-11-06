@@ -60,7 +60,7 @@
 
 <body>
 	<div
-		style='background: background: linear-gradient(0deg, rgba(31,107,38,1) 0%, rgba(33,163,44,1) 100%);
+		style='background: linear-gradient(0deg, rgba(31,107,38,1) 0%, rgba(33,163,44,1) 100%);
 height: 47px; display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding-left: 15px; padding-right: 15px'>
 		<div style='font-weight: bold; font-size: 20px; color: white;'>
 			<a href='<c:url value="<%=BackOfficeController.mainPageURL%>" />'
