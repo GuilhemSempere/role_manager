@@ -60,12 +60,12 @@
 
 <body>
 	<div
-		style='background: linear-gradient(0deg, rgba(31,107,38,1) 0%, rgba(33,163,44,1) 100%);
-height: 47px; display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding-left: 15px; padding-right: 15px'>
+		style='
+height: 47px; display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding-left: 15px; padding-right: 15px' class="navbar-inverse">
 		<div style='font-weight: bold; font-size: 20px; color: white;'>
 			<a href='<c:url value="<%=BackOfficeController.mainPageURL%>" />'
 				target="_top"
-				style='color: black; font-size: 20px; text-decoration: none;'><%=request.getContextPath().substring(1).toUpperCase()%>
+				style='color: white; font-size: 20px; text-decoration: none;'><%=request.getContextPath().substring(1).toUpperCase()%>
 				- PRIVATE AREA</a>
 		</div>
 		<c:if test="${loggedUser ne null}">
@@ -74,7 +74,7 @@ height: 47px; display: flex; flex-direction: row; justify-content: space-between
 			</div>
 			<a target='_top' href="../j_spring_security_logout"
 				style="color: white; display: flex; align-items: center; gap: 8px; text-decoration: none; padding: 0 10px; height: 100%;"
-				onmouseover="this.style.backgroundColor = '#15531b';"
+				onmouseover="this.style.backgroundColor = '#022f5a';"
 				onmouseout="this.style.backgroundColor = '';"> <span
 				class="glyphicon glyphicon-log-out margin-icon"
 				style="margin-bottom: 4px;" aria-hidden="true"></span>
