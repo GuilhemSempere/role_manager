@@ -68,9 +68,8 @@
 					style="cursor: pointer; padding: 16px 32px; width: 100%; border-radius: 25px; border: 2px solid gray; font-size: 16px; font-weight: bold;"
 					onmouseover="this.style.backgroundColor = '#DBDFDF';"
 					onmouseout="this.style.backgroundColor = '';"> <a
-					style="color: black; font-family: sans-serif; text-decoration:none; font-size: 14px" href="../"
-					onmouseover="this.style.color = '#21a32c';"
-					onmouseout="this.style.color = '';">Return to <%=request.getContextPath().substring(1).toUpperCase()%></a>
+					style="color: #0A400F; font-family: sans-serif; text-decoration:none; font-size: 14px" href="../"
+					">Return to <%=request.getContextPath().substring(1).toUpperCase()%></a>
 			</div>
 		</form>
 	</div>
