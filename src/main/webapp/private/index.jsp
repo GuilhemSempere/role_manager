@@ -34,14 +34,14 @@
 </head>
 
 <body onload="document.forms[0].username.focus();"
-	style="background: #0A400F; display:flex; align-items:center; justify-content:center; height:100vh; margin:0;">
+	style="background: #0A400F; position: relative; height:100vh; margin:0;">
 
 	<%
 	Exception lastException = (Exception) session.getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
 	%>
 
 	<div
-		style="width: max-content; padding: 46px; background-color: white; border-radius: 24px;">
+		style="width: max-content; padding: 46px; background-color: white; border-radius: 24px; position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);">
 		<form name='f' action='../j_spring_security_check' method='POST'
 			style="display: flex; flex-direction: column;">
 			<p
@@ -68,7 +68,7 @@
 					style="cursor: pointer; padding: 16px 32px; width: 100%; border-radius: 25px; border: 2px solid gray; font-size: 16px; font-weight: bold;"
 					onmouseover="this.style.backgroundColor = '#DBDFDF';"
 					onmouseout="this.style.backgroundColor = '';"> <a
-					style="color: black; font-family: sans-serif; text-decoration:none;" href="../"
+					style="color: black; font-family: sans-serif; text-decoration:none; font-size: 14px" href="../"
 					onmouseover="this.style.color = '#21a32c';"
 					onmouseout="this.style.color = '';">Return to <%=request.getContextPath().substring(1).toUpperCase()%></a>
 			</div>
