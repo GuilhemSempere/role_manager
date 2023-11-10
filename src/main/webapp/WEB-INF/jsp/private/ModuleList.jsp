@@ -101,7 +101,7 @@
 		{
 			let itemRow = $("#row_" + moduleName);
 			if (confirm("Do you really want to discard database " + moduleName + "?\nThis will delete all data it contains.")) {
-				itemRow.find("td:eq(6)").prepend("<div style='position:absolute; margin-left:60px; margin-top:5px;'><img src='img/progress.gif'></div>");
+				itemRow.find("td:last").append("<div style='position:absolute; margin-left:60px; margin-top:-10px;'><img src='img/progress.gif'></div>");
 
 			    $.ajax({
 		            url: '<c:url value="<%= BackOfficeController.moduleRemovalURL %>" />?module=' + moduleName<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && actionRequiredToEnableDumps eq ''}"> + '&removeDumps=' + (moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] != "NONE" && confirm("Also remove related dumps?"))</c:if>,
@@ -109,7 +109,7 @@
 		        	success: function(deleted) {
 						if (!deleted) {
 							alert("Unable to discard " + moduleName);
-							itemRow.find("td:eq(6) div").remove();
+							itemRow.find("td:last div:last").remove();
 						}
 						else
 						{
@@ -118,7 +118,7 @@
 						}
 		        	},
 			        error: function (xhr, ajaxOptions, thrownError) {
-			        	itemRow.find("td:eq(6) div").remove();
+			        	itemRow.find("td:last div:last").remove();
 			        	handleError(xhr);
 			        }
 				});

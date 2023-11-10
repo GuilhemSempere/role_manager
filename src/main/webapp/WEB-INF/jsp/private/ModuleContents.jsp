@@ -51,14 +51,14 @@
 		let itemRow = $("#row_" + allLevelEntityIDs[0]);
 		if (confirm("Do you really want to discard " + entityType.replace(".", " ") + " " + entityName + "?\nThis will delete all data it contains."))
 		{
-			itemRow.find("td:eq(2)").prepend("<div style='position:absolute; margin-left:60px; margin-top:5px;'><img src='img/progress.gif'></div>");
+			itemRow.find("td:last").append("<div style='position:absolute; margin-left:60px; margin-top:-10px;'><img src='img/progress.gif'></div>");
 		    $.ajax({
 		        	url: '<c:url value="<%= BackOfficeController.moduleEntityRemovalURL %>" />',
 		            method: "DELETE",
 		            contentType: "application/json;charset=utf-8",
 		        	data : JSON.stringify({ module:'${param.module}', entityType:entityType, allLevelEntityIDs:allLevelEntityIDs }),
 		        	success: function(deleted) {
-						itemRow.find("td:eq(2) div").remove();
+						itemRow.find("td:last div:last").remove();
 						if (!deleted)
 							alert("Unable to discard " + entityName);
 			        	else {
@@ -95,7 +95,7 @@
 		let itemRow = $("#row_" + entityId);
 		let visibilityCell = itemRow.find("td:eq(1)");
 		let setAsPublic = visibilityCell.find("input").is(":checked");
-		itemRow.find("td:eq(2)").prepend("<div style='position:absolute; margin-left:60px; margin-top:5px;'><img src='img/progress.gif'></div>");
+		itemRow.find("td:last").append("<div style='position:absolute; margin-left:60px; margin-top:-10px;'><img src='img/progress.gif'></div>");
 		
 	    $.ajax({
         	url: '<c:url value="<%= BackOfficeController.moduleEntityVisibilityUpdateURL %>" />',
@@ -104,14 +104,14 @@
         	success: function(updated) {
     			if (!updated)
     			{
-    				itemRow.find("td:eq(2) div").remove();
+    				itemRow.find("td:last div:last").remove();
     				visibilityCell.find("input").prop("checked", !setAsPublic);
     				alert("Unable to set visibility to " + (setAsPublic ? "public" : "private") + " for " + entityName);
     			}
     			else
     			{
-    				itemRow.find("td:eq(2) div").html("Change applied!");
-    				setTimeout(function() {itemRow.find("td:eq(2) div").remove();}, 1000);
+    				itemRow.find("td:last div:last").html("Change zzzapplied!");
+    				setTimeout(function() {itemRow.find("td:last div:last").remove();}, 1000);
     				dirty = true;
     			}
         	},
