@@ -109,16 +109,18 @@ public class UserPermissionController
 			LOG.warn("No entity types found to manage permissions for in roles.properties (you may specify some by adding a LEVEL1 property with comma-separated strings as a value)");
 		}
         Set<String> level1Types = Stream.of(level1EntityTypes.trim().split("\\s*,\\s*")).collect(Collectors.toSet());
-        for (String level1Type : level1Types)
+        for (String level1Type : level1Types) {
+    		LinkedHashSet<String> levelRoles = new LinkedHashSet<String>();
         	try {
-        		LinkedHashSet<String> levelRoles = new LinkedHashSet<String>();
         		levelRoles.add(IRoleDefinition.ENTITY_MANAGER_ROLE);	// this one must exist even if not declared in roles.properties
         		levelRoles.addAll(Arrays.asList(StringUtils.tokenizeToStringArray(bundle.getString(LEVEL1_ROLES + "_" + level1Type), ",")));
-        		rolesByLevel1Type.put(level1Type, levelRoles);
         	}
 			catch (Exception e) {
+				levelRoles = null;	// we don't want to support the manager role if no orthers have been defined
 				LOG.warn("No roles to manage " + level1Type + " entities in roles.properties (you may specify some by adding a LEVEL1_ROLES_" + level1Type + " property with comma-separated strings as a value)");
 			}
+    		rolesByLevel1Type.put(level1Type, levelRoles);
+        }
         
 		String level2EntityTypes = "";
 		try {
@@ -136,20 +138,21 @@ public class UserPermissionController
         		LOG.warn("Ignoring invalid level 2 entity type defined in roles.properties: '" + level2Type + "', unknown parent level '" + splitLevel2Type[0] + "'");
         		continue;
         	}
-        	try {
-        		LinkedHashSet<String> levelRoles = new LinkedHashSet<String>();
+    		LinkedHashSet<String> levelRoles = new LinkedHashSet<String>();
+    		HashMap<String, LinkedHashSet<String>> roleMapForSubType = rolesByLevel2Type.get(splitLevel2Type[0]);
+    		if (roleMapForSubType == null) {
+    			roleMapForSubType = new HashMap<>();
+    			rolesByLevel2Type.put(splitLevel2Type[0], roleMapForSubType);
+    		}
+    		try {
         		levelRoles.add(IRoleDefinition.ENTITY_MANAGER_ROLE);	// this one must exist even if not declared in roles.properties
         		levelRoles.addAll(Arrays.asList(StringUtils.tokenizeToStringArray(bundle.getString(LEVEL2_ROLES + "_" + level2Type), ",")));
-        		HashMap<String, LinkedHashSet<String>> roleMapForSubType = rolesByLevel2Type.get(splitLevel2Type[0]);
-        		if (roleMapForSubType == null) {
-        			roleMapForSubType = new HashMap<>();
-        			rolesByLevel2Type.put(splitLevel2Type[0], roleMapForSubType);
-        		}
-        		roleMapForSubType.put(splitLevel2Type[1], levelRoles);
         	}
 			catch (Exception e) {
+				levelRoles = null;	// we don't want to support the manager role if no orthers have been defined 
 				LOG.warn("No roles to manage " + level2Type + " entities in roles.properties (you may specify some by adding a LEVEL2_ROLES_" + level2Type + " property with comma-separated strings as a value)");
 			}
+    		roleMapForSubType.put(splitLevel2Type[1], levelRoles);
         }
     }
 
@@ -258,13 +261,15 @@ public class UserPermissionController
 				{
 					LinkedHashMap<Comparable, String[]> moduleEntities = (LinkedHashMap<Comparable, String[]>) entitiesByModule.get(sModule);
 					if (moduleEntities != null)
-    					for (Comparable entityId : moduleEntities.keySet())
-    						for (String anEntityRole : rolesByLevel1Type.get(sEntityType))
-    						{
+    					for (Comparable entityId : moduleEntities.keySet()) {
+    						LinkedHashSet<String> rolesForEntityType = rolesByLevel1Type.get(sEntityType);
+    						if (rolesForEntityType != null)
+    						for (String anEntityRole : rolesForEntityType) {
     							String sRole = urlEncode(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + anEntityRole + ROLE_STRING_SEPARATOR + entityId);
     							if (request.getParameter(urlEncode(sRole)) != null)
     								grantedAuthorityLabels.add(sRole);
     						}
+    					}
 					
 					Enumeration<String> it = request.getParameterNames();
 					while (it.hasMoreElements())
