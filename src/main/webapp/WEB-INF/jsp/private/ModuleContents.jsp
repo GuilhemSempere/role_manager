@@ -98,7 +98,7 @@
 		itemRow.find("td:last").append("<div style='position:absolute; margin-left:60px; margin-top:-10px;'><img src='img/progress.gif'></div>");
 		
 	    $.ajax({
-        	url: '<c:url value="<%= BackOfficeController.moduleEntityVisibilityUpdateURL %>" />',
+        	url: '<c:url value="<%= BackOfficeController.moduleEntityVisibilityUpdateUrl %>" />',
             method: "POST",
         	data : { module:'${param.module}', entityType:'${param.entityType}', entityId:entityId, public:setAsPublic },
         	success: function(updated) {
@@ -110,7 +110,7 @@
     			}
     			else
     			{
-    				itemRow.find("td:last div:last").html("Change zzzapplied!");
+    				itemRow.find("td:last div:last").html("Change applied!");
     				setTimeout(function() {itemRow.find("td:last div:last").remove();}, 1000);
     				dirty = true;
     			}
@@ -143,7 +143,7 @@
 	
 	function saveDesc(entityId, textAreaNode) {
 	    $.ajax({
-        	url: '<c:url value="<%= BackOfficeController.moduleEntityDescriptionUpdateURL %>" />',
+        	url: '<c:url value="<%= BackOfficeController.moduleEntityDescriptionUpdateUrl %>" />',
             method: "POST",
         	data : { module:'${param.module}', entityType:'${param.entityType}', entityId:entityId, desc:textAreaNode.value },
         	success: function(updated) {
@@ -176,7 +176,8 @@
 					<c:forEach var="subEntityType" items="${subEntityTypes}">
 						<th>${subEntityType} sub-entities</th>
 					</c:forEach>
-					<th>removal</th>
+					<c:if test='${!fn:startsWith(entityEditionUrl, "??") && !empty entityEditionUrl}'><th>Edition</th></c:if>
+					<th>Removal</th>
 				</tr>
 				<c:forEach var="entity" items="${publicEntities}">
 				<tr id="row_${entity.key}" onmouseover="this.style.backgroundColor='#99eebb';" onmouseout="this.style.backgroundColor='';">
@@ -196,6 +197,9 @@
 						</c:forEach>
 					</td>
 					</c:forEach>
+					<c:if test='${!fn:startsWith(entityEditionUrl, "??") && !empty entityEditionUrl}'>
+						<td align='center'><a style='padding-left:10px; padding-right:10px;' href='${entityEditionUrl}?&id=${entity.value[0]}' title='Edit ${param.entityType}'><img src='img/magnifier.gif'></a></td>
+					</c:if>
 					<td align='center'><a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem("${param.entityType}", ["${entity.key}"], "${entity.value[0]}");' title='Discard ${param.entityType}'><img src='img/delete.gif'></a></td>
 				</tr>
 				</c:forEach>
@@ -218,6 +222,9 @@
 						</c:forEach>
 					</td>
 					</c:forEach>
+					<c:if test='${!fn:startsWith(entityEditionUrl, "??") && !empty entityEditionUrl}'>
+						<td align='center'><a style='padding-left:10px; padding-right:10px;' href='${entityEditionUrl}?&id=${entity.value[0]}' title='Edit ${param.entityType}'><img src='img/magnifier.gif'></a></td>
+					</c:if>
 					<td align='center'><a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem("${param.entityType}", ["${entity.key}"], "${entity.value[0]}");' title='Discard ${param.entityType}'><img src='img/delete.gif'></a></td>
 				</tr>
 				</c:forEach>
@@ -225,6 +232,9 @@
 			  </table>
 		  </tr>
 		</table>
+	  	<c:if test='${!fn:startsWith(entityAdditionUrl, "??") && !empty entityAdditionUrl}'>
+			<div align='center'><a style='padding-left:10px; padding-right:10px;' href='${entityAdditionUrl}'>Create new ${param.entityType}</a></div>
+		</c:if>			  
 	</form>
 </body>
 

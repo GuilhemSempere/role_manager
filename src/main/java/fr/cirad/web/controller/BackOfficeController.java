@@ -106,8 +106,8 @@ public class BackOfficeController {
 	static final public String moduleContentPageURL = "/" + FRONTEND_URL + "/ModuleContents.do_";
 	static final public String moduleEntityInfoURL = "/" + FRONTEND_URL + "/moduleEntityInfo.json_";
 	static final public String moduleEntityRemovalURL = "/" + FRONTEND_URL + "/removeModuleEntity.json_";
-	static final public String moduleEntityVisibilityUpdateURL = "/" + FRONTEND_URL + "/entityVisibility.json_";
-	static final public String moduleEntityDescriptionUpdateURL = "/" + FRONTEND_URL + "/entityDescUpdate.json_";
+	static final public String moduleEntityVisibilityUpdateUrl = "/" + FRONTEND_URL + "/entityVisibility.json_";
+	static final public String moduleEntityDescriptionUpdateUrl = "/" + FRONTEND_URL + "/entityDescUpdate.json_";
     static final public String hostListURL = "/" + FRONTEND_URL + "/hosts.json_";
 
     static final public String moduleDumpInfoURL = "/" + FRONTEND_URL + "/moduleDumpInfo.json_";
@@ -184,9 +184,15 @@ public class BackOfficeController {
 		{}
 		model.addAttribute("user", user);
 
-		boolean fVisibilitySupported = moduleManager.doesEntityTypeSupportVisibility(module, entityType), fDescriptionSupported = moduleManager.doesEntityTypeSupportDescription(module, entityType);
+		boolean fVisibilitySupported = moduleManager.doesEntityTypeSupportVisibility(module, entityType), fDescriptionSupported = moduleManager.isInlineDescriptionUpdateSupportedForEntity(entityType);
 		model.addAttribute("visibilitySupported", fVisibilitySupported);
 		model.addAttribute("descriptionSupported", fDescriptionSupported);
+		String entityEditionUrl = moduleManager.getEntityEditionURL(entityType), entityAdditionUrl = moduleManager.getEntityAdditionURL(entityType);
+		if (entityEditionUrl != null)
+			model.addAttribute("entityEditionUrl", entityEditionUrl);
+		if (entityAdditionUrl != null)
+			model.addAttribute("entityAdditionUrl", entityAdditionUrl);
+
 		Map<Comparable, String[]> publicEntities = moduleManager.getEntitiesByModule(entityType, fVisibilitySupported ? true : null, Arrays.asList(module), fDescriptionSupported).get(module);
 		Map<Comparable, String[]> privateEntities = fVisibilitySupported ? moduleManager.getEntitiesByModule(entityType, false, Arrays.asList(module), fDescriptionSupported).get(module) : new HashMap<>();
 
@@ -328,7 +334,7 @@ public class BackOfficeController {
 		return moduleManager.removeManagedEntity(sModule, sEntityType, entityIDs);
 	}
 
-	@PostMapping(moduleEntityVisibilityUpdateURL)
+	@PostMapping(moduleEntityVisibilityUpdateUrl)
 	protected @ResponseBody boolean modifyModuleEntityVisibility(@RequestParam("module") String sModule, @RequestParam("entityType") String sEntityType, @RequestParam("entityId") String sEntityId, @RequestParam("public") boolean fPublic) throws Exception
 	{
 	    Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
@@ -339,7 +345,7 @@ public class BackOfficeController {
 		return moduleManager.setManagedEntityVisibility(sModule, sEntityType, sEntityId, fPublic);
 	}
 	
-	@PostMapping(moduleEntityDescriptionUpdateURL)
+	@PostMapping(moduleEntityDescriptionUpdateUrl)
 	protected @ResponseBody boolean modifyModuleEntityDescription(@RequestParam("module") String sModule, @RequestParam("entityType") String sEntityType, @RequestParam("entityId") String sEntityId, @RequestParam("desc") String desc) throws Exception
 	{
 	    Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();

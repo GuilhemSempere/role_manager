@@ -205,19 +205,19 @@ public class UserPermissionController
 		Map<String /*module*/, Map<String /*entity-type*/, Collection<Comparable> /*entity-IDs*/>> managedEntitiesByModuleAndType = userDao.getManagedEntitiesByModuleAndType(loggedUserAuthorities);
 		Collection<String> supervisedModules = userDao.getSupervisedModules(loggedUserAuthorities);
 		
-		Collection<String> publicModules = new ArrayList<String>(moduleManager.getModules(true)), publicModulesWithoutOwnedProjects = new ArrayList();
+		Collection<String> publicModules = new ArrayList<String>(moduleManager.getModules(true)), publicModulesWithoutOwnedEntities = new ArrayList();
 		if (!fIsLoggedUserAdmin)
 			for (String sModule : publicModules)	// only show modules containing entities managed by logged user, or that he is supervisor on
 				if (!supervisedModules.contains(sModule) && managedEntitiesByModuleAndType.get(sModule) == null)
-					publicModulesWithoutOwnedProjects.add(sModule);
-		model.addAttribute("publicModules", CollectionUtils.disjunction(publicModules, publicModulesWithoutOwnedProjects));
+					publicModulesWithoutOwnedEntities.add(sModule);
+		model.addAttribute("publicModules", CollectionUtils.disjunction(publicModules, publicModulesWithoutOwnedEntities));
 		
-		Collection<String> privateModules = new ArrayList<String>(moduleManager.getModules(false)), privateModulesWithoutOwnedProjects = new ArrayList();
+		Collection<String> privateModules = new ArrayList<String>(moduleManager.getModules(false)), privateModulesWithoutOwnedEntities = new ArrayList();
 		if (!fIsLoggedUserAdmin)
 			for (String sModule : privateModules)	// only show modules containing entities managed by logged user
 				if (!supervisedModules.contains(sModule) && managedEntitiesByModuleAndType.get(sModule) == null)
-					privateModulesWithoutOwnedProjects.add(sModule);
-		model.addAttribute("privateModules", CollectionUtils.disjunction(privateModules, privateModulesWithoutOwnedProjects));
+					privateModulesWithoutOwnedEntities.add(sModule);
+		model.addAttribute("privateModules", CollectionUtils.disjunction(privateModules, privateModulesWithoutOwnedEntities));
 	}
 
 	@PostMapping(value = userDetailsURL)

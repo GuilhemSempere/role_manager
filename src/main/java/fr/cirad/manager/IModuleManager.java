@@ -115,11 +115,22 @@ public interface IModuleManager {
 	boolean doesEntityTypeSupportVisibility(String sModule, String sEntityType);
 
 	/**
-	 * @param sModule
+	 * @param sEntityType
+	 * @return URL of entity management page (null if none)
+	 */
+	String getEntityAdditionURL(String sEntityType);
+	
+	/**
+	 * @param sEntityType
+	 * @return URL of entity addition page (null if none)
+	 */
+	String getEntityEditionURL(String sEntityType);
+	
+	/**
 	 * @param sEntityType
 	 * @return whether or not entities of the given type have a textual description field
 	 */
-	boolean doesEntityTypeSupportDescription(String sModule, String sEntityType);
+	boolean isInlineDescriptionUpdateSupportedForEntity(String sEntityType);
 
 	/**
 	 * @param sModule
