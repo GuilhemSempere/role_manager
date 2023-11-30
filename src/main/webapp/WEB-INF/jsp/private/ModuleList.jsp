@@ -434,7 +434,7 @@
 	<div class="modal fade" tabindex="-1" role="dialog" id="moduleContentDialog" aria-hidden="true">
 		<div class="modal-dialog modal-lg">
 			<div class="modal-content">
-				<div class="modal-header" id="projectInfoContainer">
+				<div class="modal-header" id="entityInfoContainer">
 					<div id="moduleContentDialogTitle" style='font-weight:bold; margin-bottom:5px;'></div>
 					<iframe style='margin-bottom:10px; width:100%;' id="moduleContentFrame" name="moduleContentFrame"></iframe>
 					<br>
