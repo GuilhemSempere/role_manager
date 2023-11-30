@@ -218,23 +218,23 @@
 															</c:if>
 														</c:forEach>
 													</c:forEach>
-														<c:if test="${rolesByLevel1Type[level1Type.key] ne null}">
-															<div class="separator"></div>
-															<div class="databaseCell" style='min-height:44px;'>
-																<a
-																id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink'
-																class='${urlEncoder.urlEncode(moduleName)}_PermissionLink'
-																style='text-transform:none;${fn:contains(user.authorities, moduleName.concat(roleSep).concat(supervisorRole)) ? " display:none;" : ""}'
-																href="javascript:openPermissionDialog('${user.username}', '${moduleName}', '${level1Type.key}');">${level1Type.key}<br />permissions
-															</a>
-															<c:if test="${roles ne ''}">
-																<script type="text/javascript">updatePermissionLink("${urlEncoder.urlEncode(moduleName)}", "${level1Type.key}", "${roles}".split(",").length);</script>
-															</c:if>
-															<input type='hidden'
-																name="${urlEncoder.urlEncode(level1Type.key.concat('Permission_').concat(moduleName))}"
-																value="${roles}">
-															</div>
+													<c:if test="${rolesByLevel1Type[level1Type.key] ne null}">
+														<div class="separator"></div>
+														<div class="databaseCell" style='min-height:44px;'>
+															<a
+															id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink'
+															class='${urlEncoder.urlEncode(moduleName)}_PermissionLink'
+															style='text-transform:none;${fn:contains(user.authorities, moduleName.concat(roleSep).concat(supervisorRole)) ? " display:none;" : ""}'
+															href="javascript:openPermissionDialog('${user.username}', '${moduleName}', '${level1Type.key}');">${level1Type.key}<br />permissions
+														</a>
+														<c:if test="${roles ne ''}">
+															<script type="text/javascript">updatePermissionLink("${urlEncoder.urlEncode(moduleName)}", "${level1Type.key}", "${roles}".split(",").length);</script>
 														</c:if>
+														<input type='hidden'
+															name="${urlEncoder.urlEncode(level1Type.key.concat('Permission_').concat(moduleName))}"
+															value="${roles}">
+														</div>
+													</c:if>
 												</c:forEach>
 											</div>
 										</div>
@@ -278,23 +278,23 @@
 															</c:if>
 														</c:forEach>
 													</c:forEach>
-														<c:if test="${rolesByLevel1Type[level1Type.key] ne null}">
-															<div class="separator"></div>
-															<div class="databaseCell" style='min-height:44px;'>
-																<a
-																id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink'
-																class='${urlEncoder.urlEncode(moduleName)}_PermissionLink'
-																style='text-transform:none;${fn:contains(user.authorities, moduleName.concat(roleSep).concat(supervisorRole)) ? " display:none;" : ""}'
-																href="javascript:openPermissionDialog('${user.username}', '${moduleName}', '${level1Type.key}');">${level1Type.key}<br />permissions
-															</a>
-															<c:if test="${roles ne ''}">
-																<script type="text/javascript">updatePermissionLink("${urlEncoder.urlEncode(moduleName)}", "${level1Type.key}", "${roles}".split(",").length);</script>
-															</c:if>
-															<input type='hidden'
-																name="${urlEncoder.urlEncode(level1Type.key.concat('Permission_').concat(moduleName))}"
-																value="${roles}">
-															</div>
+													<c:if test="${rolesByLevel1Type[level1Type.key] ne null}">
+														<div class="separator"></div>
+														<div class="databaseCell" style='min-height:44px;'>
+															<a
+															id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink'
+															class='${urlEncoder.urlEncode(moduleName)}_PermissionLink'
+															style='text-transform:none;${fn:contains(user.authorities, moduleName.concat(roleSep).concat(supervisorRole)) ? " display:none;" : ""}'
+															href="javascript:openPermissionDialog('${user.username}', '${moduleName}', '${level1Type.key}');">${level1Type.key}<br />permissions
+														</a>
+														<c:if test="${roles ne ''}">
+															<script type="text/javascript">updatePermissionLink("${urlEncoder.urlEncode(moduleName)}", "${level1Type.key}", "${roles}".split(",").length);</script>
 														</c:if>
+														<input type='hidden'
+															name="${urlEncoder.urlEncode(level1Type.key.concat('Permission_').concat(moduleName))}"
+															value="${roles}">
+														</div>
+													</c:if>
 												</c:forEach>
 											</div>
 										</div>
