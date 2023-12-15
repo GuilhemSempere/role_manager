@@ -198,7 +198,7 @@
 					</td>
 					</c:forEach>
 					<c:if test='${!fn:startsWith(entityEditionUrl, "??") && !empty entityEditionUrl}'>
-						<td align='center'><a style='padding-left:10px; padding-right:10px;' href='${entityEditionUrl}?&module=${param.module}&id=${entity.value[0]}' title='Edit ${param.entityType}'><img src='img/magnifier.gif'></a></td>
+						<td align='center'><a style='padding-left:10px; padding-right:10px;' href='${entityEditionUrl}?module=${param.module}&id=${entity.value[0]}' title='Edit ${param.entityType}'><img src='img/magnifier.gif'></a></td>
 					</c:if>
 					<td align='center'><a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem("${param.entityType}", ["${entity.key}"], "${entity.value[0]}");' title='Discard ${param.entityType}'><img src='img/delete.gif'></a></td>
 				</tr>
@@ -223,7 +223,7 @@
 					</td>
 					</c:forEach>
 					<c:if test='${!fn:startsWith(entityEditionUrl, "??") && !empty entityEditionUrl}'>
-						<td align='center'><a style='padding-left:10px; padding-right:10px;' href='${entityEditionUrl}?&id=${entity.value[0]}' title='Edit ${param.entityType}'><img src='img/magnifier.gif'></a></td>
+						<td align='center'><a style='padding-left:10px; padding-right:10px;' href='${entityEditionUrl}?module=${param.module}&id=${entity.value[0]}' title='Edit ${param.entityType}'><img src='img/magnifier.gif'></a></td>
 					</c:if>
 					<td align='center'><a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem("${param.entityType}", ["${entity.key}"], "${entity.value[0]}");' title='Discard ${param.entityType}'><img src='img/delete.gif'></a></td>
 				</tr>
