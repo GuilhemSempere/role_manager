@@ -25,6 +25,7 @@ import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -381,13 +382,13 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         return nCount;
     }
 
-    public List<UserDetails> listByLoginLookup(String sLoginLookup, int max, int size) throws IOException {
+    public List<UserDetails> listByLoginLookup(String sLoginLookup, int page, int size) throws IOException {
         boolean fLoggedUserIsAdmin = getLoggedUserAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
         List<UserDetails> result = new ArrayList<>();
         List<String> userList = listUsers(!fLoggedUserIsAdmin);
-        String[] userArray = userList.toArray(new String[userList.size()]);
-        Arrays.sort(userArray);
-        for (String sUserName : userArray) {
+        Collections.sort(userList);
+        userList = userList.subList(page * size, Math.min(userList.size(), size < 1 ? userList.size() : size * (page + 1)));
+        for (String sUserName : userList) {
             if (sLoginLookup == null || sUserName.startsWith(sLoginLookup)) {
                 try {
                     result.add(loadUserByUsernameAndMethod(sUserName, null));
