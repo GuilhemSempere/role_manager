@@ -233,7 +233,7 @@
 		  </tr>
 		</table>
 	  	<c:if test='${!fn:startsWith(entityAdditionUrl, "??") && !empty entityAdditionUrl}'>
-			<div align='center'><a style='padding-left:10px; padding-right:10px;' href='${entityAdditionUrl}'>Create new ${param.entityType}</a></div>
+			<div align='center'><a style='padding-left:10px; padding-right:10px;' href='${entityAdditionUrl}?module=${param.module}'>Create new ${param.entityType}</a></div>
 		</c:if>			  
 	</form>
 </body>
