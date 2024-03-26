@@ -83,23 +83,12 @@ public class UserPermissionController
 	public static final HashMap<String, LinkedHashSet<String>> rolesByLevel1Type = new HashMap<>();
 	public static final HashMap<String, HashMap<String, LinkedHashSet<String>>> rolesByLevel2Type = new HashMap<>();
 
-	@Autowired private IModuleManager moduleManager;
 	@Autowired private ReloadableInMemoryDaoImpl userDao;
+	private static IModuleManager moduleManager;
 
-    private static Control resourceControl = new ResourceBundle.Control() {
-        @Override
-        public boolean needsReload(String baseName, java.util.Locale locale, String format, ClassLoader loader, ResourceBundle bundle, long loadTime) {
-            return true;
-        }
-
-        @Override
-        public long getTimeToLive(String baseName, java.util.Locale locale) {
-            return 0;
-        }
-    };
-    
-    static
-    {
+	@Autowired void setModuleManager(IModuleManager modMgr) {
+		moduleManager = modMgr;
+		
 		ResourceBundle bundle = ResourceBundle.getBundle("roles", resourceControl);
 		String level1EntityTypes = "";
 		try {
@@ -113,7 +102,7 @@ public class UserPermissionController
     		LinkedHashSet<String> levelRoles = new LinkedHashSet<String>();
         	try {
         		levelRoles.add(IRoleDefinition.ENTITY_MANAGER_ROLE);	// this one must exist even if not declared in roles.properties
-        		levelRoles.addAll(Arrays.asList(StringUtils.tokenizeToStringArray(bundle.getString(LEVEL1_ROLES + "_" + level1Type), ",")));
+        		levelRoles.addAll(moduleManager.getLevel1Roles(level1Type, bundle));
         	}
 			catch (Exception e) {
 				levelRoles = null;	// we don't want to support the manager role if no orthers have been defined
@@ -154,7 +143,19 @@ public class UserPermissionController
 			}
     		roleMapForSubType.put(splitLevel2Type[1], levelRoles);
         }
-    }
+	}
+
+    private static Control resourceControl = new ResourceBundle.Control() {
+        @Override
+        public boolean needsReload(String baseName, java.util.Locale locale, String format, ClassLoader loader, ResourceBundle bundle, long loadTime) {
+            return true;
+        }
+
+        @Override
+        public long getTimeToLive(String baseName, java.util.Locale locale) {
+            return 0;
+        }
+    };
 
 	@GetMapping(userListPageURL)
 	protected ModelAndView setupList() throws Exception

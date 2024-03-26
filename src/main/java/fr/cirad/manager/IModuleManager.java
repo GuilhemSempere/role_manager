@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.ResourceBundle;
 
 import fr.cirad.manager.dump.DumpMetadata;
 import fr.cirad.manager.dump.DumpStatus;
@@ -252,4 +253,6 @@ public interface IModuleManager {
 	boolean setManagedEntityDescription(String sModule, String sEntityType, String sEntityId, String desc) throws Exception;
 
 	void cleanupDb(String sModule);
+
+	Collection<? extends String> getLevel1Roles(String level1Type, ResourceBundle bundle);
 }
