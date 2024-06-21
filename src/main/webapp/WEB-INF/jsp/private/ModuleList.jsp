@@ -152,10 +152,11 @@
 
 		function setDirty(moduleName, flag)
 		{
-			let itemRow = $("#row_" + moduleName);
-			itemRow.css("background-color", flag ? "#ffff80" : "");
-			itemRow.find(".resetButton").prop("disabled", !flag);
-			itemRow.find(".applyButton").prop("disabled", !flag);
+			$("#row_" + moduleName + " input[type=button]").each(function() {
+				$(this).prop("disabled", !flag);
+				if (($(this).hasClass("resetButton")))
+					$(this).parent().css("background-color", flag ? "red" : "");
+		    });
 		}
 		</c:if>
 
@@ -190,7 +191,7 @@
 				rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol1' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>'] ? " checked" : "") + "></td>");
 				rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol2' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>'] ? " checked" : "") + "></td>");
 			}
-	   		rowContents.append("<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'><input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'></td>");
+	   		rowContents.append("<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'>&nbsp;<input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'></td>");
 	   		rowContents.append("<td align='center'>" + (<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && actionRequiredToEnableDumps eq ''}">moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] == "BUSY" ? "" : </c:if>"<a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem(\"" + encodeURIComponent(key) + "\");' title='Discard module'><img src='img/delete.gif'></a>") + "</td>");
 	   		</c:if>
 	   		return '<tr id="row_' + encodeURIComponent(key) + '" onmouseover="this.style.backgroundColor=\'#99eebb\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents.toString() + '</tr>';
