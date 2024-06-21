@@ -49,7 +49,7 @@
 	        tableContent += "<tr><td>" + status.processID + "</td><td>" + status.module + "</td><td>" + status.status + "</td><td>" + status.message + "</td>";
 
 	        const statusPageURL = '<c:url value="<%= BackOfficeController.dumpStatusPageURL %>" />?module=' + status.module + '&processID=' + status.processID;
-	        tableContent += '<td align="center"><a href="' + statusPageURL + '" target="_blank"><img id="igvTooltip" style="cursor:pointer; cursor:hand;" src="img/magnifier.gif"></a></td>';
+	        tableContent += '<td align="center"><a href="' + statusPageURL + '" target="_blank"><img style="cursor:pointer; cursor:hand;" src="img/magnifier.gif"></a></td>';
 	        tableContent += "</tr>";
 	    });
 	    table.html(tableContent);
