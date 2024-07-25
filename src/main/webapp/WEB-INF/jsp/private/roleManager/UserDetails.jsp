@@ -172,6 +172,9 @@
 					</c:otherwise>
 				</c:choose>
 			</div>
+			<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && user.getMethod().isEmpty()}">
+				<div style="margin-left:50px; display:inline-block;">E-mail address: <input id="email" type='email' name="email" style='width:200px;' value="${user.email}" /></div>
+			</c:if>
 			<div style="display: inline-block; margin-left: 50px;">
 				Authentication method: <b>${user.method eq "" ? "Local" : user.method}</b>
 			</div>
@@ -309,21 +312,17 @@
 
 		<div style="margin-top: 10px;">
 			<p>
-				<c:if
-					test="${fn:contains(loggedUserAuthorities, adminRole) && user.getMethod().isEmpty()}">
-			You can modify this user's password by typing a new password here: <input
-						id="password" type='password' name="password"
-						style='width: 100px;' autocomplete="new-password" /> (max-length: 20)
-		</c:if>
+				<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && user.getMethod().isEmpty()}">
+					You can modify this user's password by typing a new password here: <input id="password" type='password' name="password" style='width: 100px;' autocomplete="new-password" /> (max-length: 20)
+				</c:if>
 			</p>
 			<table>
 				<tr>
-					<td><input type='submit' value='Save user details'
-						class='btn btn-sm btn-primary active' style='display: inline;'></td>
+					<td><input type='submit' value='Save user details' class='btn btn-sm btn-primary active' style='display: inline;'></td>
 					<td><c:if test="${fn:length(errors) > 0}">
-							<span class="formErrors" style='margin-left: 10px;'> <c:forEach
-									var="error" items="${errors}">
-							${error}<br>
+							<span class="formErrors" style='margin-left: 10px;'>
+								<c:forEach var="error" items="${errors}">
+									${error}<br>
 								</c:forEach>
 							</span>
 						</c:if></td>

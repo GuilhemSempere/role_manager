@@ -113,7 +113,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 				if (nConvertedPasswordCount == 0 && ((CustomBCryptPasswordEncoder) pe).looksLikeBCrypt(password))
 					break;	// all is fine, passwords are encoded
 
-				bufferSaveOrUpdateUser(username, password, user.getAuthorities(), user.isEnabled(), user.getMethod());
+				bufferSaveOrUpdateUser(username, password, user.getAuthorities(), user.isEnabled(), user.getMethod(), user.getEmail());
 				nConvertedPasswordCount++;
 			}
 			
@@ -135,44 +135,46 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 
     private void loadProperties() throws IOException {
     	try {
-        if (m_resourceFile != null && m_users == null) {
-        	m_users = new HashMap<String, UserWithMethod>();
-            Properties props = new Properties();
-            props.load(new InputStreamReader(new FileInputStream(m_resourceFile), "UTF-8"));
-            
-            m_users.clear();
-            for (String username: props.stringPropertyNames()) {
-            	String[] tokens = props.getProperty(username).split(",", -1);  // Negative limit to keep trailing empty strings
-            	String password = tokens[0];
-            	boolean enabled = true;
-            	String method = "";
-            	List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
-            	
-            	// Compatibility mode
-            	if (!tokens[1].equals("enabled") && !tokens[1].equals("disabled")) {
-	            	for (int i = 1; i < tokens.length; i++) {
-	            		if (tokens[i].equals("enabled")) {
-	            			enabled = true;
-	            		} else if (tokens[i].equals("disabled")) {
-	            			enabled = false;
-	            		} else {
-	            			authorities.add(new SimpleGrantedAuthority(tokens[i]));
+	        if (m_resourceFile != null && m_users == null) {
+	        	m_users = new HashMap<String, UserWithMethod>();
+	            Properties props = new Properties();
+	            props.load(new InputStreamReader(new FileInputStream(m_resourceFile), "UTF-8"));
+	            
+	            m_users.clear();
+	            for (String username: props.stringPropertyNames()) {
+	            	String[] tokens = props.getProperty(username).split(",", -1);  // Negative limit to keep trailing empty strings
+	            	String password = tokens[0];
+	            	String email = null;
+	            	boolean enabled = true;
+	            	String method = "";
+	            	List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
+	            	
+	            	// Compatibility mode
+	            	if (!tokens[1].equals("enabled") && !tokens[1].equals("disabled")) {	// old format looking like: gui=tou,IAVAO_Sorgho$project$SNPCLUST_EDITOR$2,IAVAO_Sorgho$project$READER$1,enabled
+		            	for (int i = 1; i < tokens.length; i++) {
+		            		if (tokens[i].equals("disabled"))
+		            			enabled = false;
+		            		else
+		            			authorities.add(new SimpleGrantedAuthority(tokens[i]));
+		            	}
+		            	bufferSaveOrUpdateUser(username, password, authorities, enabled, method, email);
+						LOG.info("Updated user info from obsolete to current structure for " + username);
+	            	} else {
+	            		enabled = tokens[1].equals("enabled");
+	            		method = tokens[2];
+	            		for (String authority : tokens[3].split(";")) {
+	            			if (!authority.isEmpty())
+	            				authorities.add(new SimpleGrantedAuthority(authority));
 	            		}
+	            		if (tokens.length == 4 || (tokens.length == 5 && tokens[4].trim().isEmpty()))
+	            			LOG.debug("No e-mail address available for user " + username);
+	            		else
+	            			email = tokens[4].trim();
 	            	}
-	            	bufferSaveOrUpdateUser(username, password, authorities, enabled, method);
-					LOG.info("Updated user info from obsolete to current structure for " + username);
-            	} else {
-            		enabled = tokens[1].equals("enabled");
-            		method = tokens[2];
-            		for (String authority : tokens[3].split(";")) {
-            			if (!authority.isEmpty())
-            				authorities.add(new SimpleGrantedAuthority(authority));
-            		}
-            	}
-            	m_users.put(username, new UserWithMethod(username, password, authorities, enabled, method));
-            }
-            saveUsers();
-        }
+	            	m_users.put(username, new UserWithMethod(username, password, authorities, enabled, method, email));
+	            }
+	            saveUsers();
+	        }
     	} catch (Throwable t) {
     		LOG.error(t);
     		throw t;
@@ -190,7 +192,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     }
     
     /** Update a user in memory, without saving it immediately to disk */
-    synchronized public void bufferSaveOrUpdateUser(String username, String password, Collection<? extends GrantedAuthority> grantedAuthorities, boolean enabled, String method) throws IOException {
+    synchronized public void bufferSaveOrUpdateUser(String username, String password, Collection<? extends GrantedAuthority> grantedAuthorities, boolean enabled, String method, String email) throws IOException {
         if (password == null && grantedAuthorities == null && enabled == false) {
         	m_users.remove(username);	// we actually want to delete it
         } else {
@@ -198,7 +200,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         	
         	password = (passwordEncoder instanceof CustomBCryptPasswordEncoder && !((CustomBCryptPasswordEncoder) passwordEncoder).looksLikeBCrypt(password)) ? passwordEncoder.encode(password) : password;
         	if (user == null) {
-        		user = new UserWithMethod(username, password, grantedAuthorities, enabled, method);
+        		user = new UserWithMethod(username, password, grantedAuthorities, enabled, method, email);
         		m_users.put(username, user);
         	} else {
         		user.setUsername(username);
@@ -206,48 +208,28 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         		user.setAuthorities(grantedAuthorities);
         		user.setEnabled(enabled);
         		user.setMethod(method);
+        		user.setEmail(email);
         	}
 	    }
     }
     
-    /** Update a user in memory, without saving it immediately to disk */
-    public void bufferSaveOrUpdateUser(String username, String password, Collection<? extends GrantedAuthority> grantedAuthorities, boolean enabled) throws IOException {
-    	bufferSaveOrUpdateUser(username, password, grantedAuthorities, enabled, "");
-    }
-    
-    public void bufferSaveOrUpdateUser(String username, String password, String[] stringAuthorities, boolean enabled, String method) throws IOException {
+    public void bufferSaveOrUpdateUser(String username, String password, String[] stringAuthorities, boolean enabled, String method, String email) throws IOException {
     	List<GrantedAuthority> grantedAuthorities = Arrays.stream(stringAuthorities).map(authority -> new SimpleGrantedAuthority(authority)).collect(Collectors.toList());
-    	bufferSaveOrUpdateUser(username, password, grantedAuthorities, enabled, method);
+    	bufferSaveOrUpdateUser(username, password, grantedAuthorities, enabled, method, email);
     }
-    
-    public void bufferSaveOrUpdateUser(String username, String password, String[] stringAuthorities, boolean enabled) throws IOException {
-    	bufferSaveOrUpdateUser(username, password, stringAuthorities, enabled, "");
-    }
-    
+
     /** Update a user, save it to disk and reload users */
-    public void saveOrUpdateUser(String username, String password, Collection<? extends GrantedAuthority> grantedAuthorities, boolean enabled, String method) throws IOException {
-	    bufferSaveOrUpdateUser(username, password, grantedAuthorities, enabled, method);
+    public void saveOrUpdateUser(String username, String password, Collection<? extends GrantedAuthority> grantedAuthorities, boolean enabled, String method, String email) throws IOException {
+	    bufferSaveOrUpdateUser(username, password, grantedAuthorities, enabled, method, email);
 	    saveUsers();
     }
     
     /** Update a user, save it to disk and reload users */
-    public void saveOrUpdateUser(String username, String password, Collection<? extends GrantedAuthority> grantedAuthorities, boolean enabled) throws IOException {
-	    bufferSaveOrUpdateUser(username, password, grantedAuthorities, enabled);
+    public void saveOrUpdateUser(String username, String password, String[] stringAuthorities, boolean enabled, String method, String email) throws IOException {
+	    bufferSaveOrUpdateUser(username, password, stringAuthorities, enabled, method, email);
 	    saveUsers();
     }
-    
-    /** Update a user, save it to disk and reload users */
-    public void saveOrUpdateUser(String username, String password, String[] stringAuthorities, boolean enabled, String method) throws IOException {
-	    bufferSaveOrUpdateUser(username, password, stringAuthorities, enabled, method);
-	    saveUsers();
-    }
-    
-    /** Update a user, save it to disk and reload users */
-    public void saveOrUpdateUser(String username, String password, String[] stringAuthorities, boolean enabled) throws IOException {
-	    bufferSaveOrUpdateUser(username, password, stringAuthorities, enabled);
-	    saveUsers();
-    }
-    
+
     /** Save and reload users stored in memory */
     synchronized public void saveUsers() throws IOException {
     	Properties props = new Properties();
@@ -257,6 +239,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
             sPropValue += "," + (user.isEnabled() ? "enabled" : "disabled");
             sPropValue += "," + user.getMethod();
             sPropValue += "," + String.join(";", user.getAuthorities().stream().map(authority -> authority.toString()).collect(Collectors.toList()));
+            sPropValue += (user.getEmail() == null ? "" : ("," + user.getEmail()));
             props.put(username, sPropValue);
     	}
     	
@@ -436,22 +419,6 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         m_users.put(username, user);
     }
 
-    public void allowManagingEntity(String sModule, String entityType, Comparable entityId, String username) throws IOException {
-        UserDetails owner = loadUserByUsername(username);
-		if (owner.getAuthorities() != null && (owner.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN))))
-			return;	// no need to grant any role to administrators
-
-        SimpleGrantedAuthority role = new SimpleGrantedAuthority(sModule + UserPermissionController.ROLE_STRING_SEPARATOR + entityType + UserPermissionController.ROLE_STRING_SEPARATOR + IRoleDefinition.ENTITY_MANAGER_ROLE + UserPermissionController.ROLE_STRING_SEPARATOR + entityId);
-        if (!owner.getAuthorities().contains(role)) {
-            HashSet<String> authoritiesToSave = new HashSet<>();
-            authoritiesToSave.add(role.getAuthority());
-            for (GrantedAuthority ga : owner.getAuthorities()) {
-                authoritiesToSave.add(ga.getAuthority());
-            }
-            saveOrUpdateUser(username, owner.getPassword(), authoritiesToSave.toArray(new String[authoritiesToSave.size()]), owner.isEnabled());
-        }
-    }
-    
     public Map<String /*module*/, Collection<String /*entity-type*/>> getWritableEntityTypesByModule(Collection<? extends GrantedAuthority> authorities) {
         Map<String, Collection<String>> result = new HashMap<>();
         if (authorities != null) {

@@ -199,7 +199,7 @@ public class UserPermissionController
 	{
 		model.addAttribute("rolesByLevel1Type", rolesByLevel1Type);
 
-		UserDetails user = username != null ? userDao.loadUserByUsernameAndMethod(username, null) : new UserWithMethod(" ", "", new ArrayList<GrantedAuthority>(), true, "");
+		UserDetails user = username != null ? userDao.loadUserByUsernameAndMethod(username, null) : new UserWithMethod(" ", "", new ArrayList<GrantedAuthority>(), true, "", null);
 		model.addAttribute("user", user);
 		Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
 		boolean fIsLoggedUserAdmin = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
@@ -224,7 +224,7 @@ public class UserPermissionController
 	@PostMapping(value = userDetailsURL)
 	protected String processForm(Model model, HttpServletRequest request) throws Exception
 	{
-		String sUserName = request.getParameter("username"), sPassword = request.getParameter("password");
+		String sUserName = request.getParameter("username"), sPassword = request.getParameter("password"), sEmail = request.getParameter("email");
 		boolean fGotUserName = sUserName != null && sUserName.length() > 0;
 		boolean fGotPassword = sPassword != null && sPassword.length() > 0;
 		boolean fCloning = "true".equals(request.getParameter("cloning"));
@@ -235,7 +235,7 @@ public class UserPermissionController
 		if (fGotUserName)
 			try
 			{	
-				user = (UserWithMethod)userDao.loadUserByUsernameAndMethod(sUserName, null);
+				user = (UserWithMethod) userDao.loadUserByUsernameAndMethod(sUserName, null);
 			}
 			catch (UsernameNotFoundException unfe)
 			{	// it's a new user, so make sure we have a password
@@ -342,14 +342,14 @@ public class UserPermissionController
 			ArrayList<GrantedAuthority> grantedAuthorities = new ArrayList<GrantedAuthority>();
 			for (final String sGA : grantedAuthorityLabels)
 				grantedAuthorities.add(new SimpleGrantedAuthority(sGA));
-			user = new UserWithMethod(fGotUserName ? sUserName : " ", "", grantedAuthorities, true, "");
+			user = new UserWithMethod(fGotUserName ? sUserName : " ", "", grantedAuthorities, true, "", sEmail);
 			model.addAttribute("errors", errors);
 			setupForm(model, null);
 			model.addAttribute("user", user);
 			return userDetailsURL.substring(0, userDetailsURL.lastIndexOf("."));
 		}
 
-		userDao.saveOrUpdateUser(sUserName, sPassword, grantedAuthorityLabels.toArray(new String[grantedAuthorityLabels.size()]), true, (user == null) ? "" : user.getMethod());
+		userDao.saveOrUpdateUser(sUserName, sPassword, grantedAuthorityLabels.toArray(new String[grantedAuthorityLabels.size()]), true, (user == null) ? "" : user.getMethod(), sEmail);
 		return "redirect:" + userListPageURL;
 	}
 

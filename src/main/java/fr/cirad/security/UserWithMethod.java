@@ -2,6 +2,7 @@ package fr.cirad.security;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.regex.Pattern;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -9,15 +10,19 @@ import org.springframework.security.core.userdetails.UserDetails;
 public class UserWithMethod implements UserDetails {
 	private static final long serialVersionUID = 1212867552943815722L;
 	
+	private static final Pattern emailPattern = Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
+	
 	private String username;
 	private String password;
+	private String email;
 	private ArrayList<GrantedAuthority> authorities;
 	private boolean enabled;
 	private String method;  // Authentication method
 
-	public UserWithMethod(String username, String password, Collection<? extends GrantedAuthority> authorities, boolean enabled, String method) {
+	public UserWithMethod(String username, String password, Collection<? extends GrantedAuthority> authorities, boolean enabled, String method, String email) {
 		this.username = username;
 		this.password = password;
+		this.email = email;
 		this.enabled = enabled;
 		this.method = method;
 		this.authorities = new ArrayList<GrantedAuthority>();
@@ -32,6 +37,14 @@ public class UserWithMethod implements UserDetails {
 	@Override
 	public String getPassword() {
 		return password;
+	}
+
+	public String getEmail() {
+		return email != null ? email : (emailPattern.matcher(username).matches() ? username : null);
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
 	}
 
 	@Override
