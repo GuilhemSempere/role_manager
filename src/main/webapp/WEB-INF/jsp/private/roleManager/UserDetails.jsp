@@ -172,7 +172,7 @@
 					</c:otherwise>
 				</c:choose>
 			</div>
-			<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && user.getMethod().isEmpty()}">
+			<c:if test="${user.getMethod().isEmpty()}">
 				<div style="margin-left:50px; display:inline-block;">E-mail address: <input id="email" type='email' name="email" style='width:200px;' value="${user.email}" /></div>
 			</c:if>
 			<div style="display: inline-block; margin-left: 50px;">
@@ -181,12 +181,12 @@
 		</div>
 		<br>
 
-		<c:if test="${!fn:contains(user.authorities, adminRole)}">
+		<c:if test="${!fn:contains(user.authorities, adminRole) }">
 			<table>
 				<tr>
 					<td valign='top'>
-						<div style='margin-bottom: 10px; background-color: #f0f0f0;'>&nbsp;Permissions
-							for this user&nbsp;</div> <c:if test="${fn:length(publicModules) > 0}">
+						<c:if test="${fn:length(publicModules) > 0}">
+							<div style='margin-bottom: 10px; background-color: #f0f0f0;'>&nbsp;Permissions on public databases for this user&nbsp;</div>
 							<div class="databaseListContainer">
 								<div class="databaseListHeader" style="background-color: #075a80;">Public databases</div>
 								<div class="databaseListModules">
@@ -247,6 +247,7 @@
 						</c:if>
 						<c:if test="${fn:length(privateModules) > 0}">
 							<br/>
+							<div style='margin-bottom: 10px; background-color: #f0f0f0;'>&nbsp;Permissions on private databases for this user&nbsp;</div>
 							<div class="databaseListContainer">
 								<div class="databaseListHeader" style="background-color: #075a80;">Private databases</div>
 								<div class="databaseListModules">
@@ -312,7 +313,7 @@
 
 		<div style="margin-top: 10px;">
 			<p>
-				<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && user.getMethod().isEmpty()}">
+				<c:if test="${user.getMethod().isEmpty()}">
 					You can modify this user's password by typing a new password here: <input id="password" type='password' name="password" style='width: 100px;' autocomplete="new-password" /> (max-length: 20)
 				</c:if>
 			</p>

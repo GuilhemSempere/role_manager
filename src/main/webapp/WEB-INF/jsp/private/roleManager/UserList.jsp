@@ -24,7 +24,7 @@
 <html>
 
 <head>
-	<link type="text/css" rel="stylesheet" href="../css/bootstrap-select.min.css "> 
+	<link type="text/css" rel="stylesheet" href="../css/bootstrap-select.min.css ">
 	<link type="text/css" rel="stylesheet" href="../css/bootstrap.min.css">
 	<link media="screen" type="text/css" href="../css/role_manager.css" rel="StyleSheet" />
 	<link media="screen" type="text/css" href="../../css/main.css" rel="StyleSheet" />
@@ -66,31 +66,41 @@
 					nAddedRows = 0;
 
 					$("#userResultTable tr:gt(0)").remove();
-					for (var key in jsonResult)
-					{
-					   	rowContents = "";
-				   		if (jsonResult[key] != null)
-				   		{
-						   	for (var subkey in jsonResult[key])
-							{
-						   		cellData = "" + jsonResult[key][subkey];
+					for (var key in jsonResult) {
+						rowContents = "";
+						if (jsonResult[key] != null) {
+							// Administrators : See all users and be able to inspect them
+							<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+							for (var subkey in jsonResult[key]) {
+								cellData = "" + jsonResult[key][subkey];
 								rowContents += "<td style='max-width:600px;'>" + cellData.replace(/\n/g, "<br>") + "</td>";
 							}
-							if (subkey == jsonResult[key].length - 1<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}"> && jsonResult[key][0] != "${loggedUserName}"</c:if>)
-							{
+							rowContents += "<td nowrap>&nbsp;<a href='<c:url value="<%= UserPermissionController.userDetailsURL %>" />?user=" + encodeURIComponent(jsonResult[key][0]) + "' title='Details for user " + jsonResult[key][0] + "'><img src='../img/magnifier.gif'></a>";
+							if ("(ADMINISTRATOR)" !== jsonResult[key][1]) {
+								rowContents += "&nbsp;&nbsp;&nbsp;<a href='javascript:removeItem(\"" + encodeURIComponent(jsonResult[key][0]) + "\");' title='Discard user " + jsonResult[key][0] + "'><img src='../img/delete.gif'></a>";
+							}
+							rowContents += "</td>";
+							add_new_row('#userResultTable', '<tr onmouseover="this.style.backgroundColor=\'#99eebb\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents + '</tr>');
+							nAddedRows++;
+							</c:if>
+
+							// Users : See only themselves and be able to inspect them
+							<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}">
+							if (jsonResult[key][0] === "${loggedUserName}") {
+								for (var subkey in jsonResult[key]) {
+									cellData = "" + jsonResult[key][subkey];
+									rowContents += "<td style='max-width:600px;'>" + cellData.replace(/\n/g, "<br>") + "</td>";
+								}
 								rowContents += "<td nowrap>&nbsp;<a href='<c:url value="<%= UserPermissionController.userDetailsURL %>" />?user=" + encodeURIComponent(jsonResult[key][0]) + "' title='Details for user " + jsonResult[key][0] + "'><img src='../img/magnifier.gif'></a>";
-								<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
-								if ("(ADMINISTRATOR)" != jsonResult[key][1])
-									rowContents += "&nbsp;&nbsp;&nbsp;<a href='javascript:removeItem(\"" + encodeURIComponent(jsonResult[key][0]) + "\");' title='Discard user " + jsonResult[key][0] + "'><img src='../img/delete.gif'></a>";
-								</c:if>
 								rowContents += "</td>";
-				   			}
-					   		add_new_row('#userResultTable', '<tr onmouseover="this.style.backgroundColor=\'#99eebb\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents + '</tr>');
-					   		nAddedRows++;
-				   		}
-				   		else
-				   			break;
+								add_new_row('#userResultTable', '<tr onmouseover="this.style.backgroundColor=\'#99eebb\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents + '</tr>');
+								nAddedRows++;
+							}
+							</c:if>
+						} else
+							break;
 					}
+
 
 					if (getVariable("pageNumber") > 0)
 						$('#previousButton').show();
@@ -107,31 +117,30 @@
 				});
 			});
 		}
-		
-		function initialiseNavigationVariables()
-		{
+
+		function initialiseNavigationVariables() {
 			setVariable("pageSize", 25);
 			setVariable("pageNumber", 0);
 			setVariable("sortBy", "");
 			setVariable("sortDir", "desc");
 		}
-		
+
 		initialiseNavigationVariables();
-	</script>
+		</script>
 </head>
 
-<body style='background-color:#f0f0f0;' onload="applySorting();">
+	<body style='background-color:#f0f0f0;' onload="applySorting();">
 
-<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
-<a class="btn btn-sm btn-primary" href="<c:url value="<%=UserPermissionController.userDetailsURL%>" />" style='position:absolute; margin-top:5px;left:300px;'>Create user</a>
-</c:if>
+		<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+			<a class="btn btn-sm btn-primary" href="<c:url value="<%=UserPermissionController.userDetailsURL%>" />" style='position:absolute; margin-top:5px;left:300px;'>Create user</a>
+		</c:if>
 
-<form onsubmit="return false;">
-<table>
-<tr>
-	<td>
-		<b>Login lookup</b><br>
-		<input id="loginLookup" class="navListFilter" type='text' style='width:100px;' onChange="setVariable('pageNumber', 0); loadData();" onkeypress="if (event.keyCode == 13) blur();">
+		<form onsubmit="return false;">
+			<table>
+				<tr>
+					<td>
+						<b>Login lookup</b><br>
+						<input id="loginLookup" class="navListFilter" type='text' style='width:100px;' onChange="setVariable('pageNumber', 0); loadData();" onkeypress="if (event.keyCode == 13) blur();">
 	</td>
 	<td id="pageSizer"></td>
 </tr>
@@ -147,7 +156,7 @@
 </table>
 
 <table class="adminListTable" id="userResultTable">
-<thead> 
+<thead>
 <tr>
 	<th>Login</th>
 	<th>Accessible modules</th>
