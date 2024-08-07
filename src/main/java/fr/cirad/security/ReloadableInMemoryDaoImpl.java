@@ -438,4 +438,12 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         }
         return result;
     }
+
+    public UserWithMethod getUserWithMethodByEmailAddress(String email) {
+    	for (UserWithMethod user : m_users.values()) {
+    		if (user.getEmail() != null && user.getEmail().equals(email))
+    			return user;
+    	}
+    	return null;
+    }
 }
