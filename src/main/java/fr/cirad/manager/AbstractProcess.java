@@ -1,6 +1,6 @@
-package fr.cirad.manager.dump;
+package fr.cirad.manager;
 
-public abstract class AbstractProcess implements IProcess {
+public abstract class AbstractProcess implements IBackgroundProcess {
     protected String processID;
     protected String module;
     protected ProcessStatus status;
@@ -20,7 +20,6 @@ public abstract class AbstractProcess implements IProcess {
 
     @Override
     public boolean isAbortable() {
-        // Implémentation par défaut
         return true;
     }
 
@@ -29,6 +28,8 @@ public abstract class AbstractProcess implements IProcess {
         this.status = ProcessStatus.INTERRUPTED;
         this.statusMessage = "Process aborted";
     }
+
+    public void setID(String processID) {
+		this.processID = processID;
+	}
 }
-
-

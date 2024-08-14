@@ -27,7 +27,9 @@ import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 import org.apache.commons.compress.compressors.gzip.GzipParameters;
 import org.apache.log4j.Logger;
 
+import fr.cirad.manager.AbstractProcess;
 import fr.cirad.manager.IModuleManager;
+import fr.cirad.manager.ProcessStatus;
 
 public class DumpProcess extends AbstractProcess {
     
@@ -64,6 +66,7 @@ public class DumpProcess extends AbstractProcess {
 		this.dbName = dbName;
 		this.basePath = basePath;
 		this.outPath = outPath;
+//		this.processID = "dumpOrRestore_" + module + "§" + dbName + "§" +  
 
 		new File(this.outPath).mkdirs();
 

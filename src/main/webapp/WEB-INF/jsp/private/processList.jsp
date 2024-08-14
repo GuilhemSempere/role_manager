@@ -45,12 +45,13 @@
 	    table.empty();
 
 	    let tableContent = "";
-	    processList.forEach(function (status){
-	        tableContent += "<tr><td>" + status.processID + "</td><td>" + status.module + "</td><td>" + status.status + "</td><td>" + status.message + "</td>";
-
-	        const statusPageURL = '<c:url value="<%= BackOfficeController.dumpStatusPageURL %>" />?module=' + status.module + '&processID=' + status.processID;
-	        tableContent += '<td align="center"><a href="' + statusPageURL + '" target="_blank"><img style="cursor:pointer; cursor:hand;" src="img/magnifier.gif"></a></td>';
-	        tableContent += "</tr>";
+	    processList.forEach(function (status) {
+	        tableContent += "<tr><td>" + status.processID + "</td><td>" + status.type + "</td><td>" + status.module + "</td><td>" + status.status + "</td><td>" + status.message + "</td><td align='center'>";
+			if (status.type != "Import") {
+		        const statusPageURL = '<c:url value="<%= BackOfficeController.dumpStatusPageURL %>" />?module=' + status.module + '&processID=' + status.processID;
+		        tableContent += '<a href="' + statusPageURL + '" target="_blank"><img style="cursor:pointer; cursor:hand;" src="img/magnifier.gif"></a>';
+			}
+	        tableContent += "</td></tr>";
 	    });
 	    table.html(tableContent);
 	}
@@ -71,6 +72,7 @@
 		<thead>
 			<tr>
 				<th>Process ID</th>
+				<th>Type</th>
 				<th>Database</th>
 				<th>Status</th>
 				<th>Execution message</th>

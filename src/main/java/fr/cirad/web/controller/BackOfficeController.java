@@ -72,7 +72,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.util.HtmlUtils;
 
+import fr.cirad.manager.AbstractProcess;
+import fr.cirad.manager.IBackgroundProcess;
 import fr.cirad.manager.IModuleManager;
+import fr.cirad.manager.ProcessStatus;
 import fr.cirad.security.ReloadableInMemoryDaoImpl;
 import fr.cirad.security.base.IRoleDefinition;
 import fr.cirad.web.controller.security.UserPermissionController;
@@ -561,15 +564,8 @@ public class BackOfficeController {
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 		}
 
-		// Récupération des processus de dump
-		Map<String, IBackgroundProcess> dumpProcesses = dumpManager.getProcesses();
-		// Récupération des processus d'import
-		Map<String, ImportProcess> importProcesses = moduleManager.getImportProcesses();
-
-		// Fusion des deux types de processus
-		Map<String, IProcess> allProcesses = new HashMap<>();
-		allProcesses.putAll((Map<String, IProcess>) (Map<?, ?>) dumpProcesses);
-		allProcesses.putAll((Map<String, IProcess>) (Map<?, ?>) importProcesses);
+		Map<String, AbstractProcess> allProcesses = moduleManager.getImportProcesses();
+		allProcesses.putAll(dumpManager.getProcesses());
 
 		List<String> orderedIds = new ArrayList<>(allProcesses.keySet());
 		Collections.sort(orderedIds);
@@ -588,13 +584,14 @@ public class BackOfficeController {
 		});
 
 		for (String processID : orderedIds) {
-			IProcess process = allProcesses.get(processID);
+			IBackgroundProcess process = allProcesses.get(processID);
 			if (supervisedModules != null && !supervisedModules.contains(process.getModule())) {
 				continue;    // logged user is neither admin nor DB supervisor
 			}
 
 			Map<String, String> item = new HashMap<>();
 			item.put("processID", process.getProcessID());
+			item.put("type", process instanceof DumpProcess ? "Dump or restore" : "Import");
 			item.put("status", process.getStatus().label);
 			item.put("message", process.getStatusMessage());
 			item.put("module", process.getModule());

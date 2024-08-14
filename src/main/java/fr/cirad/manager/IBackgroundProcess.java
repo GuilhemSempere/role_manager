@@ -1,4 +1,4 @@
-package fr.cirad.manager.dump;
+package fr.cirad.manager;
 
 public interface IBackgroundProcess {
 	/**
@@ -35,4 +35,6 @@ public interface IBackgroundProcess {
 	 * Abort the process
 	 */
 	public void abort();
+
+	String getProcessID();
 }
