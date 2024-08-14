@@ -29,7 +29,7 @@ import org.apache.log4j.Logger;
 
 import fr.cirad.manager.IModuleManager;
 
-public class DumpProcess implements IBackgroundProcess {
+public class DumpProcess extends AbstractProcess {
     
     private static final Logger LOG = Logger.getLogger(DumpProcess.class);
     

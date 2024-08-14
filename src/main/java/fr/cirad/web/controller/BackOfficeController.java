@@ -567,9 +567,9 @@ public class BackOfficeController {
 		Map<String, ImportProcess> importProcesses = moduleManager.getImportProcesses();
 
 		// Fusion des deux types de processus
-		Map<String, AbstractProcess> allProcesses = new HashMap<>();
-		allProcesses.putAll((Map<? extends String, ? extends AbstractProcess>) dumpProcesses);
-		allProcesses.putAll(importProcesses);
+		Map<String, IProcess> allProcesses = new HashMap<>();
+		allProcesses.putAll((Map<String, IProcess>) (Map<?, ?>) dumpProcesses);
+		allProcesses.putAll((Map<String, IProcess>) (Map<?, ?>) importProcesses);
 
 		List<String> orderedIds = new ArrayList<>(allProcesses.keySet());
 		Collections.sort(orderedIds);
@@ -588,13 +588,13 @@ public class BackOfficeController {
 		});
 
 		for (String processID : orderedIds) {
-			AbstractProcess process = allProcesses.get(processID);
+			IProcess process = allProcesses.get(processID);
 			if (supervisedModules != null && !supervisedModules.contains(process.getModule())) {
 				continue;    // logged user is neither admin nor DB supervisor
 			}
 
 			Map<String, String> item = new HashMap<>();
-			item.put("processID", processID);
+			item.put("processID", process.getProcessID());
 			item.put("status", process.getStatus().label);
 			item.put("message", process.getStatusMessage());
 			item.put("module", process.getModule());
