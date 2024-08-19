@@ -351,10 +351,16 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     }
 
     public int countByLoginLookup(String sLoginLookup) throws IOException {
-        boolean fLoggedUserIsAdmin = getLoggedUserAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
-        if (sLoginLookup == null) {
+    	Collection<? extends GrantedAuthority> loggedUserAuthorities = getLoggedUserAuthorities();
+    	if (loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ANONYMOUS)))
+   			return 0;
+    	
+    	if (!canLoggedUserWriteToSystem())
+    		return 1;	// he may only see himself
+
+        boolean fLoggedUserIsAdmin = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
+        if (sLoginLookup == null)
             return listUsers(!fLoggedUserIsAdmin).size();
-        }
 
         int nCount = 0;
         for (String sUserName : listUsers(!fLoggedUserIsAdmin)) {
@@ -366,9 +372,13 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     }
 
     public List<UserDetails> listByLoginLookup(String sLoginLookup, int page, int size) throws IOException {
-        boolean fLoggedUserIsAdmin = getLoggedUserAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
         List<UserDetails> result = new ArrayList<>();
-        List<String> userList = listUsers(!fLoggedUserIsAdmin);
+    	Collection<? extends GrantedAuthority> loggedUserAuthorities = getLoggedUserAuthorities();
+    	if (loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ANONYMOUS)))
+   			return result;
+
+        boolean fLoggedUserIsAdmin = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
+        List<String> userList = !canLoggedUserWriteToSystem() ? Arrays.asList(SecurityContextHolder.getContext().getAuthentication().getName()) /* he may only see himself */: listUsers(!fLoggedUserIsAdmin);
         Collections.sort(userList);
         userList = userList.subList(page * size, Math.min(userList.size(), size < 1 ? userList.size() : size * (page + 1)));
         for (String sUserName : userList) {

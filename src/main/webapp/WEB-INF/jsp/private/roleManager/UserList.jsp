@@ -67,40 +67,25 @@
 
 					$("#userResultTable tr:gt(0)").remove();
 					for (var key in jsonResult) {
-						rowContents = "";
-						if (jsonResult[key] != null) {
-							// Administrators : See all users and be able to inspect them
-							<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
-							for (var subkey in jsonResult[key]) {
-								cellData = "" + jsonResult[key][subkey];
+					   	rowContents = "";
+				   		if (jsonResult[key] != null) {
+						   	for (var subkey in jsonResult[key]) {
+						   		cellData = "" + jsonResult[key][subkey];
 								rowContents += "<td style='max-width:600px;'>" + cellData.replace(/\n/g, "<br>") + "</td>";
 							}
+
 							rowContents += "<td nowrap>&nbsp;<a href='<c:url value="<%= UserPermissionController.userDetailsURL %>" />?user=" + encodeURIComponent(jsonResult[key][0]) + "' title='Details for user " + jsonResult[key][0] + "'><img src='../img/magnifier.gif'></a>";
-							if ("(ADMINISTRATOR)" !== jsonResult[key][1]) {
+							<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+							if ("(ADMINISTRATOR)" != jsonResult[key][1])
 								rowContents += "&nbsp;&nbsp;&nbsp;<a href='javascript:removeItem(\"" + encodeURIComponent(jsonResult[key][0]) + "\");' title='Discard user " + jsonResult[key][0] + "'><img src='../img/delete.gif'></a>";
-							}
+							</c:if>
 							rowContents += "</td>";
-							add_new_row('#userResultTable', '<tr onmouseover="this.style.backgroundColor=\'#99eebb\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents + '</tr>');
-							nAddedRows++;
-							</c:if>
-
-							// Users : See only themselves and be able to inspect them
-							<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}">
-							if (jsonResult[key][0] === "${loggedUserName}") {
-								for (var subkey in jsonResult[key]) {
-									cellData = "" + jsonResult[key][subkey];
-									rowContents += "<td style='max-width:600px;'>" + cellData.replace(/\n/g, "<br>") + "</td>";
-								}
-								rowContents += "<td nowrap>&nbsp;<a href='<c:url value="<%= UserPermissionController.userDetailsURL %>" />?user=" + encodeURIComponent(jsonResult[key][0]) + "' title='Details for user " + jsonResult[key][0] + "'><img src='../img/magnifier.gif'></a>";
-								rowContents += "</td>";
-								add_new_row('#userResultTable', '<tr onmouseover="this.style.backgroundColor=\'#99eebb\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents + '</tr>');
-								nAddedRows++;
-							}
-							</c:if>
-						} else
-							break;
+					   		add_new_row('#userResultTable', '<tr onmouseover="this.style.backgroundColor=\'#99eebb\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents + '</tr>');
+					   		nAddedRows++;
+				   		}
+				   		else
+				   			break;
 					}
-
 
 					if (getVariable("pageNumber") > 0)
 						$('#previousButton').show();
