@@ -44,10 +44,13 @@
 <div id="leftMenu" class="margin-top margin-left">
 	<p style="font-weight:bold;">
 	</p>
-	<a class="btn btn-sm btn-primary" style="width:130px;" href="<c:url value="<%= BackOfficeController.moduleListPageURL %>" />" target="managementFrame" onClick="highlightMe(this);">Manage databases</a>
-	<br/><br/>
-	<a class="btn btn-sm btn-primary" style="width:130px;" href="<c:url value="<%= UserPermissionController.userListPageURL %>" />" target="managementFrame" onClick="highlightMe(this);">Manage users<br/>and permissions</a>
-	<c:if test="${(fn:contains(loggedUserAuthorities, adminRole) || !userDao.getSupervisedModules(loggedUserAuthorities).isEmpty()) && actionRequiredToEnableDumps eq ''}">
+	<c:if test="${userDao.canLoggedUserWriteToSystem()}">
+		<a class="btn btn-sm btn-primary" style="width:130px;" href="<c:url value="<%= BackOfficeController.moduleListPageURL %>" />" target="managementFrame" onClick="highlightMe(this);">Manage databases</a>
+		<br/><br/>
+	</c:if>
+	<a class="btn btn-sm btn-primary" style="width:130px;" href="<c:url value="<%= UserPermissionController.userListPageURL %>" />" target="managementFrame" onClick="highlightMe(this);">Manage users<br/>and permissions
+	</a>
+	<c:if test="${(fn:contains(loggedUserAuthorities, adminRole) || !userDao.getSupervisedModules(loggedUserAuthorities).isEmpty())}">
 		<br/><br/>
 		<a class="btn btn-sm btn-primary" style="width:130px;" href="<c:url value="<%= BackOfficeController.processListPageURL %>" />" target="managementFrame" onClick="highlightMe(this);">Admin processes</a>
 	</c:if>

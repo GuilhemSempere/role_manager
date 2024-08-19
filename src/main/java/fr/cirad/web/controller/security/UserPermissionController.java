@@ -204,21 +204,21 @@ public class UserPermissionController
 		Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
 		boolean fIsLoggedUserAdmin = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
 		Map<String /*module*/, Map<String /*entity-type*/, Collection<Comparable> /*entity-IDs*/>> managedEntitiesByModuleAndType = userDao.getManagedEntitiesByModuleAndType(loggedUserAuthorities);
-		Collection<String> supervisedModules = userDao.getSupervisedModules(loggedUserAuthorities);
+		Collection<String> modulesSupervisedByLoggedUser = userDao.getSupervisedModules(loggedUserAuthorities), modulesSupervisedByEditedUser = userDao.getSupervisedModules(user.getAuthorities());
 		
-		Collection<String> publicModules = new ArrayList<String>(moduleManager.getModules(true)), publicModulesWithoutOwnedEntities = new ArrayList();
+		Collection<String> publicModules = new ArrayList<String>(moduleManager.getModules(true)), publicModulesToHide = new ArrayList<>();
 		if (!fIsLoggedUserAdmin)
-			for (String sModule : publicModules)	// only show modules containing entities managed by logged user, or that he is supervisor on
-				if (!supervisedModules.contains(sModule) && managedEntitiesByModuleAndType.get(sModule) == null)
-					publicModulesWithoutOwnedEntities.add(sModule);
-		model.addAttribute("publicModules", CollectionUtils.disjunction(publicModules, publicModulesWithoutOwnedEntities));
+			for (String sModule : publicModules)	// only show modules containing entities managed by logged user, or that he is supervisor on, and that edited user is not supervisor on
+				if ((!modulesSupervisedByLoggedUser.contains(sModule) && managedEntitiesByModuleAndType.get(sModule) == null) || modulesSupervisedByEditedUser.contains(sModule))
+					publicModulesToHide.add(sModule);
+		model.addAttribute("publicModules", CollectionUtils.disjunction(publicModules, publicModulesToHide));
 		
-		Collection<String> privateModules = new ArrayList<String>(moduleManager.getModules(false)), privateModulesWithoutOwnedEntities = new ArrayList();
+		Collection<String> privateModules = new ArrayList<String>(moduleManager.getModules(false)), privateModulesToHide = new ArrayList<>();
 		if (!fIsLoggedUserAdmin)
 			for (String sModule : privateModules)	// only show modules containing entities managed by logged user
-				if (!supervisedModules.contains(sModule) && managedEntitiesByModuleAndType.get(sModule) == null)
-					privateModulesWithoutOwnedEntities.add(sModule);
-		model.addAttribute("privateModules", CollectionUtils.disjunction(privateModules, privateModulesWithoutOwnedEntities));
+				if ((!modulesSupervisedByLoggedUser.contains(sModule) && managedEntitiesByModuleAndType.get(sModule) == null) || modulesSupervisedByEditedUser.contains(sModule))
+					privateModulesToHide.add(sModule);
+		model.addAttribute("privateModules", CollectionUtils.disjunction(privateModules, privateModulesToHide));
 	}
 
 	@PostMapping(value = userDetailsURL)
@@ -255,53 +255,47 @@ public class UserPermissionController
 		else
 		{
 		    Collection<String> modules = moduleManager.getModules(null);
-		    for (String sEntityType : rolesByLevel1Type.keySet())
-			{
+	        for (String sModule : modules) {	// first look for supervisor role (if set, we don't want to save any other permissions on that module
+	        	String sSupervisorRole = sModule + ROLE_STRING_SEPARATOR + IRoleDefinition.ROLE_DB_SUPERVISOR;
+	        	if (request.getParameter(urlEncode(sSupervisorRole)) != null)
+	        		grantedAuthorityLabels.add(sSupervisorRole);
+			}
+	        
+		    for (String sEntityType : rolesByLevel1Type.keySet()) {
 		        Map<String, Map<Comparable, String[]>> entitiesByModule = moduleManager.getEntitiesByModule(sEntityType, null, modules, false);
 		        for (String sModule : modules)
-				{
-					LinkedHashMap<Comparable, String[]> moduleEntities = (LinkedHashMap<Comparable, String[]>) entitiesByModule.get(sModule);
-					if (moduleEntities != null)
-    					for (Comparable entityId : moduleEntities.keySet()) {
-    						LinkedHashSet<String> rolesForEntityType = rolesByLevel1Type.get(sEntityType);
-    						if (rolesForEntityType != null)
-    						for (String anEntityRole : rolesForEntityType) {
-    							String sRole = urlEncode(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + anEntityRole + ROLE_STRING_SEPARATOR + entityId);
-    							if (request.getParameter(urlEncode(sRole)) != null)
-    								grantedAuthorityLabels.add(sRole);
-    						}
-    					}
-					
-					Enumeration<String> it = request.getParameterNames();
-					while (it.hasMoreElements())
-					{
-						String param = it.nextElement();
-						if (param.equals(urlEncode(sEntityType + "Permission_" + sModule)))
-						{
-							String val = request.getParameter(param);
-							if (val.length() > 0)
-							{
-								for (String sRole : urlDecode(val).split(","))
-								{
-									String[] splitPermission = sRole.split(Pattern.quote(ROLE_STRING_SEPARATOR));
-									if (moduleManager.doesEntityExistInModule(splitPermission[0], splitPermission[1], splitPermission[3]))
-									{
-										entitiesOnWhichPermissionsWereExplicitlyApplied.add(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + splitPermission[3]);
-										grantedAuthorityLabels.add(sRole);
+		        	if (!grantedAuthorityLabels.contains(sModule + ROLE_STRING_SEPARATOR + IRoleDefinition.ROLE_DB_SUPERVISOR)) {
+						LinkedHashMap<Comparable, String[]> moduleEntities = (LinkedHashMap<Comparable, String[]>) entitiesByModule.get(sModule);
+						if (moduleEntities != null)
+	    					for (Comparable entityId : moduleEntities.keySet()) {
+	    						LinkedHashSet<String> rolesForEntityType = rolesByLevel1Type.get(sEntityType);
+	    						if (rolesForEntityType != null)
+	    						for (String anEntityRole : rolesForEntityType) {
+	    							String sRole = urlEncode(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + anEntityRole + ROLE_STRING_SEPARATOR + entityId);
+	    							if (request.getParameter(urlEncode(sRole)) != null)
+	    								grantedAuthorityLabels.add(sRole);
+	    						}
+	    					}
+						
+						Enumeration<String> it = request.getParameterNames();
+						while (it.hasMoreElements()) {
+							String param = it.nextElement();
+							if (param.equals(urlEncode(sEntityType + "Permission_" + sModule))) {
+								String val = request.getParameter(param);
+								if (val.length() > 0) {
+									for (String sRole : urlDecode(val).split(",")) {
+										String[] splitPermission = sRole.split(Pattern.quote(ROLE_STRING_SEPARATOR));
+										if (moduleManager.doesEntityExistInModule(splitPermission[0], splitPermission[1], splitPermission[3])) {
+											entitiesOnWhichPermissionsWereExplicitlyApplied.add(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + splitPermission[3]);
+											grantedAuthorityLabels.add(sRole);
+										}
+										else
+											LOG.debug("skipping " + sRole);
 									}
-									else
-										LOG.debug("skipping " + sRole);
 								}
 							}
 						}
-						else
-						{ // we should not be doing this for each entity type but since calling getEntitiesByModule() is expensive it's still a better option than looping first on modules, then on entities 
-							String sRole = sModule + ROLE_STRING_SEPARATOR + IRoleDefinition.ROLE_DB_SUPERVISOR;							
-							if (param.equals(urlEncode(sRole)))
-								grantedAuthorityLabels.add(sRole);
-						}
 					}
-				}
 			}
 		}
 
@@ -309,27 +303,26 @@ public class UserPermissionController
 			errors.add("Username must not be empty");
 
 		if (user != null)
-		{	// make sure we don't loose permissions that are not set via this interface (i.e. roles on entities managed by other users than the connected one)
-//			Map<String, Map<String, Collection<Comparable>>> managedEntitiesByModuleAndType = userDao.getOwnedEntitiesByModuleAndType(user.getAuthorities());
-//			for (String sModule : managedEntitiesByModuleAndType.keySet())
-//			{
-//				Map<String, Collection<Comparable>> managedEntitiesByType = managedEntitiesByModuleAndType.get(sModule);
-//				for (String sEntityType : managedEntitiesByType.keySet())
-//					for (Comparable entityID : managedEntitiesByType.get(sEntityType))
-//						grantedAuthorityLabels.add(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + IRoleDefinition.ENTITY_MANAGER_ROLE + ROLE_STRING_SEPARATOR + entityID);
-//			}
-			
+		{	// make sure we don't lose permissions that are not set via this interface (i.e. roles on entities managed by other users than the connected one)
+			boolean fSubmittedByAdmin = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
+			HashSet<String> modulesSupervisedBySubmittingUser = userDao.getSupervisedModules(loggedUserAuthorities);
+			for (String supervisedModule : userDao.getSupervisedModules(user.getAuthorities()))
+				if (!fSubmittedByAdmin)
+					grantedAuthorityLabels.add(supervisedModule + ROLE_STRING_SEPARATOR + IRoleDefinition.ROLE_DB_SUPERVISOR);
+
 			Map<String, Map<String, Map<String, Collection<Comparable>>>> customRolesByModuleAndEntityType = userDao.getCustomRolesByModuleAndEntityType(user.getAuthorities());
-			for (String sModule : customRolesByModuleAndEntityType.keySet())
-			{
+			for (String sModule : customRolesByModuleAndEntityType.keySet()) {
 				Map<String, Map<String, Collection<Comparable>>> rolesByEntityType = customRolesByModuleAndEntityType.get(sModule);
-				for (String sEntityType : rolesByEntityType.keySet())
-				{
+				for (String sEntityType : rolesByEntityType.keySet()) {
 					Map<String, Collection<Comparable>> entityIDsByRoles = rolesByEntityType.get(sEntityType);
 					for (String role : entityIDsByRoles.keySet())
-						for (Comparable entityId : entityIDsByRoles.get(role))
-							if (!(loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN))) && !(loggedUserAuthorities.contains(new SimpleGrantedAuthority(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + IRoleDefinition.ENTITY_MANAGER_ROLE + ROLE_STRING_SEPARATOR + entityId))) && !entitiesOnWhichPermissionsWereExplicitlyApplied.contains(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + entityId))
+						for (Comparable entityId : entityIDsByRoles.get(role)) {
+							boolean fSubmittedBySupervisor = modulesSupervisedBySubmittingUser.contains(sModule);
+							boolean fSubmittedByEntityManager = loggedUserAuthorities.contains(new SimpleGrantedAuthority(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + IRoleDefinition.ENTITY_MANAGER_ROLE + ROLE_STRING_SEPARATOR + entityId));
+							boolean fHaveEntityPermissionsJustBeenSet = entitiesOnWhichPermissionsWereExplicitlyApplied.contains(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + entityId);
+							if (!fSubmittedByAdmin && !fSubmittedBySupervisor && !fSubmittedByEntityManager && !fHaveEntityPermissionsJustBeenSet)
 								grantedAuthorityLabels.add(sModule + ROLE_STRING_SEPARATOR + sEntityType + ROLE_STRING_SEPARATOR + role + ROLE_STRING_SEPARATOR + entityId);
+						}
 				}
 			}
 		}
