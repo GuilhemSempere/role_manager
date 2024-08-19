@@ -591,7 +591,12 @@ public class BackOfficeController {
 
 			Map<String, String> item = new HashMap<>();
 			item.put("processID", process.getProcessID());
-			item.put("type", process instanceof DumpProcess ? "Dump or restore" : "Import");
+			try {
+				item.put("type", process.getProcessID().split("::")[0].toUpperCase());
+			}
+			catch (Exception e) {
+				LOG.error("Unable to determine process type", e);
+			}
 			item.put("status", process.getStatus().label);
 			item.put("message", process.getStatusMessage());
 			item.put("module", process.getModule());

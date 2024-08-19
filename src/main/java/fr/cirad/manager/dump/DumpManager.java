@@ -69,6 +69,6 @@ public class DumpManager {
 	}
 	
 	private String generateProcessID(String processType, String userName) {
-		return "role_manager." + processType + "." + userName + "." + System.currentTimeMillis();
+		return processType + "::" + userName + "::" + System.currentTimeMillis();
 	}
 }

@@ -47,7 +47,7 @@
 	    let tableContent = "";
 	    processList.forEach(function (status) {
 	        tableContent += "<tr><td>" + status.processID + "</td><td>" + status.type + "</td><td>" + status.module + "</td><td>" + status.status + "</td><td>" + status.message + "</td><td align='center'>";
-			if (status.type != "Import") {
+			if (status.type != "IMPORT") {
 		        const statusPageURL = '<c:url value="<%= BackOfficeController.dumpStatusPageURL %>" />?module=' + status.module + '&processID=' + status.processID;
 		        tableContent += '<a href="' + statusPageURL + '" target="_blank"><img style="cursor:pointer; cursor:hand;" src="img/magnifier.gif"></a>';
 			}

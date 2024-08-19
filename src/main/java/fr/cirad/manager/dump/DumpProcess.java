@@ -66,7 +66,6 @@ public class DumpProcess extends AbstractProcess {
 		this.dbName = dbName;
 		this.basePath = basePath;
 		this.outPath = outPath;
-//		this.processID = "dumpOrRestore_" + module + "§" + dbName + "§" +  
 
 		new File(this.outPath).mkdirs();
 
