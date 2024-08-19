@@ -1,4 +1,4 @@
-package fr.cirad.manager.dump;
+package fr.cirad.manager;
 
 public enum ProcessStatus {
 	INEXISTENT("inexistent"),

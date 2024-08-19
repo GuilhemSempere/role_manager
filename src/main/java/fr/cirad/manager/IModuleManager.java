@@ -27,7 +27,6 @@ import java.util.ResourceBundle;
 
 import fr.cirad.manager.dump.DumpMetadata;
 import fr.cirad.manager.dump.DumpStatus;
-import fr.cirad.manager.dump.IBackgroundProcess;
 
 /**
  * @author sempere
@@ -173,7 +172,7 @@ public interface IModuleManager {
 	 * @param sDescription Description of the new dump
 	 * @return Started dump process
 	 */
-	IBackgroundProcess startDump(String sModule, String sName, String sDescription);
+	AbstractProcess startDump(String sModule, String sName, String sDescription);
 
 	/**
 	 * @param sModule Module to dump
@@ -181,7 +180,7 @@ public interface IModuleManager {
 	 * @param drop True to drop the database before restoring the dump
 	 * @return Started restore process
 	 */
-	IBackgroundProcess startRestore(String sModule, String sDump, boolean drop);
+	AbstractProcess startRestore(String sModule, String sDump, boolean drop);
 
 	/**
 	 * @param sModule Module to check
@@ -222,7 +221,7 @@ public interface IModuleManager {
     /**
 	 * @param sModule Module to update modification date for
 	 * @param lastModification the date to set
-	 * @param restored flag telling whether or not this modification is a restore
+	 * @param restored flag telling whether this modification is a restore
      * @param sModule
      */
     void updateDatabaseLastModification(String sModule, Date lastModification, boolean restored);
@@ -236,7 +235,7 @@ public interface IModuleManager {
 	/**
 	 * @param sModule
 	 * @param entityType (sub-entities must be prefixed with "<parentEntityType>.")
-	 * @param entityIDs[] array with IDs leading to the targeted entity (number of cells must match the entity level) 
+	 * @param entityIDs array with IDs leading to the targeted entity (number of cells must match the entity level)
 	 * @return
 	 * @throws Exception 
 	 */
@@ -245,12 +244,14 @@ public interface IModuleManager {
 	/**
 	 * @param sModule
 	 * @param sEntityType
-	 * @param entityId
+	 * @param sEntityId
 	 * @param desc
-	 * @return whether or not setting entity description succeeded
+	 * @return whether setting entity description succeeded
 	 * @throws Exception
 	 */
 	boolean setManagedEntityDescription(String sModule, String sEntityType, String sEntityId, String desc) throws Exception;
+
+	Map<String, AbstractProcess> getImportProcesses();
 
 	void cleanupDb(String sModule);
 

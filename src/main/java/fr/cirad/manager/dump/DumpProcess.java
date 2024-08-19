@@ -27,9 +27,11 @@ import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 import org.apache.commons.compress.compressors.gzip.GzipParameters;
 import org.apache.log4j.Logger;
 
+import fr.cirad.manager.AbstractProcess;
 import fr.cirad.manager.IModuleManager;
+import fr.cirad.manager.ProcessStatus;
 
-public class DumpProcess implements IBackgroundProcess {
+public class DumpProcess extends AbstractProcess {
     
     private static final Logger LOG = Logger.getLogger(DumpProcess.class);
     

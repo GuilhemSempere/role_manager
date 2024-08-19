@@ -51,6 +51,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import fr.cirad.manager.dump.*;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,12 +72,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.util.HtmlUtils;
 
+import fr.cirad.manager.AbstractProcess;
+import fr.cirad.manager.IBackgroundProcess;
 import fr.cirad.manager.IModuleManager;
-import fr.cirad.manager.dump.DumpManager;
-import fr.cirad.manager.dump.DumpMetadata;
-import fr.cirad.manager.dump.DumpStatus;
-import fr.cirad.manager.dump.IBackgroundProcess;
-import fr.cirad.manager.dump.ProcessStatus;
+import fr.cirad.manager.ProcessStatus;
 import fr.cirad.security.ReloadableInMemoryDaoImpl;
 import fr.cirad.security.base.IRoleDefinition;
 import fr.cirad.web.controller.security.UserPermissionController;
@@ -558,37 +557,46 @@ public class BackOfficeController {
 
 	@GetMapping(processListStatusURL)
 	protected @ResponseBody TreeSet<Map<String, String>> processListStatus() throws Exception {
-	    Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
-	    HashSet<String> supervisedModules = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) ? null : userDao.getSupervisedModules(loggedUserAuthorities);
-//		if (!loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) && supervisedModules.isEmpty())
-//			throw new Exception("You are not allowed to access dump status");
+		Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
+		HashSet<String> supervisedModules = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) ? null : userDao.getSupervisedModules(loggedUserAuthorities);
 
-		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
+		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty()) {
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
+		}
 
-		Map<String, IBackgroundProcess> processes = dumpManager.getProcesses();
-		List<String> orderedIds = new ArrayList<String>(processes.keySet());
+		Map<String, AbstractProcess> allProcesses = moduleManager.getImportProcesses();
+		allProcesses.putAll(dumpManager.getProcesses());
+
+		List<String> orderedIds = new ArrayList<>(allProcesses.keySet());
 		Collections.sort(orderedIds);
 
-		TreeSet<Map<String, String>> result = new TreeSet<Map<String, String>>(new Comparator<Map<String, String>>() {
-            @Override
-            public int compare(Map<String, String> o1, Map<String, String> o2) {
-                int result = o1.get("status").compareToIgnoreCase(o2.get("status"));
-                if (result == 0) {
-                        result = o1.get("module").compareToIgnoreCase(o2.get("module"));
-                    if (result == 0)
-                        result = o1.get("processID").compareToIgnoreCase(o2.get("processID"));
-                }
-                return result;
-            }
-        });
-		for (String processID : orderedIds) {
-			IBackgroundProcess process = processes.get(processID);
-			if (supervisedModules != null && !supervisedModules.contains(process.getModule()))
-			    continue;    // logged user is neither admin nor DB supervisor
+		TreeSet<Map<String, String>> result = new TreeSet<>(new Comparator<Map<String, String>>() {
+			@Override
+			public int compare(Map<String, String> o1, Map<String, String> o2) {
+				int result = o1.get("status").compareToIgnoreCase(o2.get("status"));
+				if (result == 0) {
+					result = o1.get("module").compareToIgnoreCase(o2.get("module"));
+					if (result == 0)
+						result = o1.get("processID").compareToIgnoreCase(o2.get("processID"));
+				}
+				return result;
+			}
+		});
 
-			Map<String, String> item = new HashMap<String, String>();
-			item.put("processID", processID);
+		for (String processID : orderedIds) {
+			IBackgroundProcess process = allProcesses.get(processID);
+			if (supervisedModules != null && !supervisedModules.contains(process.getModule())) {
+				continue;    // logged user is neither admin nor DB supervisor
+			}
+
+			Map<String, String> item = new HashMap<>();
+			item.put("processID", process.getProcessID());
+			try {
+				item.put("type", process.getProcessID().split("::")[0].toUpperCase());
+			}
+			catch (Exception e) {
+				LOG.error("Unable to determine process type", e);
+			}
 			item.put("status", process.getStatus().label);
 			item.put("message", process.getStatusMessage());
 			item.put("module", process.getModule());
@@ -597,6 +605,7 @@ public class BackOfficeController {
 
 		return result;
 	}
+
 
 	@GetMapping(abortProcessURL)
 	protected @ResponseBody Map<String, Boolean> abortProcess(@RequestParam("module") String sModule, @RequestParam("processID") String processID) throws Exception {
