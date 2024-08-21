@@ -227,6 +227,7 @@ public class UserPermissionController
 		String sUserName = request.getParameter("username"), sPassword = request.getParameter("password"), sEmail = request.getParameter("email");
 		boolean fGotUserName = sUserName != null && sUserName.length() > 0;
 		boolean fGotPassword = sPassword != null && sPassword.length() > 0;
+		boolean fGotEmail = sEmail != null && sEmail.length() > 0;
 		boolean fCloning = "true".equals(request.getParameter("cloning"));
 
 		ArrayList<String> errors = new ArrayList<String>();
@@ -243,8 +244,13 @@ public class UserPermissionController
 					errors.add("You must specify a password");
 			}
 
-		if (!fGotPassword && user != null)
-			sPassword = user.getPassword();		// password remains the same
+		if (user != null) {
+			if (!fGotPassword)
+				sPassword = user.getPassword();		// password remains the same
+			if (!fGotEmail)
+				sEmail = user.getEmail();		// email remains the same
+		}
+
 
 		HashSet<String> entitiesOnWhichPermissionsWereExplicitlyApplied = new HashSet<>();
 		HashSet<String> grantedAuthorityLabels = new HashSet<>();	// ensures unicity 
