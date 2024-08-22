@@ -347,7 +347,7 @@ public class UserPermissionController
 			ArrayList<GrantedAuthority> grantedAuthorities = new ArrayList<>();
 			for (final String sGA : grantedAuthorityLabels)
 				grantedAuthorities.add(new SimpleGrantedAuthority(sGA));
-			user = new UserWithMethod(fGotUserName ? sUserName : " ", "", grantedAuthorities, true, "", sEmail);
+			user = new UserWithMethod(fGotUserName ? sUserName : " ", "", grantedAuthorities, true, user == null ? "" : user.getMethod(), sEmail);
 			model.addAttribute("errors", errors);
 			setupForm(model, null);
 			model.addAttribute("user", user);
@@ -363,7 +363,7 @@ public class UserPermissionController
 			ArrayList<GrantedAuthority> grantedAuthorities = new ArrayList<>();
 			for (final String sGA : grantedAuthorityLabels)
 				grantedAuthorities.add(new SimpleGrantedAuthority(sGA));
-			user = new UserWithMethod(fGotUserName ? sUserName : " ", "", grantedAuthorities, true, "", sEmail);
+			user = new UserWithMethod(fGotUserName ? sUserName : " ", "", grantedAuthorities, true, user == null ? "" : user.getMethod(), sEmail);
 			model.addAttribute("errors", errors);
 			setupForm(model, null);
 			model.addAttribute("user", user);
