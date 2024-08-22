@@ -395,7 +395,6 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         boolean fLoggedUserIsAdmin = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
         List<String> userList = !canLoggedUserWriteToSystem() ? Arrays.asList(SecurityContextHolder.getContext().getAuthentication().getName()) /* he may only see himself */: listUsers(!fLoggedUserIsAdmin);
         Collections.sort(userList);
-        userList = userList.subList(page * size, Math.min(userList.size(), size < 1 ? userList.size() : size * (page + 1)));
         for (String sUserName : userList) {
             if (sLoginLookup == null || sUserName.startsWith(sLoginLookup)) {
                 try {
@@ -405,6 +404,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
                 }
             }
         }
+        result = result.subList(page * size, Math.min(result.size(), size < 1 ? result.size() : size * (page + 1)));
         return result;
     }
 
