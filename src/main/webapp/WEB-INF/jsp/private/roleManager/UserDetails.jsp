@@ -48,7 +48,7 @@
 			</c:if>
 		}
 		
-		<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && user.getMethod().isEmpty()}">
+		<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
 		function cloneUser()
 		{
 			var cloneName = prompt("Enter username:");
@@ -152,20 +152,25 @@
 	<form:form modelAttribute="user" name="userForm">
 		<div>
 			<div style="display: inline-block;">
-				User:
+				Username:
 				<c:choose>
-					<c:when test="${!empty trimmedUsername}">
+					<c:when test="${!empty trimmedUsername && !isNew}">
 						<b>${user.username}</b>
 						<form:hidden path="username" />
 						<span style='margin-left: 100px;' id="cloneButtonSpan"></span>
 					</c:when>
 					<c:otherwise>
 						<form:input path="username" autocomplete="off" />
+						<span class="text-red">*</span>
+						<input type="hidden" name="isNew" value="true" />
 					</c:otherwise>
 				</c:choose>
 			</div>
 			<c:if test="${user.getMethod().isEmpty() && (fn:contains(loggedUserAuthorities, adminRole) || loggedUser.username eq user.username)}">
-				<div style="margin-left:50px; display:inline-block;">E-mail address: <input id="email" type='email' name="email" style='width:200px;' value="${user.email}" /></div>
+				<div style="margin-left:50px; display:inline-block;">
+					E-mail address: <input id="email" type='email' name="email" style='width:200px;' value="${user.email}" />
+					<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}"><span class="text-red">*</span></c:if>
+				</div>
 			</c:if>
 			<div style="display: inline-block; margin-left: 50px;">
 				Authentication method: <b>${user.method eq "" ? "Local" : user.method}</b>
@@ -276,10 +281,14 @@
 			</table>
 		</c:if>
 
-		<div style="margin-top: 10px;">
+		<div style="margin-top:10px;">
 			<p>
+				<div style="float:right; margin-right:20px; margin-top:4px;" class="margin-top-md text-red">Fields followed by * are required</div>
 				<c:if test="${user.getMethod().isEmpty() && (fn:contains(loggedUserAuthorities, adminRole) || loggedUser.username eq user.username)}">
-					You can modify this account's password by typing a new password here: <input id="password" type='password' name="password" style='width: 100px;' autocomplete="new-password" /> (max-length: 20)
+					&nbsp;You may set this account's password by typing a new password here:
+					<input id="password" type='password' name="password" style='width: 100px;' autocomplete="new-password" minlength="8" maxlength="20" />
+					<c:if test="${empty trimmedUsername || isNew}"><span class="text-red">*</span></c:if>					
+					(max-length: 20)
 				</c:if>
 			</p>
 			<table>

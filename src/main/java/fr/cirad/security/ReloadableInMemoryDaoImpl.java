@@ -74,29 +74,16 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 
 	@Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return loadUserByUsernameAndMethod(username, "");
-    }
-	
-	/** Get a user by username from a specific authentication method
-	 * Also load properties if they are not already loaded
-	 * @param username Username to load
-	 * @param method Authentication method to consider. Default is the empty string, null matches any method.
-	 * @return The requested user
-	 * @throws UsernameNotFoundException if the user is not found or does not correspond to the given authentication method
-	 */
-	public UserDetails loadUserByUsernameAndMethod(String username, String method) throws UsernameNotFoundException {
 		try {
 			UserWithMethod user = m_users.get(username);
 			if (user == null)
 				throw new UsernameNotFoundException("Username not found");
-			else if (!user.getMethod().equals(method) && method != null)
-				throw new UsernameNotFoundException("User/method couple not found");
 			else
 				return user;
 		} catch (NullPointerException exc) {  // Resource probably not set
 			throw new UsernameNotFoundException("No data loaded", exc);
 		}
-	}
+    }
 
     public void setResource(Resource resource) throws Exception {
         m_resourceFile = resource.getFile();
@@ -133,15 +120,17 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 			}
     }
 
-    private void loadProperties() throws IOException {
+    @SuppressWarnings("resource")
+	private void loadProperties() throws IOException {
     	try {
 	        if (m_resourceFile != null && m_users == null) {
-	        	m_users = new HashMap<String, UserWithMethod>();
+	        	m_users = new HashMap<>();
+	        	List<UserWithMethod> usersForWhichToCopyEmailFromUsername = new ArrayList<>();
 	            Properties props = new Properties();
 	            props.load(new InputStreamReader(new FileInputStream(m_resourceFile), "UTF-8"));
 	            
 	            m_users.clear();
-	            for (String username: props.stringPropertyNames()) {
+	            for (String username : props.stringPropertyNames()) {
 	            	String[] tokens = props.getProperty(username).split(",", -1);  // Negative limit to keep trailing empty strings
 	            	String password = tokens[0];
 	            	String email = null;
@@ -166,13 +155,32 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 	            			if (!authority.isEmpty())
 	            				authorities.add(new SimpleGrantedAuthority(authority));
 	            		}
-	            		if (tokens.length == 4 || (tokens.length == 5 && tokens[4].trim().isEmpty()))
-	            			LOG.debug("No e-mail address available for user " + username);
-	            		else
+	            		if (tokens.length == 5 && !tokens[4].trim().isEmpty())
 	            			email = tokens[4].trim();
 	            	}
-	            	m_users.put(username, new UserWithMethod(username, password, authorities, enabled, method, email));
+
+	            	UserWithMethod userWM = new UserWithMethod(username, password, authorities, enabled, method, email);
+	            	m_users.put(username, userWM);
+        			if (email == null) {
+        				if (UserWithMethod.isEmailAddress(username))
+        					usersForWhichToCopyEmailFromUsername.add(userWM);	// we will try and set it from the username (which appears to be an email address) once all users have been loaded
+            			else
+            				LOG.debug("No e-mail address available for user " + username);
+        			}
 	            }
+	            
+	            for (UserWithMethod user : usersForWhichToCopyEmailFromUsername)
+    				try {
+        				if (getUserWithMethodByEmailAddress(user.getUsername()) != null)
+        					throw new IllegalArgumentException("A different user already has this e-mail address");
+
+        				user.setEmail(user.getUsername().toLowerCase());
+        				LOG.info("Set e-mail address from username for user " + user.getUsername());
+    				}
+    				catch (IllegalArgumentException iae) {
+    					LOG.warn("Unable to set e-mail address from username for user " + user.getUsername() + ", because this address is already used", iae);
+    				}
+
 	            saveUsers();
 	        }
     	} catch (Throwable t) {
@@ -184,7 +192,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     public List<String> listUsers(boolean fExcludeAdministrators) throws IOException {
         List<String> result = new ArrayList<>();
         for (String key : m_users.keySet()) {
-            if (!fExcludeAdministrators || !loadUserByUsernameAndMethod(key, null).getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN))) {
+            if (!fExcludeAdministrators || !loadUserByUsername(key).getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN))) {
                 result.add(key);
             }
         }
@@ -199,12 +207,16 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         	UserWithMethod user = m_users.get(username);
         	
         	password = (passwordEncoder instanceof CustomBCryptPasswordEncoder && !((CustomBCryptPasswordEncoder) passwordEncoder).looksLikeBCrypt(password)) ? passwordEncoder.encode(password) : password;
-        	if (user == null) {
-        		user = new UserWithMethod(username, password, grantedAuthorities, enabled, method, email);
-        		m_users.put(username, user);
+        	if (user == null) {	// it's a new one
+        		if (email != null && !email.trim().isEmpty() && getUserWithMethodByEmailAddress(email) != null)
+        			throw new IOException("A user with this e-mail address already exists: " + email);
+        		else {
+	        		user = new UserWithMethod(username, password, grantedAuthorities, enabled, method, email);
+	        		m_users.put(username, user);
+        		}
         	} else {
         		user.setUsername(username);
-        		user.setPassword(password);
+        		user.setPassword(method.isEmpty() ? password : "" /* if using a remote auth system then we don't need to store a password */);
         		user.setAuthorities(grantedAuthorities);
         		user.setEnabled(enabled);
         		user.setMethod(method);
@@ -384,7 +396,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         for (String sUserName : userList) {
             if (sLoginLookup == null || sUserName.startsWith(sLoginLookup)) {
                 try {
-                    result.add(loadUserByUsernameAndMethod(sUserName, null));
+                    result.add(loadUserByUsername(sUserName));
                 } catch (UsernameNotFoundException unfe) {
                     LOG.error("Unable to load user by username", unfe);
                 }
@@ -422,11 +434,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         if ("anonymousUser".equals(username))
             return auth.getAuthorities();
         
-        return loadUserByUsernameAndMethod(username, null).getAuthorities();
-    }
-
-    public void updateUser(String username, UserWithMethod user) {
-        m_users.put(username, user);
+        return loadUserByUsername(username).getAuthorities();
     }
 
     public Map<String /*module*/, Collection<String /*entity-type*/>> getWritableEntityTypesByModule(Collection<? extends GrantedAuthority> authorities) {
@@ -449,11 +457,18 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         return result;
     }
 
-    public UserWithMethod getUserWithMethodByEmailAddress(String email) {
+    public UserWithMethod getUserWithMethodByEmailAddress(String email) throws IllegalArgumentException {
+    	if (email != null)
+    		email = email.trim().toLowerCase();
+
+    	List<UserWithMethod> users = new ArrayList<>();
     	for (UserWithMethod user : m_users.values()) {
-    		if (user.getEmail() != null && user.getEmail().equals(email))
-    			return user;
+    		if (user.getEmail() != null && user.getEmail().equalsIgnoreCase(email))
+    			users.add(user);
     	}
-    	return null;
+    	if (users.size() > 1)
+    		throw new IllegalArgumentException(users.size() + " users found with e-mail address: " + email);
+
+    	return users.isEmpty() ? null : users.get(0);
     }
 }

@@ -29,6 +29,10 @@ public class UserWithMethod implements UserDetails {
 		this.authorities.addAll(authorities);
 	}
 	
+	public static boolean isEmailAddress(String stringToTest) {
+		return emailPattern.matcher(stringToTest).matches();
+	}
+	
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
 		return new ArrayList<GrantedAuthority>(authorities);
@@ -40,7 +44,7 @@ public class UserWithMethod implements UserDetails {
 	}
 
 	public String getEmail() {
-		return email != null ? email : (emailPattern.matcher(username).matches() ? username : null);
+		return email/* != null ? email : (isEmailAddress(username) ? username : null)*/;
 	}
 
 	public void setEmail(String email) {

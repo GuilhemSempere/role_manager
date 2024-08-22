@@ -177,7 +177,7 @@ public class BackOfficeController {
 		UserDetails user = null;	// we need to support the case where the user does not exist yet
 		try
 		{
-			user = userDao.loadUserByUsernameAndMethod(username, null);
+			user = userDao.loadUserByUsername(username);
 		}
 		catch (UsernameNotFoundException ignored)
 		{}

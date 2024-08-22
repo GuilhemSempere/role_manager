@@ -151,6 +151,7 @@ public interface IModuleManager {
 
 	/**
 	 * @return A string giving instructions for enabling dumps (empty string if already enabled)
+	 * @throws InterruptedException 
 	 */
 	String getActionRequiredToEnableDumps();
 

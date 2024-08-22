@@ -16,6 +16,7 @@
  *******************************************************************************/
 package fr.cirad.web.controller.security;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -199,7 +200,7 @@ public class UserPermissionController
 	{
 		model.addAttribute("rolesByLevel1Type", rolesByLevel1Type);
 
-		UserDetails user = username != null ? userDao.loadUserByUsernameAndMethod(username, null) : new UserWithMethod(" ", "", new ArrayList<GrantedAuthority>(), true, "", null);
+		UserDetails user = username != null ? userDao.loadUserByUsername(username) : new UserWithMethod(" ", "", new ArrayList<>(), true, "", null);
 		model.addAttribute("user", user);
 		Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
 		boolean fIsLoggedUserAdmin = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
@@ -225,9 +226,11 @@ public class UserPermissionController
 	protected String processForm(Model model, HttpServletRequest request) throws Exception
 	{
 		String sUserName = request.getParameter("username"), sPassword = request.getParameter("password"), sEmail = request.getParameter("email");
-		boolean fGotUserName = sUserName != null && sUserName.length() > 0;
-		boolean fGotPassword = sPassword != null && sPassword.length() > 0;
+		boolean fGotUserName = sUserName != null && sUserName.trim().length() > 0;
+		boolean fGotPassword = sPassword != null && sPassword.trim().length() > 0;
+		boolean fGotEmail = sEmail != null && sEmail.trim().length() > 0;
 		boolean fCloning = "true".equals(request.getParameter("cloning"));
+		boolean fIsNewUser = "true".equals(request.getParameter("isNew"));
 
 		ArrayList<String> errors = new ArrayList<String>();
 
@@ -235,7 +238,9 @@ public class UserPermissionController
 		if (fGotUserName)
 			try
 			{	
-				user = (UserWithMethod) userDao.loadUserByUsernameAndMethod(sUserName, null);
+				user = (UserWithMethod) userDao.loadUserByUsername(sUserName);
+				if (fIsNewUser && user != null)
+					errors.add("Username already exists");
 			}
 			catch (UsernameNotFoundException unfe)
 			{	// it's a new user, so make sure we have a password
@@ -243,13 +248,20 @@ public class UserPermissionController
 					errors.add("You must specify a password");
 			}
 
+		Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
+		if (!fGotEmail) {
+			if (!loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
+				errors.add("You must specify an e-mail address");
+		}
+		else if (!UserWithMethod.isEmailAddress(sEmail))
+			errors.add("Invalid e-mail address specified");
+
 		if (!fGotPassword && user != null)
 			sPassword = user.getPassword();		// password remains the same
 
 		HashSet<String> entitiesOnWhichPermissionsWereExplicitlyApplied = new HashSet<>();
 		HashSet<String> grantedAuthorityLabels = new HashSet<>();	// ensures unicity 
 		
-		Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
 		if (user != null && user.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			grantedAuthorityLabels.add(IRoleDefinition.ROLE_ADMIN);
 		else
@@ -332,17 +344,32 @@ public class UserPermissionController
 
 		if (errors.size() > 0 || (!fGotPassword && fCloning))
 		{
-			ArrayList<GrantedAuthority> grantedAuthorities = new ArrayList<GrantedAuthority>();
+			ArrayList<GrantedAuthority> grantedAuthorities = new ArrayList<>();
 			for (final String sGA : grantedAuthorityLabels)
 				grantedAuthorities.add(new SimpleGrantedAuthority(sGA));
 			user = new UserWithMethod(fGotUserName ? sUserName : " ", "", grantedAuthorities, true, "", sEmail);
 			model.addAttribute("errors", errors);
 			setupForm(model, null);
 			model.addAttribute("user", user);
+			model.addAttribute("isNew", fIsNewUser);
 			return userDetailsURL.substring(0, userDetailsURL.lastIndexOf("."));
 		}
 
-		userDao.saveOrUpdateUser(sUserName, sPassword, grantedAuthorityLabels.toArray(new String[grantedAuthorityLabels.size()]), true, (user == null) ? "" : user.getMethod(), sEmail);
+		try {
+			userDao.saveOrUpdateUser(sUserName, sPassword, grantedAuthorityLabels.toArray(new String[grantedAuthorityLabels.size()]), true, (user == null) ? "" : user.getMethod(), sEmail);
+		}
+		catch (IOException ioe) {
+			errors.add(ioe.getMessage());
+			ArrayList<GrantedAuthority> grantedAuthorities = new ArrayList<>();
+			for (final String sGA : grantedAuthorityLabels)
+				grantedAuthorities.add(new SimpleGrantedAuthority(sGA));
+			user = new UserWithMethod(fGotUserName ? sUserName : " ", "", grantedAuthorities, true, "", sEmail);
+			model.addAttribute("errors", errors);
+			setupForm(model, null);
+			model.addAttribute("user", user);
+			model.addAttribute("isNew", fIsNewUser);
+			return userDetailsURL.substring(0, userDetailsURL.lastIndexOf("."));
+		}
 		return "redirect:" + userListPageURL;
 	}
 
@@ -354,7 +381,7 @@ public class UserPermissionController
 		UserDetails user = null;	// we need to support the case where the user does not exist yet
 		try
 		{
-			user = userDao.loadUserByUsernameAndMethod(username, null);
+			user = userDao.loadUserByUsername(username);
 		}
 		catch (UsernameNotFoundException ignored)
 		{}
@@ -368,7 +395,7 @@ public class UserPermissionController
 	@DeleteMapping(userRemovalURL)
 	protected @ResponseBody boolean removeUser(@RequestParam("user") String sUserName) throws Exception
 	{
-		UserDetails user = userDao.loadUserByUsernameAndMethod(sUserName, null);
+		UserDetails user = userDao.loadUserByUsername(sUserName);
 		if (user != null && user.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
 			throw new Exception("Admin user cannot be deleted!");
 
