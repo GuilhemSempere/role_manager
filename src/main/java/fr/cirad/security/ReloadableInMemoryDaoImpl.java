@@ -205,22 +205,25 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         	m_users.remove(username);	// we actually want to delete it
         } else {
         	UserWithMethod user = m_users.get(username);
-        	
         	password = (passwordEncoder instanceof CustomBCryptPasswordEncoder && !((CustomBCryptPasswordEncoder) passwordEncoder).looksLikeBCrypt(password)) ? passwordEncoder.encode(password) : password;
+        	boolean fValidEmailPassed = email != null && !email.trim().isEmpty();
         	if (user == null) {	// it's a new one
-        		if (email != null && !email.trim().isEmpty() && getUserWithMethodByEmailAddress(email) != null)
+        		if (fValidEmailPassed && getUserWithMethodByEmailAddress(email) != null)
         			throw new IOException("A user with this e-mail address already exists: " + email);
         		else {
 	        		user = new UserWithMethod(username, password, grantedAuthorities, enabled, method, email);
 	        		m_users.put(username, user);
         		}
         	} else {
+        		if (fValidEmailPassed && !email.trim().equalsIgnoreCase(user.getEmail()) && getUserWithMethodByEmailAddress(email) != null)
+        			throw new IOException("A user with this e-mail address already exists: " + email);
+
         		user.setUsername(username);
         		user.setPassword(method.isEmpty() ? password : "" /* if using a remote auth system then we don't need to store a password */);
         		user.setAuthorities(grantedAuthorities);
         		user.setEnabled(enabled);
         		user.setMethod(method);
-        		user.setEmail(email);
+        		user.setEmail(email.trim());
         	}
 	    }
     }
