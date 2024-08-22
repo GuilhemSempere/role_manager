@@ -166,7 +166,7 @@
 					</c:otherwise>
 				</c:choose>
 			</div>
-			<c:if test="${user.getMethod().isEmpty() && (fn:contains(loggedUserAuthorities, adminRole) || loggedUser.username eq user.username)}">
+			<c:if test="${fn:contains(loggedUserAuthorities, adminRole) || loggedUser.username eq user.username}">
 				<div style="margin-left:50px; display:inline-block;">
 					E-mail address: <input id="email" type='email' name="email" style='width:200px;' value="${user.email}" />
 					<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}"><span class="text-red">*</span></c:if>
