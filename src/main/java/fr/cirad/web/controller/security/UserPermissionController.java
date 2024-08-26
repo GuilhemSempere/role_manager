@@ -42,6 +42,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -223,7 +224,7 @@ public class UserPermissionController
 	}
 
 	@PostMapping(value = userDetailsURL)
-	protected String processForm(Model model, HttpServletRequest request) throws Exception
+	protected String processForm(Authentication authentication, Model model, HttpServletRequest request) throws Exception
 	{
 		String sUserName = request.getParameter("username"), sPassword = request.getParameter("password"), sEmail = request.getParameter("email");
 		boolean fGotUserName = sUserName != null && sUserName.trim().length() > 0;
@@ -248,10 +249,10 @@ public class UserPermissionController
 					errors.add("You must specify a password");
 			}
 
-		Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
+		Collection<? extends GrantedAuthority> loggedUserAuthorities = authentication.getAuthorities();
 		if (!fGotEmail) {
-			if (!loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
-				errors.add("You must specify an e-mail address");
+			if (authentication.getName().equals(sUserName) && !loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
+				errors.add("You must specify an e-mail address");	// force users to specify an e-mail address for their own account
 		}
 		else if (!UserWithMethod.isEmailAddress(sEmail))
 			errors.add("Invalid e-mail address specified");

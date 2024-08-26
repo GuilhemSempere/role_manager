@@ -223,7 +223,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         		user.setAuthorities(grantedAuthorities);
         		user.setEnabled(enabled);
         		user.setMethod(method);
-        		user.setEmail(email.trim());
+        		user.setEmail(email == null ? user.getEmail() : email.trim());
         	}
 	    }
     }
