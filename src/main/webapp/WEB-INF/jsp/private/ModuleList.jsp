@@ -186,13 +186,15 @@
 			</c:if>
 
 	   		if (moduleData[key] != null) {
-				<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}">if (permissions.has(key + "$" + "${supervisorRole}"))</c:if> {
+				<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}">if (permissions.has(key + "$" + "${supervisorRole}")) {</c:if>
 					rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol1' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>'] ? " checked" : "") + "></td>");
 					rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol2' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>'] ? " checked" : "") + "></td>");
 			   		rowContents.append("<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'>&nbsp;<input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'></td>");
+			   	<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}">
 				}
 		   		else
 			   		rowContents.append("<td colspan='3' style='background-color:lightgrey;'></td>");
+		   		</c:if>
 			}
 	   		
 			<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
