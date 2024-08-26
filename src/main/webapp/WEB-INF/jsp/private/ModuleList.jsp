@@ -76,27 +76,6 @@
 			}).error(function(xhr) { handleError(xhr); });
 		}
 
-		function handleError(xhr) {
-			if (!xhr.getAllResponseHeaders())
-				return;	// user is probably leaving the current page
-
-		    if (xhr.status == 403) {
-		        alert("You do not have access to this resource");
-		        return;
-		    }
-
-		  	var errorMsg;
-		  	if (xhr != null && xhr.responseText != null) {
-		  		try {
-		  			errorMsg = $.parseJSON(xhr.responseText)['errorMsg'];
-		  		}
-		  		catch (err) {
-		  			errorMsg = xhr.responseText;
-		  		}
-		  	}
-		  	alert(errorMsg);
-		}
-
 		function removeItem(moduleName)
 		{
 			let itemRow = $("#row_" + moduleName);
@@ -123,6 +102,28 @@
 			        }
 				});
 			}
+		}
+		</c:if>		
+
+		function handleError(xhr) {
+			if (!xhr.getAllResponseHeaders())
+				return;	// user is probably leaving the current page
+
+		    if (xhr.status == 403) {
+		        alert("You do not have access to this resource");
+		        return;
+		    }
+
+		  	var errorMsg;
+		  	if (xhr != null && xhr.responseText != null) {
+		  		try {
+		  			errorMsg = $.parseJSON(xhr.responseText)['errorMsg'];
+		  		}
+		  		catch (err) {
+		  			errorMsg = xhr.responseText;
+		  		}
+		  	}
+		  	alert(errorMsg);
 		}
 
 		function saveChanges(moduleName)
@@ -158,8 +159,6 @@
 					$(this).parent().css("background-color", flag ? "red" : "");
 		    });
 		}
-		</c:if>
-
 
 		function buildRow(key)
 		{
@@ -186,12 +185,17 @@
 				rowContents.append("</td>");
 			</c:if>
 
-			<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
 	   		if (moduleData[key] != null) {
-				rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol1' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>'] ? " checked" : "") + "></td>");
-				rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol2' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>'] ? " checked" : "") + "></td>");
+				<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}">if (permissions.has(key + "$" + "${supervisorRole}"))</c:if> {
+					rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol1' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>'] ? " checked" : "") + "></td>");
+					rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol2' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>'] ? " checked" : "") + "></td>");
+			   		rowContents.append("<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'>&nbsp;<input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'></td>");
+				}
+		   		else
+			   		rowContents.append("<td colspan='3' style='background-color:lightgrey;'></td>");
 			}
-	   		rowContents.append("<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'>&nbsp;<input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'></td>");
+	   		
+			<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
 	   		rowContents.append("<td align='center'>" + (<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && actionRequiredToEnableDumps eq ''}">moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] == "BUSY" ? "" : </c:if>"<a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem(\"" + encodeURIComponent(key) + "\");' title='Discard module'><img src='img/delete.gif'></a>") + "</td>");
 	   		</c:if>
 	   		return '<tr id="row_' + encodeURIComponent(key) + '" onmouseover="this.style.backgroundColor=\'#99eebb\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents.toString() + '</tr>';
@@ -205,13 +209,15 @@
 				nAddedRows = 0;
 				for (var key in moduleData)
 			   		tableBody.append(buildRow(key));
-			});
+			}).error(function(xhr) { handleError(xhr); });
 
+			<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
 			$.getJSON('<c:url value="<%=BackOfficeController.hostListURL%>" />', {}, function(jsonResult){
 				$("#hosts").html("");
 				for (var key in jsonResult)
 					$("#hosts").append("<option value='" + jsonResult [key]+ "'>" + jsonResult [key]+ "</option>");
-			});
+			}).error(function(xhr) { handleError(xhr); });
+			</c:if>
 		}
 
     	function isValidKeyForNewName(evt)
@@ -271,9 +277,9 @@
 					    const headerRow = $('<tr></tr>');
 
 					    headerRow.append('<th>Validity</th><th>Dump name</th><th>Download</th><th>Archive size</th><th>Logs</th><th>Creation date</th><th>Description</th>')
-					    if (!dumpData.locked){
+					    if (!dumpData.locked)
 							headerRow.append('<th>Restore</th><th>Delete</th>');
-					    }
+
 					    dumpTable.append(headerRow);
 
 					    dumpData.dumps.forEach(function (dumpInfo) {
@@ -315,11 +321,10 @@
 				        $("#newDumpDialog").modal("hide");
 				        $("#moduleDumpDialog").modal("hide");
 				    })
-					if (dumpData.locked){
+					if (dumpData.locked)
 				        $("#newDumpButton").hide();
-				    } else {
+				    else
 					    $("#newDumpButton").show();
-				    }
 			});
 		}
 
@@ -418,12 +423,10 @@
 				<c:if test="${actionRequiredToEnableDumps eq ''}">
 				<th>Dump management</th>
 				</c:if>
-				<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
-				<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
 				<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_PUBLIC %></th>
 				<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_HIDDEN %></th>
 				<th>Changes</th>
-				</c:if>
+				<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
 				<th>Removal</th>
 				</c:if>
 			</tr>
