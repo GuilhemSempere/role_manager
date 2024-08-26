@@ -69,8 +69,11 @@
 					for (var key in jsonResult) {
 					   	rowContents = "";
 				   		if (jsonResult[key] != null) {
+				   			let bgColor = "";
 						   	for (var subkey in jsonResult[key]) {
 						   		cellData = "" + jsonResult[key][subkey];
+						   		if (cellData == "${loggedUserName}")
+						   			bgColor = "#FFFFC9";	// highlight current user
 								rowContents += "<td style='max-width:600px;'>" + cellData.replace(/\n/g, "<br>") + "</td>";
 							}
 
@@ -80,7 +83,7 @@
 								rowContents += "&nbsp;&nbsp;&nbsp;<a href='javascript:removeItem(\"" + encodeURIComponent(jsonResult[key][0]) + "\");' title='Discard user " + jsonResult[key][0] + "'><img src='../img/delete.gif'></a>";
 							</c:if>
 							rowContents += "</td>";
-					   		add_new_row('#userResultTable', '<tr onmouseover="this.style.backgroundColor=\'#99eebb\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents + '</tr>');
+					   		add_new_row('#userResultTable', '<tr style="background-color:' + bgColor + ';" onmouseover="this.style.backgroundColor=\'#99eebb\';" onmouseout="this.style.backgroundColor=\'' + bgColor + '\';">' + rowContents + '</tr>');
 					   		nAddedRows++;
 				   		}
 				   		else
