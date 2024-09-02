@@ -93,7 +93,7 @@
 	function toggleVisibility(entityId, entityName)
 	{
 		let itemRow = $("#row_" + entityId);
-		let visibilityCell = itemRow.find("td:eq(1)");
+		let visibilityCell = itemRow.find("td:nth-last-child(2)");
 		let setAsPublic = visibilityCell.find("input").is(":checked");
 		itemRow.find("td:last").append("<div style='position:absolute; margin-left:60px; margin-top:-10px;'><img src='img/progress.gif'></div>");
 		
@@ -183,7 +183,7 @@
 				<tr id="row_${entity.key}" onmouseover="this.style.backgroundColor='#99eebb';" onmouseout="this.style.backgroundColor='';">
 					<td>${entity.value[0]}</td>
 					<c:if test="${descriptionSupported}"><td><textarea style='font-size:10px;' cols='55' rows='2' onchange='parentNode.style.backgroundColor="#FFA500"; if (confirm("Save description for ${param.entityType} ${entity.value[0]}?")) saveDesc("${entity.key}", this);'>${entity.value[1]}</textarea></td></c:if>
-					<c:if test="${visibilitySupported}"><td align='center'><input type='checkbox' checked onclick='toggleVisibility("${entity.key}", "${entity.value}");'></td></c:if>
+					<c:if test="${visibilitySupported}"><td align='center'><input type='checkbox' checked onclick='toggleVisibility("${entity.key}", "${entity.value[0]}");'></td></c:if>
 					<c:forEach var="subEntityType" items="${subEntityTypes}">
 					<td class="subEntities" style="padding-bottom:2px;">
 						<c:forEach var="subEntity" items="${subEntities[entity.key][subEntityType]}">
@@ -208,7 +208,7 @@
 				<tr id="row_${entity.key}" onmouseover="this.style.backgroundColor='#99eebb';" onmouseout="this.style.backgroundColor='';">
 					<td>${entity.value[0]}</td>
 					<c:if test="${descriptionSupported}"><td><textarea style='font-size:10px;' cols='55' rows='2' onchange='parentNode.style.backgroundColor="#FFA500"; if (confirm("Save description for ${param.entityType} ${entity.value[0]}?")) saveDesc("${entity.key}", this);'>${entity.value[1]}</textarea></td></c:if>
-					<c:if test="${visibilitySupported}"><td align='center'><input type='checkbox' onclick='toggleVisibility("${entity.key}", "${entity.value}");'></td></c:if>
+					<c:if test="${visibilitySupported}"><td align='center'><input type='checkbox' onclick='toggleVisibility("${entity.key}", "${entity.value[0]}");'></td></c:if>
 					<c:forEach var="subEntityType" items="${subEntityTypes}">
 					<td class="subEntities" style="padding-bottom:2px;">
 						<c:forEach var="subEntity" items="${subEntities[entity.key][subEntityType]}">
