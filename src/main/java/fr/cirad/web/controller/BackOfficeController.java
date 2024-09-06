@@ -527,10 +527,7 @@ public class BackOfficeController {
 	protected ModelAndView processListPage() throws Exception {
 	    Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
 		if (!loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) && userDao.getSupervisedModules(loggedUserAuthorities).isEmpty())
-			throw new Exception("You are not allowed to access dump status");
-
-		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
-			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
+			throw new Exception("You are not allowed to access process list page!");
 
 		ModelAndView mav = new ModelAndView();
 		return mav;
@@ -540,10 +537,6 @@ public class BackOfficeController {
 	protected @ResponseBody TreeSet<Map<String, String>> processListStatus() throws Exception {
 		Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
 		HashSet<String> supervisedModules = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) ? null : userDao.getSupervisedModules(loggedUserAuthorities);
-
-		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty()) {
-			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
-		}
 
 		Map<String, AbstractProcess> allProcesses = moduleManager.getImportProcesses();
 		allProcesses.putAll(dumpManager.getProcesses());

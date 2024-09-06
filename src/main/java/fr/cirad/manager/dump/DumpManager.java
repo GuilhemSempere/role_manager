@@ -6,14 +6,15 @@ import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
 import fr.cirad.manager.AbstractProcess;
 import fr.cirad.manager.IModuleManager;
 
 @Component
+@EnableScheduling
 public class DumpManager {
 	private static final Logger LOG = Logger.getLogger(DumpManager.class);
 	
