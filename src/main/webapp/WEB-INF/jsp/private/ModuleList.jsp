@@ -20,7 +20,6 @@
 <c:set var="loggedUserAuthorities" value="${userDao.getLoggedUserAuthorities()}" />
 <c:set var="loggedUser" value="<%= SecurityContextHolder.getContext().getAuthentication().getPrincipal() %>" />
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
-<c:set var='supervisorRole' value='<%= IRoleDefinition.ROLE_DB_SUPERVISOR %>' />
 <jsp:useBean id="userDao" class="fr.cirad.security.ReloadableInMemoryDaoImpl" />
 
 <html>
@@ -52,7 +51,12 @@
 		}
 
 		var moduleData;
-
+		var moduleDetailsURL = '<c:url value="<%= BackOfficeController.moduleDetailsURL %>" />';
+		var modulePublicFieldName = "<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>";
+		var moduleHiddenFieldName = "<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>";
+		var isAdmin = ${fn:contains(loggedUserAuthorities, adminRole)};
+		var supervisorRole = "<%= IRoleDefinition.ROLE_DB_SUPERVISOR %>";
+	
 		const dumpValidityTips = new Map([
 		    ["VALID", "Up to date: A dump is available for the current database contents"],
 		    ["OUTDATED", "Out of date: Existing dumps were created before the last change to this database"],
@@ -131,13 +135,13 @@
 			let itemRow = $("#row_" + moduleName);
 			let setToPublic = itemRow.find(".flagCol1").prop("checked");
 			let setToHidden = itemRow.find(".flagCol2").prop("checked");
-			$.getJSON('<c:url value="<%= BackOfficeController.moduleVisibilityURL %>" />', { module:moduleName,public:setToPublic,hidden:setToHidden }, function(updated){
+			$.getJSON(moduleDetailsURL, { module:moduleName,public:setToPublic,hidden:setToHidden,"<%= BackOfficeController.DTO_FIELDNAME_CATEGORY %>":itemRow.find("td:first-child").text() }, function(updated){
 				if (!updated)
 					alert("Unable to apply changes for " + moduleName);
 				else
 				{
-					moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>'] = setToPublic;
-					moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>'] = setToHidden;
+					moduleData[moduleName][modulePublicFieldName] = setToPublic;
+					moduleData[moduleName][moduleHiddenFieldName] = setToHidden;
 					setDirty(moduleName, false);
 				}
 			}).error(function(xhr) { handleError(xhr); });
@@ -146,8 +150,8 @@
 		function resetFlags(moduleName)
 		{
 			let itemRow = $("#row_" + moduleName);
-			itemRow.find(".flagCol1").prop("checked", moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>']);
-			itemRow.find(".flagCol2").prop("checked", moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>']);
+			itemRow.find(".flagCol1").prop("checked", moduleData[moduleName][modulePublicFieldName]);
+			itemRow.find(".flagCol2").prop("checked", moduleData[moduleName][moduleHiddenFieldName]);
 			setDirty(moduleName, false);
 		}
 
@@ -163,6 +167,7 @@
 		function buildRow(key)
 		{
 		   	let rowContents = new StringBuffer();
+		   	rowContents.append("<td>" + moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_CATEGORY %>'] + "</td>");
 		   	rowContents.append("<td><a title='Click to browse database' href='../?module=" + key + "' target='_blank'>" + key + "</a></td>");
 		   	let dbSize = parseFloat(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_SIZE %>']);
 		   	rowContents.append("<td>" + formatFileSize(dbSize) + "</td>");
@@ -181,14 +186,14 @@
 			<c:if test="${actionRequiredToEnableDumps eq ''}">
 				rowContents.append('<td class="dump' + moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] + '" data-toggle="tooltip" title="' + dumpValidityTips.get(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>']) + '">');
 				if ('UNSUPPORTED' != moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'])
-					<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}">if (permissions.has(key + "$" + "${supervisorRole}"))</c:if>	rowContents.append("<a style=\"color:#113388;\" href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a>");
+					<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}">if (permissions.has(key + "$" + supervisorRole))</c:if>	rowContents.append("<a style=\"color:#113388;\" href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a>");
 				rowContents.append("</td>");
 			</c:if>
 
 	   		if (moduleData[key] != null) {
-				<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}">if (permissions.has(key + "$" + "${supervisorRole}")) {</c:if>
-					rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol1' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>'] ? " checked" : "") + "></td>");
-					rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol2' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>'] ? " checked" : "") + "></td>");
+				<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}">if (permissions.has(key + "$" + supervisorRole)) {</c:if>
+					rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol1' type='checkbox'" + (moduleData[key][modulePublicFieldName] ? " checked" : "") + "></td>");
+					rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol2' type='checkbox'" + (moduleData[key][moduleHiddenFieldName] ? " checked" : "") + "></td>");
 			   		rowContents.append("<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'>&nbsp;<input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'></td>");
 			   	<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}">
 				}
@@ -200,7 +205,7 @@
 			<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
 	   		rowContents.append("<td align='center'>" + (<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && actionRequiredToEnableDumps eq ''}">moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] == "BUSY" ? "" : </c:if>"<a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem(\"" + encodeURIComponent(key) + "\");' title='Discard module'><img src='img/delete.gif'></a>") + "</td>");
 	   		</c:if>
-	   		return '<tr id="row_' + encodeURIComponent(key) + '" onmouseover="this.style.backgroundColor=\'#99eebb\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents.toString() + '</tr>';
+	   		return '<tr id="row_' + encodeURIComponent(key) + '" onmouseover="this.style.backgroundColor=\'#aaf0cc\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents.toString() + '</tr>';
 		}
 
 		function loadData()
@@ -211,8 +216,12 @@
 				nAddedRows = 0;
 				for (var key in moduleData)
 			   		tableBody.append(buildRow(key));
-			}).error(function(xhr) { handleError(xhr); });
-
+			})	.error(function(xhr) { handleError(xhr); })
+				.success(function(xhr) {
+					if (typeof customizeModuleList != 'undefined')
+						customizeModuleList();
+				});
+			
 			<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
 			$.getJSON('<c:url value="<%=BackOfficeController.hostListURL%>" />', {}, function(jsonResult){
 				$("#hosts").html("");
@@ -385,6 +394,16 @@
 		function resizeIFrame() {
 			$('#moduleContentFrame').css('height', (document.body.clientHeight - 180)+'px');
 		}
+		
+        function loadScript(src, callback) {
+            $.ajax({
+            	async:false,
+                url: src,
+                dataType: 'script',
+                success: function() { callback(true); },
+                error: function() { callback(false); }
+            });
+        }
 
 	    $(document).ready(function() {
 	    	resizeIFrame();
@@ -402,7 +421,7 @@
 
 <body style='background-color:#f0f0f0;'>
 	<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
-		<div style="max-width:600px; padding:10px; margin-bottom:10px; border:2px dashed grey; background-color:lightgrey;">
+		<div style="max-width:600px; padding:10px; margin-bottom:10px; border:2px dashed grey; background-color:lightgrey;" id="datasourceCreationDiv">
 			<b>Create new empty database</b><br/>
 			On host <select id="hosts"></select> named <input type="text" id="newModuleName" onkeypress="if (!isValidKeyForNewName(event)) { event.preventDefault(); event.stopPropagation(); }" onkeyup="$(this).next().prop('disabled', !isValidNewName($(this).val()));">
 			<input type="button" value="Create" class="btn btn-xs btn-primary" onclick="createModule($(this).prev().val(), $('#hosts').val());" disabled>
@@ -416,6 +435,7 @@
 	<table class="adminListTable margin-top-md" id="moduleTable">
 		<thead>
  			<tr>
+				<th>Category</th>
  				<th>Database name</th>
 				<th>Storage size</th>
 				<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
@@ -521,5 +541,7 @@
 		</div>
 	</div>
 </body>
+
+<script type="text/javascript" src="../js/moduleListCustomisation.js"></script>
 
 </html>

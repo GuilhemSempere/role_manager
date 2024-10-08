@@ -72,21 +72,20 @@ public interface IModuleManager {
 	 * @param sModule
 	 * @param fPublic
 	 * @param fHidden
-	 * @param ncbiTaxonIdNameAndSpecies
+	 * @param datasourceCategory
 	 * @return whether or not module update succeeded
 	 * @throws Exception
 	 */
-	boolean updateDataSource(String sModule, boolean fPublic, boolean fHidden, String ncbiTaxonIdNameAndSpecies) throws Exception;
+	boolean updateDataSource(String sModule, boolean fPublic, boolean fHidden, String datasourceCategory) throws Exception;
 
 	/**
 	 * @param sModule
 	 * @param sHost
-	 * @param ncbiTaxonIdNameAndSpecies
 	 * @param expiryDate
 	 * @return whether or not module creation succeeded
 	 * @throws Exception
 	 */
-	boolean createDataSource(String sModule, String sHost, String ncbiTaxonIdNameAndSpecies, Long expiryDate) throws Exception;
+	boolean createDataSource(String sModule, String sHost, Long expiryDate) throws Exception;
 
 	/**
 	 * A single entity is to be removed here. The collection of IDs is for dealing with nested sub-entities (provide ID of each parent entity, ending with the target)
@@ -147,7 +146,12 @@ public interface IModuleManager {
 	 * @return name of the host this module's data is stored on
 	 */
 	String getModuleHost(String sModule);
-
+	
+	/**
+	 * @param sModule
+	 * @return the module's category String
+	 */
+	String getModuleCategory(String module);
 
 	/**
 	 * @return A string giving instructions for enabling dumps (empty string if already enabled)

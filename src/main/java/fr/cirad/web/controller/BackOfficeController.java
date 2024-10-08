@@ -88,6 +88,7 @@ public class BackOfficeController {
 
 	static final public String FRONTEND_URL = "private";
 
+	static final public String DTO_FIELDNAME_CATEGORY = "category";
 	static final public String DTO_FIELDNAME_HOST = "host";
 	static final public String DTO_FIELDNAME_SIZE = "size";
 	static final public String DTO_FIELDNAME_PUBLIC = "public";
@@ -102,7 +103,7 @@ public class BackOfficeController {
 	static final public String moduleListDataURL = "/" + FRONTEND_URL + "/listModules.json_";
 	static final public String moduleRemovalURL = "/" + FRONTEND_URL + "/removeModule.json_";
 	static final public String moduleCreationURL = "/" + FRONTEND_URL + "/createModule.json_";
-	static final public String moduleVisibilityURL = "/" + FRONTEND_URL + "/moduleVisibility.json_";
+	static final public String moduleDetailsURL = "/" + FRONTEND_URL + "/moduleDetails.json_";
 	static final public String moduleContentPageURL = "/" + FRONTEND_URL + "/ModuleContents.do_";
 	static final public String moduleEntityInfoURL = "/" + FRONTEND_URL + "/moduleEntityInfo.json_";
 	static final public String moduleEntityRemovalURL = "/" + FRONTEND_URL + "/removeModuleEntity.json_";
@@ -257,6 +258,7 @@ public class BackOfficeController {
         			double storageSize = moduleManager.getModuleSize(module);
         			if (storageSize > 0)
         			    aModuleEntry.put(DTO_FIELDNAME_SIZE, (Comparable) storageSize);
+        			aModuleEntry.put(DTO_FIELDNAME_CATEGORY, moduleManager.getModuleCategory(module));
         			aModuleEntry.put(DTO_FIELDNAME_HOST, moduleManager.getModuleHost(module));
         			aModuleEntry.put(DTO_FIELDNAME_PUBLIC, publicModules.contains(module));
         			aModuleEntry.put(DTO_FIELDNAME_HIDDEN, moduleManager.isModuleHidden(module));
@@ -270,18 +272,18 @@ public class BackOfficeController {
 		return result;
 	}
 
-	@GetMapping(moduleVisibilityURL)
+	@GetMapping(moduleDetailsURL)
 	@PreAuthorize("@roleService.hasSupervisorOrAdminRole(authentication, #module)")
-	protected @ResponseBody boolean modifyModuleVisibility(HttpServletRequest request, @RequestParam String module, @RequestParam("public") boolean fPublic, @RequestParam("hidden") boolean fHidden) throws Exception
+	protected @ResponseBody boolean modifyModuleDetails(HttpServletRequest request, @RequestParam String module, @RequestParam("public") boolean fPublic, @RequestParam("hidden") boolean fHidden, @RequestParam(required=false) String category) throws Exception
 	{
-		return moduleManager.updateDataSource(module, fPublic, fHidden, null);
+		return moduleManager.updateDataSource(module, fPublic, fHidden, category);
 	}
 
 	@GetMapping(moduleCreationURL)
 	@PreAuthorize("@roleService.hasAdminRole(authentication)")
 	protected @ResponseBody boolean createModule(@RequestParam String module, @RequestParam("host") String sHost) throws Exception
 	{
-		return moduleManager.createDataSource(module, sHost, null, null);
+		return moduleManager.createDataSource(module, sHost, null);
 	}
 
 	@DeleteMapping(moduleRemovalURL)
