@@ -58,6 +58,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -77,6 +78,7 @@ import fr.cirad.manager.IBackgroundProcess;
 import fr.cirad.manager.IModuleManager;
 import fr.cirad.manager.ProcessStatus;
 import fr.cirad.security.ReloadableInMemoryDaoImpl;
+import fr.cirad.security.UserWithMethod;
 import fr.cirad.security.base.IRoleDefinition;
 import fr.cirad.security.service.RoleService;
 import fr.cirad.web.controller.security.UserPermissionController;
@@ -229,7 +231,7 @@ public class BackOfficeController {
 		model.addAttribute("subEntities", subEntityMap);
 	}
 
-	@PreAuthorize("@roleService.hasAdminRole(authentication)")
+	@PreAuthorize("@roleService.hasDbCreatororOrAdminRole(authentication)")
 	@GetMapping(hostListURL)
 	protected @ResponseBody Collection<String> getHostList() throws IOException {
     	return moduleManager.getHosts();
@@ -280,10 +282,33 @@ public class BackOfficeController {
 	}
 
 	@GetMapping(moduleCreationURL)
-	@PreAuthorize("@roleService.hasAdminRole(authentication)")
+	@PreAuthorize("@roleService.hasDbCreatororOrAdminRole(authentication)")
 	protected @ResponseBody boolean createModule(@RequestParam String module, @RequestParam("host") String sHost) throws Exception
 	{
-		return moduleManager.createDataSource(module, sHost, null);
+        boolean succeeded = moduleManager.createDataSource(module, sHost, null);
+        if (succeeded)
+			try {
+		        SecurityContext securityContext = SecurityContextHolder.getContext();
+		        Collection<? extends GrantedAuthority> auth = userDao.getLoggedUserAuthorities();
+				if (!auth.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN))) { // a new permanent database was created so we give this user supervisor role on it)
+			        String loggedUserName = securityContext.getAuthentication().getName();
+			        UserWithMethod owner = (UserWithMethod) userDao.loadUserByUsername(loggedUserName);
+
+			        SimpleGrantedAuthority role = new SimpleGrantedAuthority(module + UserPermissionController.ROLE_STRING_SEPARATOR + IRoleDefinition.ROLE_DB_SUPERVISOR);
+			        if (!auth.contains(role)) {
+			            HashSet<GrantedAuthority> authoritiesToSave = new HashSet<>();
+			            authoritiesToSave.add(role);
+			            for (GrantedAuthority authority : auth)
+			                authoritiesToSave.add(authority);
+			            userDao.saveOrUpdateUser(loggedUserName, owner.getPassword(), authoritiesToSave, owner.isEnabled(), owner.getMethod(), owner.getEmail());
+			        }
+				}
+//				tokenManager.reloadUserPermissions(securityContext);
+			}
+			catch (IOException e) {
+				LOG.error("Unable to give global supervisor role to creator of database " + module, e);
+			}
+        return succeeded;
 	}
 
 	@DeleteMapping(moduleRemovalURL)

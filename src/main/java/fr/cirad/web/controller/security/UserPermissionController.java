@@ -267,6 +267,9 @@ public class UserPermissionController
 			grantedAuthorityLabels.add(IRoleDefinition.ROLE_ADMIN);
 		else
 		{
+			if (request.getParameter(IRoleDefinition.ROLE_DB_CREATOR) != null)
+				grantedAuthorityLabels.add(IRoleDefinition.ROLE_DB_CREATOR);
+
 		    Collection<String> modules = moduleManager.getModules(null);
 	        for (String sModule : modules) {	// first look for supervisor role (if set, we don't want to save any other permissions on that module
 	        	String sSupervisorRole = sModule + ROLE_STRING_SEPARATOR + IRoleDefinition.ROLE_DB_SUPERVISOR;
@@ -318,11 +321,14 @@ public class UserPermissionController
 		if (user != null)
 		{	// make sure we don't lose permissions that are not set via this interface (i.e. roles on entities managed by other users than the connected one)
 			boolean fSubmittedByAdmin = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
-			HashSet<String> modulesSupervisedBySubmittingUser = userDao.getSupervisedModules(loggedUserAuthorities);
-			for (String supervisedModule : userDao.getSupervisedModules(user.getAuthorities()))
-				if (!fSubmittedByAdmin)
+			if (!fSubmittedByAdmin) {
+				for (String supervisedModule : userDao.getSupervisedModules(user.getAuthorities()))
 					grantedAuthorityLabels.add(supervisedModule + ROLE_STRING_SEPARATOR + IRoleDefinition.ROLE_DB_SUPERVISOR);
+				if (user.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_DB_SUPERVISOR)))
+					grantedAuthorityLabels.add(IRoleDefinition.ROLE_DB_SUPERVISOR);
+			}
 
+			HashSet<String> modulesSupervisedBySubmittingUser = userDao.getSupervisedModules(loggedUserAuthorities);
 			Map<String, Map<String, Map<String, Collection<Comparable>>>> customRolesByModuleAndEntityType = userDao.getCustomRolesByModuleAndEntityType(user.getAuthorities());
 			for (String sModule : customRolesByModuleAndEntityType.keySet()) {
 				Map<String, Map<String, Collection<Comparable>>> rolesByEntityType = customRolesByModuleAndEntityType.get(sModule);

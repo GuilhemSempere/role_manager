@@ -23,8 +23,11 @@
 <c:set var="loggedUserAuthorities" value="${userDao.getLoggedUserAuthorities()}" />
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
 <c:set var='supervisorRole' value='<%= IRoleDefinition.ROLE_DB_SUPERVISOR %>' />
+<c:set var='dbCreatorRole' value='<%= IRoleDefinition.ROLE_DB_CREATOR %>' />
 <c:set var='roleSep' value='<%= UserPermissionController.ROLE_STRING_SEPARATOR %>' />
 <c:set var='trimmedUsername' value='${fn:trim(user.username)}' />
+<c:set var="isLoggedUserAdmin" value="false" /><c:forEach var="authority" items="${loggedUser.authorities}"><c:if test="${authority == adminRole}"><c:set var="isLoggedUserAdmin" value="true" /></c:if></c:forEach>
+<c:set var="isEditedUserAdmin" value="false" /><c:forEach var="authority" items="${user.authorities}"><c:if test="${authority == adminRole}"><c:set var="isEditedUserAdmin" value="true" /></c:if></c:forEach>
 <jsp:useBean id="urlEncoder" scope="page" class="fr.cirad.web.controller.security.UserPermissionController" /><%-- dummy controller just to be able to invoke a static method --%>
 
 <html>
@@ -42,13 +45,13 @@
 			if ($("#username").val() != null)
 				$("#username").val($("#username").val().trim());
 
-			<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && !fn:contains(user.authorities, adminRole)}">
+			<c:if test="${isLoggedUserAdmin && !isEditedUserAdmin}">
 			if (doesUserExist($("#username").val()))
 				$("#cloneButtonSpan").append('<input type="button" class="btn btn-sm btn-default active" value="Clone" onclick="cloneUser();"><input type="hidden" name="cloning" value="false">');
 			</c:if>
 		}
 		
-		<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+		<c:if test="${isLoggedUserAdmin}">
 		function cloneUser()
 		{
 			var cloneName = prompt("Enter username:");
@@ -74,14 +77,14 @@
 	    	if (permissionCount == 0)
 	    	{
 	    		permissionLink.removeClass('linkToExistingPermissions');
-	    		<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+	    		<c:if test="${isLoggedUserAdmin}">
 	    		permissionLink.removeAttr('title');
 	    		</c:if>
 	    	}
 	    	else
 	    	{
 	    		permissionLink.addClass('linkToExistingPermissions');
-	    		<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+	    		<c:if test="${isLoggedUserAdmin}">
 	    		permissionLink.attr('title', "currently " + permissionCount + " permission(s)");
 	    		</c:if>
 	    	}
@@ -166,10 +169,10 @@
 					</c:otherwise>
 				</c:choose>
 			</div>
-			<c:if test="${fn:contains(loggedUserAuthorities, adminRole) || loggedUser.username eq user.username}">
+			<c:if test="${isLoggedUserAdmin || loggedUser.username eq user.username}">
 				<div style="margin-left:50px; display:inline-block;">
 					E-mail address: <input id="email" type='email' name="email" style='width:200px;' value="${user.email}" />
-					<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}"><span class="text-red">*</span></c:if>
+					<c:if test="${!isLoggedUserAdmin}"><span class="text-red">*</span></c:if>
 				</div>
 			</c:if>
 			<div style="display: inline-block; margin-left: 50px;">
@@ -187,14 +190,15 @@
 								<div class="databaseListHeader" style="background-color: #075a80;">Public databases</div>
 								<div class="databaseListModules">
 									<c:forEach var="moduleName" items="${publicModules}">
+										<c:set var="isDbSupervisor" value="false" /><c:forEach var="authority" items="${user.authorities}"><c:if test="${authority == moduleName.concat(roleSep).concat(supervisorRole)}"><c:set var="isDbSupervisor" value="true" /></c:if></c:forEach>
 										<div class="databaseModule">
 											<div class="databaseColumn">
 												<div class="databaseCell">
 													<b> ${moduleName} </b>
 												</div>
 												<div class="databaseCell">
-													<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
-														<input type="checkbox" onclick='$("a.${urlEncoder.urlEncode(moduleName)}_PermissionLink").toggle();' name='${urlEncoder.urlEncode(moduleName.concat(roleSep).concat(supervisorRole))}' ${fn:contains(user.authorities, moduleName.concat(roleSep).concat(supervisorRole)) ? " checked" : ""}>
+													<c:if test="${isLoggedUserAdmin}">
+														<input type="checkbox" onclick='$("a.${urlEncoder.urlEncode(moduleName)}_PermissionLink").toggle();' name='${urlEncoder.urlEncode(moduleName.concat(roleSep).concat(supervisorRole))}' ${isDbSupervisor ? " checked" : ""}>
 														<span class="databaseSpan">DB Supervisor</span>
 													</c:if>
 												</div>
@@ -212,7 +216,7 @@
 													<c:if test="${rolesByLevel1Type[level1Type.key] ne null}">
 														<div class="separator"></div>
 														<div class="databaseCell" style='min-height:44px;'>
-															<a id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink' class='${urlEncoder.urlEncode(moduleName)}_PermissionLink' style='text-transform:none;${fn:contains(user.authorities, moduleName.concat(roleSep).concat(supervisorRole)) ? " display:none;" : ""}' href="javascript:openPermissionDialog('${user.username}', '${moduleName}', '${level1Type.key}');">${level1Type.key}<br />permissions </a>
+															<a id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink' class='${urlEncoder.urlEncode(moduleName)}_PermissionLink' style='text-transform:none;${isDbSupervisor ? " display:none;" : ""}' href="javascript:openPermissionDialog('${user.username}', '${moduleName}', '${level1Type.key}');">${level1Type.key}<br />permissions </a>
 														<c:if test="${roles ne ''}">
 															<script type="text/javascript">updatePermissionLink("${urlEncoder.urlEncode(moduleName)}", "${level1Type.key}", "${roles}".split(",").length);</script>
 														</c:if>
@@ -232,14 +236,15 @@
 								<div class="databaseListHeader" style="background-color: #075a80;">Private databases</div>
 								<div class="databaseListModules">
 									<c:forEach var="moduleName" items="${privateModules}">
+										<c:set var="isDbSupervisor" value="false" /><c:forEach var="authority" items="${user.authorities}"><c:if test="${authority == moduleName.concat(roleSep).concat(supervisorRole)}"><c:set var="isDbSupervisor" value="true" /></c:if></c:forEach>
 										<div class="databaseModule">
 											<div class="databaseColumn">
 												<div class="databaseCell">
 													<b> ${moduleName} </b>
 												</div>
 												<div class="databaseCell">
-													<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
-														<input type="checkbox" onclick='$("a.${urlEncoder.urlEncode(moduleName)}_PermissionLink").toggle();' name='${urlEncoder.urlEncode(moduleName.concat(roleSep).concat(supervisorRole))}' ${fn:contains(user.authorities, moduleName.concat(roleSep).concat(supervisorRole)) ? " checked" : ""}>
+													<c:if test="${isLoggedUserAdmin}">
+														<input type="checkbox" onclick='$("a.${urlEncoder.urlEncode(moduleName)}_PermissionLink").toggle();' name='${urlEncoder.urlEncode(moduleName.concat(roleSep).concat(supervisorRole))}' ${isDbSupervisor ? " checked" : ""}>
 														<span class="databaseSpan">DB Supervisor</span>
 													</c:if>
 												</div>
@@ -257,11 +262,7 @@
 													<c:if test="${rolesByLevel1Type[level1Type.key] ne null}">
 														<div class="separator"></div>
 														<div class="databaseCell" style='min-height:44px;'>
-															<a
-															id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink'
-															class='${urlEncoder.urlEncode(moduleName)}_PermissionLink'
-															style='text-transform:none;${fn:contains(user.authorities, moduleName.concat(roleSep).concat(supervisorRole)) ? " display:none;" : ""}'
-															href="javascript:openPermissionDialog('${user.username}', '${moduleName}', '${level1Type.key}');">${level1Type.key}<br />permissions
+															<a id='${urlEncoder.urlEncode(moduleName)}_${level1Type.key}PermissionLink' class='${urlEncoder.urlEncode(moduleName)}_PermissionLink' style='text-transform:none;${isDbSupervisor ? " display:none;" : ""}' href="javascript:openPermissionDialog('${user.username}', '${moduleName}', '${level1Type.key}');">${level1Type.key}<br />permissions
 														</a>
 														<c:if test="${roles ne ''}">
 															<script type="text/javascript">updatePermissionLink("${urlEncoder.urlEncode(moduleName)}", "${level1Type.key}", "${roles}".split(",").length);</script>
@@ -281,14 +282,22 @@
 			</table>
 		</c:if>
 
-		<div style="margin-top:10px;">
+		<div style="margin-top:10px; margin-left:10px;">
 			<p>
 				<div style="float:right; margin-right:20px; margin-top:4px;" class="margin-top-md text-red">Fields followed by * are required</div>
-				<c:if test="${user.getMethod().isEmpty() && (fn:contains(loggedUserAuthorities, adminRole) || loggedUser.username eq user.username)}">
-					&nbsp;You may set this account's password by typing a new password here:
+				<c:if test="${isLoggedUserAdmin && loggedUser.username ne user.username}">
+				<div style='display:inline; margin-right:50px; font-weight:bold;'>
+					<c:set var="hasDbCreatorRole" value="false" /><c:forEach var="authority" items="${user.authorities}"><c:if test="${authority == dbCreatorRole}"><c:set var="hasDbCreatorRole" value="true" /></c:if></c:forEach>
+					<input type="checkbox" id="${dbCreatorRole}" name="${dbCreatorRole}"${hasDbCreatorRole ? " checked" : ""} /> Allowed to create databases
+				</div>
+				</c:if>
+				<c:if test="${user.getMethod().isEmpty() && (isLoggedUserAdmin || loggedUser.username eq user.username)}">
+				<div style='display:inline;'>
+					You may set this account's password by typing a new password here:
 					<input id="password" type='password' name="password" style='width: 100px;' autocomplete="new-password" minlength="8" maxlength="20" />
 					<c:if test="${empty trimmedUsername || isNew}"><span class="text-red">*</span></c:if>					
 					(max-length: 20)
+				</div>
 				</c:if>
 			</p>
 			<table>

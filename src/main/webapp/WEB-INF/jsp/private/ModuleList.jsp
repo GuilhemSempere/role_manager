@@ -19,6 +19,8 @@
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <c:set var="loggedUserAuthorities" value="${userDao.getLoggedUserAuthorities()}" />
 <c:set var="loggedUser" value="<%= SecurityContextHolder.getContext().getAuthentication().getPrincipal() %>" />
+<c:set var='supervisorRole' value='<%= IRoleDefinition.ROLE_DB_SUPERVISOR %>' />
+<c:set var='dbCreatorRole' value='<%= IRoleDefinition.ROLE_DB_CREATOR %>' />
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
 <jsp:useBean id="userDao" class="fr.cirad.security.ReloadableInMemoryDaoImpl" />
 
@@ -55,7 +57,8 @@
 		var modulePublicFieldName = "<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>";
 		var moduleHiddenFieldName = "<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>";
 		var isAdmin = ${fn:contains(loggedUserAuthorities, adminRole)};
-		var supervisorRole = "<%= IRoleDefinition.ROLE_DB_SUPERVISOR %>";
+		var supervisorRole = "${supervisorRole}";
+		var dbCreatorRole = "${dbCreatorRole}";
 	
 		const dumpValidityTips = new Map([
 		    ["VALID", "Up to date: A dump is available for the current database contents"],
@@ -68,7 +71,7 @@
 		
 		let permissions = new Set([<c:forEach var="authority" items="${loggedUserAuthorities}">"${authority}", </c:forEach>]);
 		
-		<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+		<c:if test="${fn:contains(loggedUserAuthorities, adminRole) || fn:contains(loggedUserAuthorities, dbCreatorRole)}">
 		function createModule(moduleName, host)
 		{
 			let itemRow = $("#row_" + moduleName);
@@ -172,7 +175,7 @@
 		   	let dbSize = parseFloat(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_SIZE %>']);
 		   	rowContents.append("<td>" + formatFileSize(dbSize) + "</td>");
 
-		   	<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+		   	<c:if test="${fn:contains(loggedUserAuthorities, adminRole) || fn:contains(loggedUserAuthorities, dbCreatorRole)}">
 	   		if (moduleData[key] != null)
 	   			rowContents.append("<td>" + moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HOST %>'] + "</td>");
 			</c:if>
@@ -222,7 +225,7 @@
 						customizeModuleList();
 				});
 			
-			<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+			<c:if test="${fn:contains(loggedUserAuthorities, adminRole) || fn:contains(loggedUserAuthorities, dbCreatorRole)}">
 			$.getJSON('<c:url value="<%=BackOfficeController.hostListURL%>" />', {}, function(jsonResult){
 				$("#hosts").html("");
 				for (var key in jsonResult)
@@ -420,7 +423,7 @@
 </head>
 
 <body style='background-color:#f0f0f0;'>
-	<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+	<c:if test="${fn:contains(loggedUserAuthorities, adminRole) || fn:contains(loggedUserAuthorities, dbCreatorRole)}">
 		<div style="max-width:600px; padding:10px; margin-bottom:10px; border:2px dashed grey; background-color:lightgrey;" id="datasourceCreationDiv">
 			<b>Create new empty database</b><br/>
 			On host <select id="hosts"></select> named <input type="text" id="newModuleName" onkeypress="if (!isValidKeyForNewName(event)) { event.preventDefault(); event.stopPropagation(); }" onkeyup="$(this).next().prop('disabled', !isValidNewName($(this).val()));">
@@ -438,7 +441,7 @@
 				<th>Category</th>
  				<th>Database name</th>
 				<th>Storage size</th>
-				<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+				<c:if test="${fn:contains(loggedUserAuthorities, adminRole) || fn:contains(loggedUserAuthorities, dbCreatorRole)}">
 				<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_HOST %></th>
 				</c:if>
 				<th>Entity management</th>

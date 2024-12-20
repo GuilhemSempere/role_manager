@@ -274,7 +274,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     public boolean canLoggedUserWriteToSystem() {
         Collection<? extends GrantedAuthority> loggedUserAuthorities = getLoggedUserAuthorities();
         for (GrantedAuthority auth : loggedUserAuthorities) {
-            if (auth.getAuthority().equals(IRoleDefinition.ROLE_ADMIN)) {
+            if (auth.getAuthority().equals(IRoleDefinition.ROLE_ADMIN) || auth.getAuthority().equals(IRoleDefinition.ROLE_DB_CREATOR)) {
                 return true;
             } else if (getSupervisedModules(loggedUserAuthorities).size() > 0 || getManagedEntitiesByModuleAndType(loggedUserAuthorities).size() > 0) {
                 return true;
