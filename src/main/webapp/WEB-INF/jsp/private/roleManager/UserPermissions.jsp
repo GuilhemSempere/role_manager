@@ -25,7 +25,8 @@
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
 <c:set var='supervisorRole' value='<%= IRoleDefinition.ROLE_DB_SUPERVISOR %>' />
 <c:set var='entityManagerRole' value='<%= IRoleDefinition.ENTITY_MANAGER_ROLE %>' />
-<%-- <c:set var='isManager' value="${fn:contains(user.authorities, param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(entityManagerRole).concat(roleSep).concat(entity.key))}" /> --%>
+<c:set var="isLoggedUserAdmin" value="false" /><c:forEach var="authority" items="${loggedUserAuthorities}"><c:if test="${authority == adminRole}"><c:set var="isLoggedUserAdmin" value="true" /></c:if></c:forEach>
+<c:set var="isLoggedUserModuleSupervisor" value="false" /><c:forEach var="authority" items="${loggedUserAuthorities}"><c:if test="${authority == param.module.concat(roleSep).concat(supervisorRole)}"><c:set var="isLoggedUserModuleSupervisor" value="true" /></c:if></c:forEach>
 
 <html>
 
@@ -72,21 +73,22 @@
 					<th>${param.entityType} permissions</th>
 				</tr>
 				<c:forEach var="entity" items="${publicEntities}">
-				<c:if test="${fn:contains(loggedUserAuthorities, adminRole) || fn:contains(loggedUserAuthorities, param.module.concat(roleSep).concat(supervisorRole)) || fn:contains(loggedUserAuthorities, param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(entityManagerRole).concat(roleSep).concat(entity.key))}">
-				<tr>
-					<td>${entity.value[0]}</td>
-					<td nowrap align='left'>
-						<c:forEach var="role" items="${roles}">
+					<c:set var="isLoggedUserEntityManager" value="false" /><c:forEach var="authority" items="${loggedUserAuthorities}"><c:if test="${authority == param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(entityManagerRole).concat(roleSep).concat(entity.key)}"><c:set var="isLoggedUserEntityManager" value="true" /></c:if></c:forEach>				
+					<c:if test="${isLoggedUserAdmin || isLoggedUserModuleSupervisor || isLoggedUserEntityManager}">
+					<tr>
+						<td>${entity.value[0]}</td>
+						<td nowrap align='left'>
+							<c:forEach var="role" items="${roles}">
+								<span>
+								<input type='radio' name='permission_${entity.key}' value='${urlEncoder.urlEncode(param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(role).concat(roleSep).concat(entity.key))}'>${role}&nbsp;
+								</span>
+							</c:forEach>
 							<span>
-							<input type='radio' name='permission_${entity.key}' value='${urlEncoder.urlEncode(param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(role).concat(roleSep).concat(entity.key))}'>${role}&nbsp;
+								<input type='radio' name='permission_${entity.key}' value=''>NONE
 							</span>
-						</c:forEach>
-						<span>
-							<input type='radio' name='permission_${entity.key}' value=''>NONE
-						</span>
-					</td>
-				</tr>
-				</c:if>
+						</td>
+					</tr>
+					</c:if>
 				</c:forEach>
 			  </table>
 			</th>
@@ -100,21 +102,22 @@
 					<th>${param.entityType} permissions</th>
 				</tr>
 				<c:forEach var="entity" items="${privateEntities}">
-				<c:if test="${fn:contains(loggedUserAuthorities, adminRole) || fn:contains(loggedUserAuthorities, param.module.concat(roleSep).concat(supervisorRole)) || fn:contains(loggedUserAuthorities, param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(entityManagerRole).concat(roleSep).concat(entity.key))}">
-				<tr>
-					<td>${entity.value[0]}</td>
-					<td nowrap align='left'>
-						<c:forEach var="role" items="${roles}">
+					<c:set var="isLoggedUserEntityManager" value="false" /><c:forEach var="authority" items="${loggedUserAuthorities}"><c:if test="${authority == param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(entityManagerRole).concat(roleSep).concat(entity.key)}"><c:set var="isLoggedUserEntityManager" value="true" /></c:if></c:forEach>				
+					<c:if test="${isLoggedUserAdmin || isLoggedUserModuleSupervisor || isLoggedUserEntityManager}">
+					<tr>
+						<td>${entity.value[0]}</td>
+						<td nowrap align='left'>
+							<c:forEach var="role" items="${roles}">
+								<span>
+								<input type='radio' name='permission_${entity.key}' value='${urlEncoder.urlEncode(param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(role).concat(roleSep).concat(entity.key))}'>${role}&nbsp;
+								</span>
+							</c:forEach>
 							<span>
-							<input type='radio' name='permission_${entity.key}' value='${urlEncoder.urlEncode(param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(role).concat(roleSep).concat(entity.key))}'>${role}&nbsp;
+								<input type='radio' name='permission_${entity.key}' value=''>NONE
 							</span>
-						</c:forEach>
-						<span>
-							<input type='radio' name='permission_${entity.key}' value=''>NONE
-						</span>
-					</td>
-				</tr>
-				</c:if>
+						</td>
+					</tr>
+					</c:if>
 				</c:forEach>
 			  </table>
 			</th>

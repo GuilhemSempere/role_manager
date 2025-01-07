@@ -23,6 +23,7 @@
 <c:set var="mainPageURL" value="<%= BackOfficeController.mainPageURL %>" />
 <c:set var="loggedUserAuthorities" value="${userDao.getLoggedUserAuthorities()}" />
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
+<c:set var="isLoggedUserAdmin" value="false" /><c:forEach var="authority" items="${loggedUserAuthorities}"><c:if test="${authority == adminRole}"><c:set var="isLoggedUserAdmin" value="true" /></c:if></c:forEach>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
@@ -30,7 +31,7 @@
 	</head>
 	<body>
 		<c:choose>
-		<c:when test="${(fn:length(moduleNames) == 1 && !fn:contains(loggedUserAuthorities, adminRole))}">
+		<c:when test="${fn:length(moduleNames) == 1 && !isLoggedUserAdmin}">
 			<script language="javascript">
 				top.location.href = '<c:url value="${mainPageURL}" />?module=${moduleNames[0]}';
 			</script>

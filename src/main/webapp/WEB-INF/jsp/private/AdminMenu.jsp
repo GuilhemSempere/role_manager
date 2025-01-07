@@ -19,6 +19,8 @@
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
 <c:set var="loggedUserAuthorities" value="${userDao.getLoggedUserAuthorities()}" />
+<c:set var="isLoggedUserAdmin" value="false" /><c:forEach var="authority" items="${loggedUserAuthorities}"><c:if test="${authority == adminRole}"><c:set var="isLoggedUserAdmin" value="true" /></c:if></c:forEach>
+
 <html>
 
 <head>
@@ -50,7 +52,7 @@
 	</c:if>
 	<a class="btn btn-sm btn-primary" style="width:130px;" href="<c:url value="<%= UserPermissionController.userListPageURL %>" />" target="managementFrame" onClick="highlightMe(this);">Manage users<br/>and permissions
 	</a>
-	<c:if test="${(fn:contains(loggedUserAuthorities, adminRole) || !userDao.getSupervisedModules(loggedUserAuthorities).isEmpty())}">
+	<c:if test="${isLoggedUserAdmin || !userDao.getSupervisedModules(loggedUserAuthorities).isEmpty()}">
 		<br/><br/>
 		<a class="btn btn-sm btn-primary" style="width:130px;" href="<c:url value="<%= BackOfficeController.processListPageURL %>" />" target="managementFrame" onClick="highlightMe(this);">Admin processes</a>
 	</c:if>

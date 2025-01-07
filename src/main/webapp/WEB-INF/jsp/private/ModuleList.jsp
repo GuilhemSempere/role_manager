@@ -22,6 +22,8 @@
 <c:set var='supervisorRole' value='<%= IRoleDefinition.ROLE_DB_SUPERVISOR %>' />
 <c:set var='dbCreatorRole' value='<%= IRoleDefinition.ROLE_DB_CREATOR %>' />
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
+<c:set var="isLoggedUserAdmin" value="false" /><c:forEach var="authority" items="${loggedUserAuthorities}"><c:if test="${authority == adminRole}"><c:set var="isLoggedUserAdmin" value="true" /></c:if></c:forEach>
+<c:set var="hasDbCreatorRole" value="false" /><c:forEach var="authority" items="${loggedUserAuthorities}"><c:if test="${authority == dbCreatorRole}"><c:set var="hasDbCreatorRole" value="true" /></c:if></c:forEach>
 <jsp:useBean id="userDao" class="fr.cirad.security.ReloadableInMemoryDaoImpl" />
 
 <html>
@@ -56,9 +58,8 @@
 		var moduleDetailsURL = '<c:url value="<%= BackOfficeController.moduleDetailsURL %>" />';
 		var modulePublicFieldName = "<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>";
 		var moduleHiddenFieldName = "<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>";
-		var isAdmin = ${fn:contains(loggedUserAuthorities, adminRole)};
-		var supervisorRole = "${supervisorRole}";
-		var dbCreatorRole = "${dbCreatorRole}";
+		var isAdmin = ${isLoggedUserAdmin};			// may be used by ../js/moduleListCustomisation.js
+		var supervisorRole = "${supervisorRole}";	// may be used by ../js/moduleListCustomisation.js
 	
 		const dumpValidityTips = new Map([
 		    ["VALID", "Up to date: A dump is available for the current database contents"],
@@ -71,7 +72,7 @@
 		
 		let permissions = new Set([<c:forEach var="authority" items="${loggedUserAuthorities}">"${authority}", </c:forEach>]);
 		
-		<c:if test="${fn:contains(loggedUserAuthorities, adminRole) || fn:contains(loggedUserAuthorities, dbCreatorRole)}">
+		<c:if test="${isLoggedUserAdmin || hasDbCreatorRole}">
 		function createModule(moduleName, host)
 		{
 			let itemRow = $("#row_" + moduleName);
@@ -90,7 +91,7 @@
 				itemRow.find("td:last").append("<div style='position:absolute; margin-left:60px; margin-top:-10px;'><img src='img/progress.gif'></div>");
 
 			    $.ajax({
-		            url: '<c:url value="<%= BackOfficeController.moduleRemovalURL %>" />?module=' + moduleName<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && actionRequiredToEnableDumps eq ''}"> + '&removeDumps=' + (moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] != "NONE" && confirm("Also remove related dumps?"))</c:if>,
+		            url: '<c:url value="<%= BackOfficeController.moduleRemovalURL %>" />?module=' + moduleName<c:if test="${isLoggedUserAdmin && actionRequiredToEnableDumps eq ''}"> + '&removeDumps=' + (moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] != "NONE" && confirm("Also remove related dumps?"))</c:if>,
 		            method: "DELETE",
 		        	success: function(deleted) {
 						if (!deleted) {
@@ -175,7 +176,7 @@
 		   	let dbSize = parseFloat(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_SIZE %>']);
 		   	rowContents.append("<td>" + formatFileSize(dbSize) + "</td>");
 
-		   	<c:if test="${fn:contains(loggedUserAuthorities, adminRole) || fn:contains(loggedUserAuthorities, dbCreatorRole)}">
+		   	<c:if test="${isLoggedUserAdmin || hasDbCreatorRole}">
 	   		if (moduleData[key] != null)
 	   			rowContents.append("<td>" + moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HOST %>'] + "</td>");
 			</c:if>
@@ -189,24 +190,24 @@
 			<c:if test="${actionRequiredToEnableDumps eq ''}">
 				rowContents.append('<td class="dump' + moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] + '" data-toggle="tooltip" title="' + dumpValidityTips.get(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>']) + '">');
 				if ('UNSUPPORTED' != moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'])
-					<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}">if (permissions.has(key + "$" + supervisorRole))</c:if>	rowContents.append("<a style=\"color:#113388;\" href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a>");
+					<c:if test="${!isLoggedUserAdmin}">if (permissions.has(key + "$" + supervisorRole))</c:if>	rowContents.append("<a style=\"color:#113388;\" href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a>");
 				rowContents.append("</td>");
 			</c:if>
 
 	   		if (moduleData[key] != null) {
-				<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}">if (permissions.has(key + "$" + supervisorRole)) {</c:if>
+				<c:if test="${!isLoggedUserAdmin}">if (permissions.has(key + "$" + supervisorRole)) {</c:if>
 					rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol1' type='checkbox'" + (moduleData[key][modulePublicFieldName] ? " checked" : "") + "></td>");
 					rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol2' type='checkbox'" + (moduleData[key][moduleHiddenFieldName] ? " checked" : "") + "></td>");
 			   		rowContents.append("<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'>&nbsp;<input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'></td>");
-			   	<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}">
+			   	<c:if test="${!isLoggedUserAdmin}">
 				}
 		   		else
 			   		rowContents.append("<td colspan='3' style='background-color:lightgrey;'></td>");
 		   		</c:if>
 			}
 	   		
-			<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
-	   		rowContents.append("<td align='center'>" + (<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && actionRequiredToEnableDumps eq ''}">moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] == "BUSY" ? "" : </c:if>"<a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem(\"" + encodeURIComponent(key) + "\");' title='Discard module'><img src='img/delete.gif'></a>") + "</td>");
+			<c:if test="${isLoggedUserAdmin}">
+	   		rowContents.append("<td align='center'>" + (<c:if test="${isLoggedUserAdmin && actionRequiredToEnableDumps eq ''}">moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] == "BUSY" ? "" : </c:if>"<a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem(\"" + encodeURIComponent(key) + "\");' title='Discard module'><img src='img/delete.gif'></a>") + "</td>");
 	   		</c:if>
 	   		return '<tr id="row_' + encodeURIComponent(key) + '" onmouseover="this.style.backgroundColor=\'#aaf0cc\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents.toString() + '</tr>';
 		}
@@ -225,7 +226,7 @@
 						customizeModuleList();
 				});
 			
-			<c:if test="${fn:contains(loggedUserAuthorities, adminRole) || fn:contains(loggedUserAuthorities, dbCreatorRole)}">
+			<c:if test="${isLoggedUserAdmin || hasDbCreatorRole}">
 			$.getJSON('<c:url value="<%=BackOfficeController.hostListURL%>" />', {}, function(jsonResult){
 				$("#hosts").html("");
 				for (var key in jsonResult)
@@ -423,13 +424,13 @@
 </head>
 
 <body style='background-color:#f0f0f0;'>
-	<c:if test="${fn:contains(loggedUserAuthorities, adminRole) || fn:contains(loggedUserAuthorities, dbCreatorRole)}">
+	<c:if test="${isLoggedUserAdmin || hasDbCreatorRole}">
 		<div style="max-width:600px; padding:10px; margin-bottom:10px; border:2px dashed grey; background-color:lightgrey;" id="datasourceCreationDiv">
 			<b>Create new empty database</b><br/>
 			On host <select id="hosts"></select> named <input type="text" id="newModuleName" onkeypress="if (!isValidKeyForNewName(event)) { event.preventDefault(); event.stopPropagation(); }" onkeyup="$(this).next().prop('disabled', !isValidNewName($(this).val()));">
 			<input type="button" value="Create" class="btn btn-xs btn-primary" onclick="createModule($(this).prev().val(), $('#hosts').val());" disabled>
 		</div>
-		<c:if test='${fn:contains(loggedUserAuthorities, adminRole) && !fn:startsWith(dumpFolder, "??") && !empty actionRequiredToEnableDumps}'>
+		<c:if test='${isLoggedUserAdmin && !fn:startsWith(dumpFolder, "??") && !empty actionRequiredToEnableDumps}'>
 			<div class="margin-top-md text-danger">
 				DB dump support feature may be enabled as follows: <u>${actionRequiredToEnableDumps}</u>
 			</div>
@@ -441,7 +442,7 @@
 				<th>Category</th>
  				<th>Database name</th>
 				<th>Storage size</th>
-				<c:if test="${fn:contains(loggedUserAuthorities, adminRole) || fn:contains(loggedUserAuthorities, dbCreatorRole)}">
+				<c:if test="${isLoggedUserAdmin || hasDbCreatorRole}">
 				<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_HOST %></th>
 				</c:if>
 				<th>Entity management</th>
@@ -451,7 +452,7 @@
 				<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_PUBLIC %></th>
 				<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_HIDDEN %></th>
 				<th>Changes</th>
-				<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+				<c:if test="${isLoggedUserAdmin}">
 				<th>Removal</th>
 				</c:if>
 			</tr>

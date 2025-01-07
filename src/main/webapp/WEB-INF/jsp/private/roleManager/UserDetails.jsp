@@ -288,7 +288,7 @@
 				<c:if test="${isLoggedUserAdmin && loggedUser.username ne user.username}">
 				<div style='display:inline; margin-right:50px; font-weight:bold;'>
 					<c:set var="hasDbCreatorRole" value="false" /><c:forEach var="authority" items="${user.authorities}"><c:if test="${authority == dbCreatorRole}"><c:set var="hasDbCreatorRole" value="true" /></c:if></c:forEach>
-					<input type="checkbox" id="${dbCreatorRole}" name="${dbCreatorRole}"${hasDbCreatorRole ? " checked" : ""} /> Allowed to create databases
+					<input type="checkbox" id="${dbCreatorRole}" name="${dbCreatorRole}"${hasDbCreatorRole ? " checked" : ""} /> <label for="${dbCreatorRole}">Allowed to create databases</label>
 				</div>
 				</c:if>
 				<c:if test="${user.getMethod().isEmpty() && (isLoggedUserAdmin || loggedUser.username eq user.username)}">

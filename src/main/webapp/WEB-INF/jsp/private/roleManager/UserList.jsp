@@ -20,6 +20,7 @@
 <c:set var="loggedUserAuthorities" value="${userDao.getLoggedUserAuthorities()}" />
 <c:set var="loggedUserName" value="<%= SecurityContextHolder.getContext().getAuthentication().getName() %>" />
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
+<c:set var="isLoggedUserAdmin" value="false" /><c:forEach var="authority" items="${loggedUserAuthorities}"><c:if test="${authority == adminRole}"><c:set var="isLoggedUserAdmin" value="true" /></c:if></c:forEach>
 
 <html>
 
@@ -35,7 +36,7 @@
 		if (this == top)
 			location.href = "../..";
 
-		<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+		<c:if test="${isLoggedUserAdmin}">
 		function removeItem(itemId)
 		{
 			if (confirm("Do you really want to discard " + itemId + "?"))
@@ -78,7 +79,7 @@
 							}
 
 							rowContents += "<td nowrap>&nbsp;<a href='<c:url value="<%= UserPermissionController.userDetailsURL %>" />?user=" + encodeURIComponent(jsonResult[key][0]) + "' title='Details for user " + jsonResult[key][0] + "'><img src='../img/magnifier.gif'></a>";
-							<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+							<c:if test="${isLoggedUserAdmin}">
 							if ("(ADMINISTRATOR)" != jsonResult[key][1])
 								rowContents += "&nbsp;&nbsp;&nbsp;<a href='javascript:removeItem(\"" + encodeURIComponent(jsonResult[key][0]) + "\");' title='Discard user " + jsonResult[key][0] + "'><img src='../img/delete.gif'></a>";
 							</c:if>
@@ -119,7 +120,7 @@
 
 	<body style='background-color:#f0f0f0;' onload="applySorting();">
 
-		<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+		<c:if test="${isLoggedUserAdmin}">
 			<a class="btn btn-sm btn-primary" href="<c:url value="<%=UserPermissionController.userDetailsURL%>" />" style='position:absolute; margin-top:5px;left:300px;'>Create user</a>
 		</c:if>
 

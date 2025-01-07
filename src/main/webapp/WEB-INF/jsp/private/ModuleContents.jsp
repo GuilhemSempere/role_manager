@@ -19,9 +19,9 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 
-<c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
-<c:set var='entityManagerRole' value='<%= IRoleDefinition.ENTITY_MANAGER_ROLE %>' />
-<c:set var='isManager' value="${fn:contains(user.authorities, param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(entityManagerRole).concat(roleSep).concat(entity.key))}" />
+<%-- <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' /> --%>
+<%-- <c:set var='entityManagerRole' value='<%= IRoleDefinition.ENTITY_MANAGER_ROLE %>' /> --%>
+<%-- <c:set var='isManager' value="${fn:contains(user.authorities, param.module.concat(roleSep).concat(param.entityType).concat(roleSep).concat(entityManagerRole).concat(roleSep).concat(entity.key))}" /> --%>
 
 <html>
 
