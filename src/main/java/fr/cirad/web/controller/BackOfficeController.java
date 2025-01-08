@@ -231,7 +231,7 @@ public class BackOfficeController {
 		model.addAttribute("subEntities", subEntityMap);
 	}
 
-	@PreAuthorize("@roleService.hasDbCreatororOrAdminRole(authentication)")
+	@PreAuthorize("@roleService.hasDbCreatorOrAdminRole(authentication)")
 	@GetMapping(hostListURL)
 	protected @ResponseBody Collection<String> getHostList() throws IOException {
     	return moduleManager.getHosts();
@@ -282,7 +282,7 @@ public class BackOfficeController {
 	}
 
 	@GetMapping(moduleCreationURL)
-	@PreAuthorize("@roleService.hasDbCreatororOrAdminRole(authentication)")
+	@PreAuthorize("@roleService.hasDbCreatorOrAdminRole(authentication)")
 	protected @ResponseBody boolean createModule(@RequestParam String module, @RequestParam("host") String sHost) throws Exception
 	{
         boolean succeeded = moduleManager.createDataSource(module, sHost, null);
@@ -312,7 +312,7 @@ public class BackOfficeController {
 	}
 
 	@DeleteMapping(moduleRemovalURL)
-	@PreAuthorize("@roleService.hasAdminRole(authentication)")
+	@PreAuthorize("@roleService.hasSupervisorOrAdminRole(authentication, #module)")
 	protected @ResponseBody boolean removeModule(@RequestParam String module, @RequestParam(required=false, value="removeDumps") Boolean fRemoveDumps) throws Exception
 	{
 		return moduleManager.removeDataSource(module, true, Boolean.TRUE.equals(fRemoveDumps));

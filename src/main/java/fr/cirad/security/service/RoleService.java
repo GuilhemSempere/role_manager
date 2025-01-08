@@ -22,7 +22,7 @@ public class RoleService {
         return user.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
     }
         
-    public boolean hasDbCreatororOrAdminRole(Authentication authentication) {
+    public boolean hasDbCreatorOrAdminRole(Authentication authentication) {
     	UserDetails user = userService.loadUserByUsername(authentication.getName());
     	Collection<? extends GrantedAuthority> auth = user.getAuthorities();
         return auth.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) || auth.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_DB_CREATOR));

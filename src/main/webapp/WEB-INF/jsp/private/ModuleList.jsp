@@ -14,12 +14,12 @@
  * See <http://www.gnu.org/licenses/agpl.html> for details about GNU General
  * Public License V3.
 --%>
-<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" import="fr.cirad.web.controller.BackOfficeController,fr.cirad.security.base.IRoleDefinition,org.springframework.security.core.context.SecurityContextHolder" %>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" import="java.util.ArrayList,fr.cirad.web.controller.BackOfficeController,fr.cirad.security.base.IRoleDefinition,org.springframework.security.core.context.SecurityContextHolder" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <c:set var="loggedUserAuthorities" value="${userDao.getLoggedUserAuthorities()}" />
 <c:set var="loggedUser" value="<%= SecurityContextHolder.getContext().getAuthentication().getPrincipal() %>" />
-<c:set var='supervisorRole' value='<%= IRoleDefinition.ROLE_DB_SUPERVISOR %>' />
+<c:set var='supervisorRole' value='<%= "$" + IRoleDefinition.ROLE_DB_SUPERVISOR %>' />
 <c:set var='dbCreatorRole' value='<%= IRoleDefinition.ROLE_DB_CREATOR %>' />
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
 <c:set var="isLoggedUserAdmin" value="false" /><c:forEach var="authority" items="${loggedUserAuthorities}"><c:if test="${authority == adminRole}"><c:set var="isLoggedUserAdmin" value="true" /></c:if></c:forEach>
@@ -27,7 +27,6 @@
 <jsp:useBean id="userDao" class="fr.cirad.security.ReloadableInMemoryDaoImpl" />
 
 <html>
-
 <head>
 	<link type="text/css" rel="stylesheet" href="css/bootstrap-select.min.css ">
 	<link type="text/css" rel="stylesheet" href="css/bootstrap.min.css">
@@ -60,7 +59,11 @@
 		var moduleHiddenFieldName = "<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>";
 		var isAdmin = ${isLoggedUserAdmin};			// may be used by ../js/moduleListCustomisation.js
 		var supervisorRole = "${supervisorRole}";	// may be used by ../js/moduleListCustomisation.js
-	
+	    var supervisedDBs = [];
+	    <c:forEach var="authority" items="${loggedUserAuthorities}">
+		    <c:if test="${fn:endsWith(authority, '$SUPERVISOR')}">supervisedDBs.push('${fn:substringBefore(authority, '$SUPERVISOR')}');</c:if>
+	    </c:forEach>
+
 		const dumpValidityTips = new Map([
 		    ["VALID", "Up to date: A dump is available for the current database contents"],
 		    ["OUTDATED", "Out of date: Existing dumps were created before the last change to this database"],
@@ -83,7 +86,8 @@
 					window.location.reload();
 			}).error(function(xhr) { handleError(xhr); });
 		}
-
+		</c:if>
+		
 		function removeItem(moduleName)
 		{
 			let itemRow = $("#row_" + moduleName);
@@ -91,7 +95,7 @@
 				itemRow.find("td:last").append("<div style='position:absolute; margin-left:60px; margin-top:-10px;'><img src='img/progress.gif'></div>");
 
 			    $.ajax({
-		            url: '<c:url value="<%= BackOfficeController.moduleRemovalURL %>" />?module=' + moduleName<c:if test="${isLoggedUserAdmin && actionRequiredToEnableDumps eq ''}"> + '&removeDumps=' + (moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] != "NONE" && confirm("Also remove related dumps?"))</c:if>,
+		            url: '<c:url value="<%= BackOfficeController.moduleRemovalURL %>" />?module=' + moduleName<c:if test="${actionRequiredToEnableDumps eq ''}"> + '&removeDumps=' + (moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] != "NONE" && confirm("Also remove related dumps?"))</c:if>,
 		            method: "DELETE",
 		        	success: function(deleted) {
 						if (!deleted) {
@@ -111,7 +115,6 @@
 				});
 			}
 		}
-		</c:if>		
 
 		function handleError(xhr) {
 			if (!xhr.getAllResponseHeaders())
@@ -190,15 +193,15 @@
 			<c:if test="${actionRequiredToEnableDumps eq ''}">
 				rowContents.append('<td class="dump' + moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] + '" data-toggle="tooltip" title="' + dumpValidityTips.get(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>']) + '">');
 				if ('UNSUPPORTED' != moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'])
-					<c:if test="${!isLoggedUserAdmin}">if (permissions.has(key + "$" + supervisorRole))</c:if>	rowContents.append("<a style=\"color:#113388;\" href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a>");
+					<c:if test="${!isLoggedUserAdmin}">if (supervisedDBs.indexOf(key) != -1)</c:if>	rowContents.append("<a style=\"color:#113388;\" href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a>");
 				rowContents.append("</td>");
 			</c:if>
 
 	   		if (moduleData[key] != null) {
-				<c:if test="${!isLoggedUserAdmin}">if (permissions.has(key + "$" + supervisorRole)) {</c:if>
+				<c:if test="${!isLoggedUserAdmin}">if (supervisedDBs.indexOf(key) != -1) {</c:if>
 					rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol1' type='checkbox'" + (moduleData[key][modulePublicFieldName] ? " checked" : "") + "></td>");
 					rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol2' type='checkbox'" + (moduleData[key][moduleHiddenFieldName] ? " checked" : "") + "></td>");
-			   		rowContents.append("<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'>&nbsp;<input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'></td>");
+			   		rowContents.append("<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'>&nbsp;<input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'>" + (<c:if test="${isLoggedUserAdmin && actionRequiredToEnableDumps eq ''}">moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] == "BUSY" ? "" : </c:if>"<a style='position:absolute; margin:4px; padding:0 10px;' href='javascript:removeItem(\"" + encodeURIComponent(key) + "\");' title='Discard module'><img src='img/delete.gif'></a>") + "</td>");
 			   	<c:if test="${!isLoggedUserAdmin}">
 				}
 		   		else
@@ -206,9 +209,6 @@
 		   		</c:if>
 			}
 	   		
-			<c:if test="${isLoggedUserAdmin}">
-	   		rowContents.append("<td align='center'>" + (<c:if test="${isLoggedUserAdmin && actionRequiredToEnableDumps eq ''}">moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] == "BUSY" ? "" : </c:if>"<a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem(\"" + encodeURIComponent(key) + "\");' title='Discard module'><img src='img/delete.gif'></a>") + "</td>");
-	   		</c:if>
 	   		return '<tr id="row_' + encodeURIComponent(key) + '" onmouseover="this.style.backgroundColor=\'#aaf0cc\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents.toString() + '</tr>';
 		}
 
@@ -218,8 +218,9 @@
 			$.getJSON('<c:url value="<%=BackOfficeController.moduleListDataURL%>" />', {}, function(jsonResult){
 				moduleData = jsonResult;
 				nAddedRows = 0;
-				for (var key in moduleData)
+				for (var key in moduleData) {
 			   		tableBody.append(buildRow(key));
+				}
 			})	.error(function(xhr) { handleError(xhr); })
 				.success(function(xhr) {
 					if (typeof customizeModuleList != 'undefined')
@@ -451,10 +452,7 @@
 				</c:if>
 				<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_PUBLIC %></th>
 				<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_HIDDEN %></th>
-				<th>Changes</th>
-				<c:if test="${isLoggedUserAdmin}">
-				<th>Removal</th>
-				</c:if>
+				<th colspan="2">Changes</th>
 			</tr>
 		</thead>
 		<tbody>
