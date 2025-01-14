@@ -27,7 +27,6 @@ import java.util.ResourceBundle;
 
 import fr.cirad.manager.dump.DumpMetadata;
 import fr.cirad.manager.dump.DumpStatus;
-import fr.cirad.manager.dump.IBackgroundProcess;
 
 /**
  * @author sempere
@@ -73,21 +72,20 @@ public interface IModuleManager {
 	 * @param sModule
 	 * @param fPublic
 	 * @param fHidden
-	 * @param ncbiTaxonIdNameAndSpecies
+	 * @param datasourceCategory
 	 * @return whether or not module update succeeded
 	 * @throws Exception
 	 */
-	boolean updateDataSource(String sModule, boolean fPublic, boolean fHidden, String ncbiTaxonIdNameAndSpecies) throws Exception;
+	boolean updateDataSource(String sModule, boolean fPublic, boolean fHidden, String datasourceCategory) throws Exception;
 
 	/**
 	 * @param sModule
 	 * @param sHost
-	 * @param ncbiTaxonIdNameAndSpecies
 	 * @param expiryDate
 	 * @return whether or not module creation succeeded
 	 * @throws Exception
 	 */
-	boolean createDataSource(String sModule, String sHost, String ncbiTaxonIdNameAndSpecies, Long expiryDate) throws Exception;
+	boolean createDataSource(String sModule, String sHost, Long expiryDate) throws Exception;
 
 	/**
 	 * A single entity is to be removed here. The collection of IDs is for dealing with nested sub-entities (provide ID of each parent entity, ending with the target)
@@ -148,10 +146,16 @@ public interface IModuleManager {
 	 * @return name of the host this module's data is stored on
 	 */
 	String getModuleHost(String sModule);
-
+	
+	/**
+	 * @param sModule
+	 * @return the module's category String
+	 */
+	String getModuleCategory(String module);
 
 	/**
 	 * @return A string giving instructions for enabling dumps (empty string if already enabled)
+	 * @throws InterruptedException 
 	 */
 	String getActionRequiredToEnableDumps();
 
@@ -173,7 +177,7 @@ public interface IModuleManager {
 	 * @param sDescription Description of the new dump
 	 * @return Started dump process
 	 */
-	IBackgroundProcess startDump(String sModule, String sName, String sDescription);
+	AbstractProcess startDump(String sModule, String sName, String sDescription);
 
 	/**
 	 * @param sModule Module to dump
@@ -181,7 +185,7 @@ public interface IModuleManager {
 	 * @param drop True to drop the database before restoring the dump
 	 * @return Started restore process
 	 */
-	IBackgroundProcess startRestore(String sModule, String sDump, boolean drop);
+	AbstractProcess startRestore(String sModule, String sDump, boolean drop);
 
 	/**
 	 * @param sModule Module to check
@@ -222,7 +226,7 @@ public interface IModuleManager {
     /**
 	 * @param sModule Module to update modification date for
 	 * @param lastModification the date to set
-	 * @param restored flag telling whether or not this modification is a restore
+	 * @param restored flag telling whether this modification is a restore
      * @param sModule
      */
     void updateDatabaseLastModification(String sModule, Date lastModification, boolean restored);
@@ -236,7 +240,7 @@ public interface IModuleManager {
 	/**
 	 * @param sModule
 	 * @param entityType (sub-entities must be prefixed with "<parentEntityType>.")
-	 * @param entityIDs[] array with IDs leading to the targeted entity (number of cells must match the entity level) 
+	 * @param entityIDs array with IDs leading to the targeted entity (number of cells must match the entity level)
 	 * @return
 	 * @throws Exception 
 	 */
@@ -245,12 +249,14 @@ public interface IModuleManager {
 	/**
 	 * @param sModule
 	 * @param sEntityType
-	 * @param entityId
+	 * @param sEntityId
 	 * @param desc
-	 * @return whether or not setting entity description succeeded
+	 * @return whether setting entity description succeeded
 	 * @throws Exception
 	 */
 	boolean setManagedEntityDescription(String sModule, String sEntityType, String sEntityId, String desc) throws Exception;
+
+	Map<String, AbstractProcess> getImportProcesses();
 
 	void cleanupDb(String sModule);
 

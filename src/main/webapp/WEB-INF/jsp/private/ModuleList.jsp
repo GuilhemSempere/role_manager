@@ -14,17 +14,19 @@
  * See <http://www.gnu.org/licenses/agpl.html> for details about GNU General
  * Public License V3.
 --%>
-<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" import="fr.cirad.web.controller.BackOfficeController,fr.cirad.security.base.IRoleDefinition,org.springframework.security.core.context.SecurityContextHolder" %>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" import="java.util.ArrayList,fr.cirad.web.controller.BackOfficeController,fr.cirad.security.base.IRoleDefinition,org.springframework.security.core.context.SecurityContextHolder" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <c:set var="loggedUserAuthorities" value="${userDao.getLoggedUserAuthorities()}" />
 <c:set var="loggedUser" value="<%= SecurityContextHolder.getContext().getAuthentication().getPrincipal() %>" />
+<c:set var='supervisorRole' value='<%= "$" + IRoleDefinition.ROLE_DB_SUPERVISOR %>' />
+<c:set var='dbCreatorRole' value='<%= IRoleDefinition.ROLE_DB_CREATOR %>' />
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
-<c:set var='supervisorRole' value='<%= IRoleDefinition.ROLE_DB_SUPERVISOR %>' />
+<c:set var="isLoggedUserAdmin" value="false" /><c:forEach var="authority" items="${loggedUserAuthorities}"><c:if test="${authority == adminRole}"><c:set var="isLoggedUserAdmin" value="true" /></c:if></c:forEach>
+<c:set var="hasDbCreatorRole" value="false" /><c:forEach var="authority" items="${loggedUserAuthorities}"><c:if test="${authority == dbCreatorRole}"><c:set var="hasDbCreatorRole" value="true" /></c:if></c:forEach>
 <jsp:useBean id="userDao" class="fr.cirad.security.ReloadableInMemoryDaoImpl" />
 
 <html>
-
 <head>
 	<link type="text/css" rel="stylesheet" href="css/bootstrap-select.min.css ">
 	<link type="text/css" rel="stylesheet" href="css/bootstrap.min.css">
@@ -52,6 +54,15 @@
 		}
 
 		var moduleData;
+		var moduleDetailsURL = '<c:url value="<%= BackOfficeController.moduleDetailsURL %>" />';
+		var modulePublicFieldName = "<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>";
+		var moduleHiddenFieldName = "<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>";
+		var isAdmin = ${isLoggedUserAdmin};			// may be used by ../js/moduleListCustomisation.js
+		var supervisorRole = "${supervisorRole}";	// may be used by ../js/moduleListCustomisation.js
+	    var supervisedDBs = [];
+	    <c:forEach var="authority" items="${loggedUserAuthorities}">
+		    <c:if test="${fn:endsWith(authority, '$SUPERVISOR')}">supervisedDBs.push('${fn:substringBefore(authority, '$SUPERVISOR')}');</c:if>
+	    </c:forEach>
 
 		const dumpValidityTips = new Map([
 		    ["VALID", "Up to date: A dump is available for the current database contents"],
@@ -64,7 +75,7 @@
 		
 		let permissions = new Set([<c:forEach var="authority" items="${loggedUserAuthorities}">"${authority}", </c:forEach>]);
 		
-		<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+		<c:if test="${isLoggedUserAdmin || hasDbCreatorRole}">
 		function createModule(moduleName, host)
 		{
 			let itemRow = $("#row_" + moduleName);
@@ -74,6 +85,35 @@
 				else
 					window.location.reload();
 			}).error(function(xhr) { handleError(xhr); });
+		}
+		</c:if>
+		
+		function removeItem(moduleName)
+		{
+			let itemRow = $("#row_" + moduleName);
+			if (confirm("Do you really want to discard database " + moduleName + "?\nThis will delete all data it contains.")) {
+				itemRow.find("td:last").append("<div style='position:absolute; margin-left:60px; margin-top:-10px;'><img src='img/progress.gif'></div>");
+
+			    $.ajax({
+		            url: '<c:url value="<%= BackOfficeController.moduleRemovalURL %>" />?module=' + moduleName<c:if test="${actionRequiredToEnableDumps eq ''}"> + '&removeDumps=' + (moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] != "NONE" && confirm("Also remove related dumps?"))</c:if>,
+		            method: "DELETE",
+		        	success: function(deleted) {
+						if (!deleted) {
+							alert("Unable to discard " + moduleName);
+							itemRow.find("td:last div:last").remove();
+						}
+						else
+						{
+							delete moduleData[moduleName];
+							itemRow.remove();
+						}
+		        	},
+			        error: function (xhr, ajaxOptions, thrownError) {
+			        	itemRow.find("td:last div:last").remove();
+			        	handleError(xhr);
+			        }
+				});
+			}
 		}
 
 		function handleError(xhr) {
@@ -97,46 +137,18 @@
 		  	alert(errorMsg);
 		}
 
-		function removeItem(moduleName)
-		{
-			let itemRow = $("#row_" + moduleName);
-			if (confirm("Do you really want to discard database " + moduleName + "?\nThis will delete all data it contains.")) {
-				itemRow.find("td:last").append("<div style='position:absolute; margin-left:60px; margin-top:-10px;'><img src='img/progress.gif'></div>");
-
-			    $.ajax({
-		            url: '<c:url value="<%= BackOfficeController.moduleRemovalURL %>" />?module=' + moduleName<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && actionRequiredToEnableDumps eq ''}"> + '&removeDumps=' + (moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] != "NONE" && confirm("Also remove related dumps?"))</c:if>,
-		            method: "DELETE",
-		        	success: function(deleted) {
-						if (!deleted) {
-							alert("Unable to discard " + moduleName);
-							itemRow.find("td:last div:last").remove();
-						}
-						else
-						{
-							delete moduleData[moduleName];
-							itemRow.remove();
-						}
-		        	},
-			        error: function (xhr, ajaxOptions, thrownError) {
-			        	itemRow.find("td:last div:last").remove();
-			        	handleError(xhr);
-			        }
-				});
-			}
-		}
-
 		function saveChanges(moduleName)
 		{
 			let itemRow = $("#row_" + moduleName);
 			let setToPublic = itemRow.find(".flagCol1").prop("checked");
 			let setToHidden = itemRow.find(".flagCol2").prop("checked");
-			$.getJSON('<c:url value="<%= BackOfficeController.moduleVisibilityURL %>" />', { module:moduleName,public:setToPublic,hidden:setToHidden }, function(updated){
+			$.getJSON(moduleDetailsURL, { module:moduleName,public:setToPublic,hidden:setToHidden,"<%= BackOfficeController.DTO_FIELDNAME_CATEGORY %>":itemRow.find("td:first-child").text() }, function(updated){
 				if (!updated)
 					alert("Unable to apply changes for " + moduleName);
 				else
 				{
-					moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>'] = setToPublic;
-					moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>'] = setToHidden;
+					moduleData[moduleName][modulePublicFieldName] = setToPublic;
+					moduleData[moduleName][moduleHiddenFieldName] = setToHidden;
 					setDirty(moduleName, false);
 				}
 			}).error(function(xhr) { handleError(xhr); });
@@ -145,8 +157,8 @@
 		function resetFlags(moduleName)
 		{
 			let itemRow = $("#row_" + moduleName);
-			itemRow.find(".flagCol1").prop("checked", moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>']);
-			itemRow.find(".flagCol2").prop("checked", moduleData[moduleName]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>']);
+			itemRow.find(".flagCol1").prop("checked", moduleData[moduleName][modulePublicFieldName]);
+			itemRow.find(".flagCol2").prop("checked", moduleData[moduleName][moduleHiddenFieldName]);
 			setDirty(moduleName, false);
 		}
 
@@ -158,17 +170,16 @@
 					$(this).parent().css("background-color", flag ? "red" : "");
 		    });
 		}
-		</c:if>
-
 
 		function buildRow(key)
 		{
 		   	let rowContents = new StringBuffer();
+		   	rowContents.append("<td>" + moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_CATEGORY %>'] + "</td>");
 		   	rowContents.append("<td><a title='Click to browse database' href='../?module=" + key + "' target='_blank'>" + key + "</a></td>");
 		   	let dbSize = parseFloat(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_SIZE %>']);
 		   	rowContents.append("<td>" + formatFileSize(dbSize) + "</td>");
 
-		   	<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+		   	<c:if test="${isLoggedUserAdmin || hasDbCreatorRole}">
 	   		if (moduleData[key] != null)
 	   			rowContents.append("<td>" + moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HOST %>'] + "</td>");
 			</c:if>
@@ -182,19 +193,23 @@
 			<c:if test="${actionRequiredToEnableDumps eq ''}">
 				rowContents.append('<td class="dump' + moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] + '" data-toggle="tooltip" title="' + dumpValidityTips.get(moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>']) + '">');
 				if ('UNSUPPORTED' != moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'])
-					<c:if test="${!fn:contains(loggedUserAuthorities, adminRole)}">if (permissions.has(key + "$" + "${supervisorRole}"))</c:if>	rowContents.append("<a style=\"color:#113388;\" href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a>");
+					<c:if test="${!isLoggedUserAdmin}">if (supervisedDBs.indexOf(key) != -1)</c:if>	rowContents.append("<a style=\"color:#113388;\" href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a>");
 				rowContents.append("</td>");
 			</c:if>
 
-			<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
 	   		if (moduleData[key] != null) {
-				rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol1' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>'] ? " checked" : "") + "></td>");
-				rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol2' type='checkbox'" + (moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>'] ? " checked" : "") + "></td>");
+				<c:if test="${!isLoggedUserAdmin}">if (supervisedDBs.indexOf(key) != -1) {</c:if>
+					rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol1' type='checkbox'" + (moduleData[key][modulePublicFieldName] ? " checked" : "") + "></td>");
+					rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol2' type='checkbox'" + (moduleData[key][moduleHiddenFieldName] ? " checked" : "") + "></td>");
+			   		rowContents.append("<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'>&nbsp;<input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'>" + (<c:if test="${isLoggedUserAdmin && actionRequiredToEnableDumps eq ''}">moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] == "BUSY" ? "" : </c:if>"<a style='position:absolute; margin:4px; padding:0 10px;' href='javascript:removeItem(\"" + encodeURIComponent(key) + "\");' title='Discard module'><img src='img/delete.gif'></a>") + "</td>");
+			   	<c:if test="${!isLoggedUserAdmin}">
+				}
+		   		else
+			   		rowContents.append("<td colspan='3' style='background-color:lightgrey;'></td>");
+		   		</c:if>
 			}
-	   		rowContents.append("<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'>&nbsp;<input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'></td>");
-	   		rowContents.append("<td align='center'>" + (<c:if test="${fn:contains(loggedUserAuthorities, adminRole) && actionRequiredToEnableDumps eq ''}">moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] == "BUSY" ? "" : </c:if>"<a style='padding-left:10px; padding-right:10px;' href='javascript:removeItem(\"" + encodeURIComponent(key) + "\");' title='Discard module'><img src='img/delete.gif'></a>") + "</td>");
-	   		</c:if>
-	   		return '<tr id="row_' + encodeURIComponent(key) + '" onmouseover="this.style.backgroundColor=\'#99eebb\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents.toString() + '</tr>';
+	   		
+	   		return '<tr id="row_' + encodeURIComponent(key) + '" onmouseover="this.style.backgroundColor=\'#aaf0cc\';" onmouseout="this.style.backgroundColor=\'\';">' + rowContents.toString() + '</tr>';
 		}
 
 		function loadData()
@@ -203,15 +218,22 @@
 			$.getJSON('<c:url value="<%=BackOfficeController.moduleListDataURL%>" />', {}, function(jsonResult){
 				moduleData = jsonResult;
 				nAddedRows = 0;
-				for (var key in moduleData)
+				for (var key in moduleData) {
 			   		tableBody.append(buildRow(key));
-			});
-
+				}
+			})	.error(function(xhr) { handleError(xhr); })
+				.success(function(xhr) {
+					if (typeof customizeModuleList != 'undefined')
+						customizeModuleList();
+				});
+			
+			<c:if test="${isLoggedUserAdmin || hasDbCreatorRole}">
 			$.getJSON('<c:url value="<%=BackOfficeController.hostListURL%>" />', {}, function(jsonResult){
 				$("#hosts").html("");
 				for (var key in jsonResult)
 					$("#hosts").append("<option value='" + jsonResult [key]+ "'>" + jsonResult [key]+ "</option>");
-			});
+			}).error(function(xhr) { handleError(xhr); });
+			</c:if>
 		}
 
     	function isValidKeyForNewName(evt)
@@ -271,9 +293,9 @@
 					    const headerRow = $('<tr></tr>');
 
 					    headerRow.append('<th>Validity</th><th>Dump name</th><th>Download</th><th>Archive size</th><th>Logs</th><th>Creation date</th><th>Description</th>')
-					    if (!dumpData.locked){
+					    if (!dumpData.locked)
 							headerRow.append('<th>Restore</th><th>Delete</th>');
-					    }
+
 					    dumpTable.append(headerRow);
 
 					    dumpData.dumps.forEach(function (dumpInfo) {
@@ -281,11 +303,11 @@
 					        const row = $("<tr></tr>");
 					        row.append('<td class="dump' + dumpInfo.validity + '" align="center">' + dumpInfo.validity.toLowerCase() + '</td>');
 					        row.append("<td>" + dumpInfo.name + "</td>");
-	    					row.append("<td align='center'>" + (!downloadable ? "" : "<a target='_blank' href='<c:url value="<%= BackOfficeController.moduleDumpDownloadURL %>" />?module=" + module + "&dumpId=" + dumpInfo.identifier + "'><span class='glyphicon btn-glyphicon glyphicon-save img-circle text-muted'></span></a>") + "</td>");
+							row.append("<td align='center'>" + (!downloadable ? "" : "<a target='_blank' href='<c:url value="<%= BackOfficeController.moduleDumpDownloadURL %>" />?module=" + encodeURIComponent(module) + "&dumpId=" + encodeURIComponent(dumpInfo.identifier) + "'><span class='glyphicon btn-glyphicon glyphicon-save img-circle text-muted'></span></a>") + "</td>");
 					        row.append("<td>" + formatFileSize(dumpInfo.fileSizeMb) + "</td>");
 					        const dumpDate = new Date(dumpInfo.creationDate);
 						    const dateString = dumpDate.getFullYear() + "-" + ("0" + (dumpDate.getMonth() + 1)).slice(-2) + "-" +  ("0" + dumpDate.getDate()).slice(-2) + " " + ("0" + dumpDate.getHours()).slice(-2) + ":" + ("0" + dumpDate.getMinutes()).slice(-2) + ":" + ("0" + dumpDate.getSeconds()).slice(-2);
-	    					row.append("<td align='center'>" + (!downloadable ? "" : "<a target='_blank' href='<c:url value="<%= BackOfficeController.moduleDumpLogDownloadURL %>" />?module=" + module + "&dumpId=" + dumpInfo.identifier + "'><span class='glyphicon btn-glyphicon glyphicon-book img-circle text-muted'></span></a>") + "</td>");
+	    					row.append("<td align='center'>" + (!downloadable ? "" : "<a target='_blank' href='<c:url value="<%= BackOfficeController.moduleDumpLogDownloadURL %>" />?module=" + encodeURIComponent(module) + "&dumpId=" + encodeURIComponent(dumpInfo.identifier) + "'><span class='glyphicon btn-glyphicon glyphicon-book img-circle text-muted'></span></a>") + "</td>");
 					        row.append("<td>" + dateString + "</td>");
 					        row.append("<td>" + dumpInfo.description.replaceAll(/\r?\n/mg, "<br />") + "</td>");
 
@@ -315,11 +337,10 @@
 				        $("#newDumpDialog").modal("hide");
 				        $("#moduleDumpDialog").modal("hide");
 				    })
-					if (dumpData.locked){
+					if (dumpData.locked)
 				        $("#newDumpButton").hide();
-				    } else {
+				    else
 					    $("#newDumpButton").show();
-				    }
 			});
 		}
 
@@ -378,6 +399,16 @@
 		function resizeIFrame() {
 			$('#moduleContentFrame').css('height', (document.body.clientHeight - 180)+'px');
 		}
+		
+        function loadScript(src, callback) {
+            $.ajax({
+            	async:false,
+                url: src,
+                dataType: 'script',
+                success: function() { callback(true); },
+                error: function() { callback(false); }
+            });
+        }
 
 	    $(document).ready(function() {
 	    	resizeIFrame();
@@ -394,13 +425,13 @@
 </head>
 
 <body style='background-color:#f0f0f0;'>
-	<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
-		<div style="max-width:600px; padding:10px; margin-bottom:10px; border:2px dashed grey; background-color:lightgrey;">
+	<c:if test="${isLoggedUserAdmin || hasDbCreatorRole}">
+		<div style="max-width:600px; padding:10px; margin-bottom:10px; border:2px dashed grey; background-color:lightgrey;" id="datasourceCreationDiv">
 			<b>Create new empty database</b><br/>
 			On host <select id="hosts"></select> named <input type="text" id="newModuleName" onkeypress="if (!isValidKeyForNewName(event)) { event.preventDefault(); event.stopPropagation(); }" onkeyup="$(this).next().prop('disabled', !isValidNewName($(this).val()));">
 			<input type="button" value="Create" class="btn btn-xs btn-primary" onclick="createModule($(this).prev().val(), $('#hosts').val());" disabled>
 		</div>
-		<c:if test='${fn:contains(loggedUserAuthorities, adminRole) && !fn:startsWith(dumpFolder, "??") && !empty actionRequiredToEnableDumps}'>
+		<c:if test='${isLoggedUserAdmin && !fn:startsWith(dumpFolder, "??") && !empty actionRequiredToEnableDumps}'>
 			<div class="margin-top-md text-danger">
 				DB dump support feature may be enabled as follows: <u>${actionRequiredToEnableDumps}</u>
 			</div>
@@ -409,23 +440,19 @@
 	<table class="adminListTable margin-top-md" id="moduleTable">
 		<thead>
  			<tr>
+				<th>Category</th>
  				<th>Database name</th>
 				<th>Storage size</th>
-				<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
+				<c:if test="${isLoggedUserAdmin || hasDbCreatorRole}">
 				<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_HOST %></th>
 				</c:if>
 				<th>Entity management</th>
 				<c:if test="${actionRequiredToEnableDumps eq ''}">
 				<th>Dump management</th>
 				</c:if>
-				<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
-				<c:if test="${fn:contains(loggedUserAuthorities, adminRole)}">
 				<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_PUBLIC %></th>
 				<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_HIDDEN %></th>
-				<th>Changes</th>
-				</c:if>
-				<th>Removal</th>
-				</c:if>
+				<th colspan="2">Changes</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -516,5 +543,7 @@
 		</div>
 	</div>
 </body>
+
+<script type="text/javascript" src="../js/moduleListCustomisation.js"></script>
 
 </html>
