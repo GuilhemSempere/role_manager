@@ -185,6 +185,11 @@
 			<table>
 				<tr>
 					<td valign='top'>
+					<c:choose>
+					<c:when test="${!isLoggedUserAdmin && fn:length(publicModules) == 0 && fn:length(privateModules) == 0}">
+						<center style='color:red; font-weight:bold;'>You may not grant any permissions to this user</center>
+					</c:when>
+					<c:otherwise>
 						<c:if test="${fn:length(publicModules) > 0}">
 							<div class="databaseListContainer">
 								<div class="databaseListHeader" style="background-color: #075a80;">Public databases</div>
@@ -277,6 +282,8 @@
 								</div>
 							</div>
 						</c:if>
+						</c:otherwise>
+					</c:choose>
 					</td>
 				</tr>
 			</table>
@@ -300,6 +307,7 @@
 				</div>
 				</c:if>
 			</p>
+			<c:if test="${isLoggedUserAdmin || fn:length(publicModules) > 0 || fn:length(privateModules) > 0}">
 			<table>
 				<tr>
 					<td><input type='submit' value='Save user details' class='btn btn-sm btn-primary active' style='display: inline;'></td>
@@ -312,6 +320,7 @@
 						</c:if></td>
 				</tr>
 			</table>
+			</c:if>
 		</div>
 
 	</form:form>
