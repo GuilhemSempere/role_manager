@@ -261,4 +261,6 @@ public interface IModuleManager {
 	void cleanupDb(String sModule);
 
 	Collection<? extends String> getLevel1Roles(String level1Type, ResourceBundle bundle);
+
+	String getTermsToAcceptToMakeModulePublic();
 }
