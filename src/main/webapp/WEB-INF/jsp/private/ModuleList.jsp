@@ -550,6 +550,6 @@
 	</div>
 </body>
 
-<script type="text/javascript" src="../js/moduleListCustomisation.js"></script>
+<script type="text/javascript" src="../js/moduleListCustomisation.js?v=<%= System.currentTimeMillis() %>"></script>
 
 </html>
