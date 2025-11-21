@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -51,7 +52,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import fr.cirad.manager.dump.*;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,6 +77,9 @@ import fr.cirad.manager.AbstractProcess;
 import fr.cirad.manager.IBackgroundProcess;
 import fr.cirad.manager.IModuleManager;
 import fr.cirad.manager.ProcessStatus;
+import fr.cirad.manager.dump.DumpManager;
+import fr.cirad.manager.dump.DumpMetadata;
+import fr.cirad.manager.dump.DumpStatus;
 import fr.cirad.security.ReloadableInMemoryDaoImpl;
 import fr.cirad.security.UserWithMethod;
 import fr.cirad.security.base.IRoleDefinition;
@@ -166,6 +169,7 @@ public class BackOfficeController {
 		ModelAndView mav = new ModelAndView();
 		mav.addObject("rolesByLevel1Type", UserPermissionController.rolesByLevel1Type);
 		mav.addObject("actionRequiredToEnableDumps", moduleManager.getActionRequiredToEnableDumps());
+		mav.addObject("termsToAcceptToMakeModulePublic", moduleManager.getTermsToAcceptToMakeModulePublic());
 		return mav;
 	}
 
@@ -359,7 +363,10 @@ public class BackOfficeController {
 		if (allowedEntities != null && !allowedEntities.stream().map(c -> c.toString()).collect(Collectors.toList()).contains(topLevelEntityId))
 			throw new Exception("You are not allowed to remove this " + sEntityType);
 
-		return moduleManager.removeManagedEntity(sModule, sEntityType, entityIDs);
+		boolean result = moduleManager.removeManagedEntity(sModule, sEntityType, entityIDs);
+		if (result)
+			moduleManager.updateDatabaseLastModification(sModule, new Date(), false);
+		return result;
 	}
 
 	@PostMapping(moduleEntityVisibilityUpdateUrl)
@@ -381,7 +388,10 @@ public class BackOfficeController {
 		if (allowedEntities != null && !allowedEntities.stream().map(c -> c.toString()).collect(Collectors.toList()).contains(sEntityId))
 			throw new Exception("You are not allowed to modify this " + sEntityType);
 
-		return moduleManager.setManagedEntityDescription(sModule, sEntityType, sEntityId, desc);
+		boolean result = moduleManager.setManagedEntityDescription(sModule, sEntityType, sEntityId, desc);
+		if (result)
+			moduleManager.updateDatabaseLastModification(sModule, new Date(), false);
+		return result;
 	}
 
 	@GetMapping(moduleDumpInfoURL)

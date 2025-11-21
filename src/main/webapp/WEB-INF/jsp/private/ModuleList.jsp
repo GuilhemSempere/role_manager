@@ -57,9 +57,12 @@
 		var moduleDetailsURL = '<c:url value="<%= BackOfficeController.moduleDetailsURL %>" />';
 		var modulePublicFieldName = "<%= BackOfficeController.DTO_FIELDNAME_PUBLIC %>";
 		var moduleHiddenFieldName = "<%= BackOfficeController.DTO_FIELDNAME_HIDDEN %>";
+		var moduleCategoryFieldName = "<%= BackOfficeController.DTO_FIELDNAME_CATEGORY %>";
 		var isAdmin = ${isLoggedUserAdmin};			// may be used by ../js/moduleListCustomisation.js
 		var supervisorRole = "${supervisorRole}";	// may be used by ../js/moduleListCustomisation.js
 	    var supervisedDBs = [];
+		let termsToAcceptToMakeModulePublic = "${termsToAcceptToMakeModulePublic}";
+		
 	    <c:forEach var="authority" items="${loggedUserAuthorities}">
 		    <c:if test="${fn:endsWith(authority, '$SUPERVISOR')}">supervisedDBs.push('${fn:substringBefore(authority, '$SUPERVISOR')}');</c:if>
 	    </c:forEach>
@@ -149,7 +152,8 @@
 				{
 					moduleData[moduleName][modulePublicFieldName] = setToPublic;
 					moduleData[moduleName][moduleHiddenFieldName] = setToHidden;
-					setDirty(moduleName, false);
+					itemRow.find("input.dirty").toggleClass("dirty");
+					reflectDirtiness(moduleName);
 				}
 			}).error(function(xhr) { handleError(xhr); });
 		}
@@ -159,11 +163,13 @@
 			let itemRow = $("#row_" + moduleName);
 			itemRow.find(".flagCol1").prop("checked", moduleData[moduleName][modulePublicFieldName]);
 			itemRow.find(".flagCol2").prop("checked", moduleData[moduleName][moduleHiddenFieldName]);
-			setDirty(moduleName, false);
+			itemRow.find("input.dirty").toggleClass("dirty");
+			reflectDirtiness(moduleName);
 		}
-
-		function setDirty(moduleName, flag)
+		
+		function reflectDirtiness(moduleName)
 		{
+			let flag = $("#row_" + moduleName + " input.dirty").length > 0;
 			$("#row_" + moduleName + " input[type=button]").each(function() {
 				$(this).prop("disabled", !flag);
 				if (($(this).hasClass("resetButton")))
@@ -196,11 +202,11 @@
 					<c:if test="${!isLoggedUserAdmin}">if (supervisedDBs.indexOf(key) != -1)</c:if>	rowContents.append("<a style=\"color:#113388;\" href=\"javascript:openModuleDumpDialog('" + key + "');\">database dumps</a>");
 				rowContents.append("</td>");
 			</c:if>
-
+			
 	   		if (moduleData[key] != null) {
 				<c:if test="${!isLoggedUserAdmin}">if (supervisedDBs.indexOf(key) != -1) {</c:if>
-					rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol1' type='checkbox'" + (moduleData[key][modulePublicFieldName] ? " checked" : "") + "></td>");
-					rowContents.append("<td><input onclick='setDirty(\"" + encodeURIComponent(key) + "\", true);' class='flagCol2' type='checkbox'" + (moduleData[key][moduleHiddenFieldName] ? " checked" : "") + "></td>");
+					rowContents.append("<td><input onclick='$(this).toggleClass(\"dirty\"); reflectDirtiness(\"" + encodeURIComponent(key) + "\");' class='flagCol1' type='checkbox'" + (moduleData[key][modulePublicFieldName] ? " checked" : "") + "></td>");
+					rowContents.append("<td><input onclick='$(this).toggleClass(\"dirty\"); reflectDirtiness(\"" + encodeURIComponent(key) + "\");' class='flagCol2' type='checkbox'" + (moduleData[key][moduleHiddenFieldName] ? " checked" : "") + "></td>");
 			   		rowContents.append("<td><input type='button' value='Reset' class='resetButton btn btn-default btn-sm' disabled onclick='resetFlags(\"" + encodeURIComponent(key) + "\");'>&nbsp;<input type='button' class='applyButton btn btn-default btn-sm' value='Apply' disabled onclick='saveChanges(\"" + encodeURIComponent(key) + "\");'>" + (<c:if test="${isLoggedUserAdmin && actionRequiredToEnableDumps eq ''}">moduleData[key]['<%= BackOfficeController.DTO_FIELDNAME_DUMPSTATUS %>'] == "BUSY" ? "" : </c:if>"<a style='position:absolute; margin:4px; padding:0 10px;' href='javascript:removeItem(\"" + encodeURIComponent(key) + "\");' title='Discard module'><img src='img/delete.gif'></a>") + "</td>");
 			   	<c:if test="${!isLoggedUserAdmin}">
 				}
@@ -440,7 +446,7 @@
 	<table class="adminListTable margin-top-md" id="moduleTable">
 		<thead>
  			<tr>
-				<th>Category</th>
+				<th style="text-transform:capitalize;"><%= BackOfficeController.DTO_FIELDNAME_CATEGORY %></th>
  				<th>Database name</th>
 				<th>Storage size</th>
 				<c:if test="${isLoggedUserAdmin || hasDbCreatorRole}">
@@ -544,6 +550,6 @@
 	</div>
 </body>
 
-<script type="text/javascript" src="../js/moduleListCustomisation.js"></script>
+<script type="text/javascript" src="../js/moduleListCustomisation.js?v=<%= System.currentTimeMillis() %>"></script>
 
 </html>
