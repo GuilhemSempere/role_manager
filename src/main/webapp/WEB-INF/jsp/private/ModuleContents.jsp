@@ -95,7 +95,7 @@
 		let itemRow = $("#row_" + entityId);
 		let setAsPublic = itemRow.find(".flagCol1").prop("checked");
 		itemRow.find("td:last").append("<div style='position:absolute; margin-left:60px; margin-top:-10px;'><img src='img/progress.gif'></div>");
-		
+
 	    $.ajax({
         	url: '<c:url value="<%= BackOfficeController.moduleEntityVisibilityUpdateUrl %>" />',
             method: "POST",
