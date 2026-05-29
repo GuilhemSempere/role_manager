@@ -6,11 +6,15 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-	    <project.version>1.3.10-RELEASE</project.version>
+	    <project.version>2.0-snapshot</project.version>
+        <!-- Frontend build properties -->
+        <node.version>v20.11.0</node.version>
+        <npm.version>10.2.4</npm.version>
+        <frontend.src.dir>${project.basedir}/src/main/react</frontend.src.dir>
 	</properties>
 	
     <groupId>fr.cirad</groupId>
-    <artifactId>role_manager</artifactId>
+    <artifactId>role-manager</artifactId>
     <name>Spring-based role management addon</name>
     <version>${project.version}</version>
    	<packaging>jar</packaging>
@@ -149,6 +153,52 @@
 <!-- 		</pluginManagement> -->
 
         <plugins>
+            <!-- Frontend Maven Plugin - Build React app -->
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>1.15.0</version>
+                <configuration>
+                    <workingDirectory>${frontend.src.dir}</workingDirectory>
+                    <installDirectory>target</installDirectory>
+                </configuration>
+                <executions>
+                    <!-- Install Node and npm -->
+                    <execution>
+                        <id>install-node-and-npm</id>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                        <phase>validate</phase>
+                        <configuration>
+                            <nodeVersion>${node.version}</nodeVersion>
+                            <npmVersion>${npm.version}</npmVersion>
+                        </configuration>
+                    </execution>
+                    <!-- npm install -->
+                    <execution>
+                        <id>npm-install</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <phase>validate</phase>
+                        <configuration>
+                            <arguments>install</arguments>
+                        </configuration>
+                    </execution>
+                    <!-- npm run build -->
+                    <execution>
+                        <id>npm-build</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <phase>validate</phase>
+                        <configuration>
+                            <arguments>run build</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -216,9 +266,17 @@
 <!--             </plugin>         -->
         </plugins>
 		<resources>
+			<!-- Include JSP files from webapp (legacy, can be removed after full migration) -->
 			<resource>
-			<targetPath>META-INF/resources</targetPath>
-			<directory>src/main/webapp</directory>
+				<targetPath>META-INF/resources</targetPath>
+				<directory>src/main/webapp</directory>
+			</resource>
+			<!-- Include React build output from META-INF/resources -->
+			<resource>
+				<directory>src/main/resources</directory>
+				<includes>
+					<include>META-INF/**/*</include>
+				</includes>
 			</resource>
 		</resources>
     </build>

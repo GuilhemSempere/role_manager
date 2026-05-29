@@ -1,0 +1,309 @@
+/* Custom styles for Role Manager */
+
+/* Match existing J2EE app styling */
+.role-manager-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* User list table styling */
+.user-table {
+  font-size: 0.9rem;
+}
+
+.user-table th {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+/* Permission badges */
+.permission-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  margin: 2px;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.permission-badge .remove-btn {
+  cursor: pointer;
+  color: #dc3545;
+  margin-left: 4px;
+}
+
+.permission-badge .remove-btn:hover {
+  color: #a71d2a;
+}
+
+/* Entity cards */
+.entity-card {
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 10px;
+  background-color: #fff;
+}
+
+.entity-card.public {
+  border-left: 4px solid #28a745;
+}
+
+.entity-card.private {
+  border-left: 4px solid #ffc107;
+}
+
+/* Module sections */
+.module-section {
+  margin-bottom: 20px;
+}
+
+.module-header {
+  background-color: #007bff;
+  color: #fff;
+  padding: 10px 15px;
+  border-radius: 4px 4px 0 0;
+  font-weight: 500;
+}
+
+.module-body {
+  border: 1px solid #dee2e6;
+  border-top: none;
+  padding: 15px;
+  border-radius: 0 0 4px 4px;
+}
+
+/* Search box */
+.search-box {
+  position: relative;
+}
+
+.search-box .bi-search {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+}
+
+.search-box input {
+  padding-left: 35px;
+}
+
+/* Action buttons */
+.action-btn {
+  padding: 2px 8px;
+  font-size: 0.85rem;
+}
+
+/* Loading spinner */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Navbar styling */
+.navbar-brand {
+  font-weight: 600;
+}
+
+/* Form styling */
+.form-section {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.form-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+/* Toast notifications */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1050;
+}
+
+/* Database manager density */
+.database-manager-page {
+  font-size: 0.86rem;
+}
+
+.database-manager-page .table,
+.database-manager-page .form-control,
+.database-manager-page .form-select,
+.database-manager-page .btn,
+.database-manager-page .form-check-label,
+.database-manager-page .alert,
+.database-manager-page .small {
+  font-size: 0.82rem;
+}
+
+.database-manager-page .table thead th {
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+}
+
+.database-manager-page .table tbody td {
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+  vertical-align: middle;
+}
+
+.database-manager-page .database-main-table .entity-management-column,
+.database-manager-page .database-main-table .entity-management-cell {
+  min-width: 13rem;
+}
+
+.database-manager-page .database-main-table .entity-management-cell .btn {
+  white-space: nowrap;
+}
+
+.database-manager-page .database-row.database-row-dirty {
+  background: #fff8dc;
+  box-shadow: inset 3px 0 0 #f59f00;
+}
+
+.database-manager-page .form-control-sm,
+.database-manager-page .form-select-sm {
+  min-height: calc(1.5em + 0.5rem + 2px);
+}
+
+.database-manager-page .btn-sm {
+  padding: 0.16rem 0.45rem;
+}
+
+.database-manager-page .pending-save-btn,
+.database-manager-page .pending-reset-btn {
+  font-weight: 700;
+  box-shadow: 0 0 0 2px rgba(245, 159, 0, 0.35);
+}
+
+.database-manager-page .pending-save-btn {
+  box-shadow: 0 0 0 2px rgba(47, 133, 90, 0.35);
+}
+
+.database-dumps-table {
+  font-size: 0.8rem;
+}
+
+.dump-status-cell {
+  font-weight: 600;
+  text-transform: lowercase;
+  text-align: center;
+}
+
+.dump-status-cell-clickable {
+  cursor: pointer;
+}
+
+.dump-status-cell-clickable .dump-status-link {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 0.15rem;
+}
+
+.dump-status-cell-clickable:focus-visible {
+  outline: 2px solid #0d6efd;
+  outline-offset: -2px;
+}
+
+.dump-status-cell.dumpVALID {
+  background-color: #88ff88;
+}
+
+.dump-status-cell.dumpOUTDATED {
+  background-color: #ffaa66;
+}
+
+.dump-status-cell.dumpDIVERGED {
+  background-color: #cc88ff;
+}
+
+.dump-status-cell.dumpBUSY {
+  background-color: #aaaaaa;
+}
+
+.dump-status-cell.dumpNONE {
+  background-color: #ff8888;
+}
+
+.dump-status-cell.dumpUNSUPPORTED {
+  background-color: transparent;
+}
+
+.dump-management-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  background: rgba(15, 23, 42, 0.55);
+  padding: 1.25rem;
+  overflow: auto;
+}
+
+.dump-management-modal {
+  width: min(1200px, 100%);
+  margin: 3rem auto;
+  max-height: calc(100vh - 6rem);
+  overflow: auto;
+}
+
+.dump-management-modal iframe {
+  display: block;
+  background: #fff;
+}
+
+/* Checkbox grid for permissions */
+.permission-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.permission-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+/* Pagination */
+.pagination-info {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .role-manager-container {
+    padding: 10px;
+  }
+  
+  .permission-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .user-table {
+    font-size: 0.8rem;
+  }
+}
