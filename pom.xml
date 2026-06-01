@@ -14,7 +14,7 @@
 	</properties>
 	
     <groupId>fr.cirad</groupId>
-    <artifactId>role-manager</artifactId>
+    <artifactId>role_manager</artifactId>
     <name>Spring-based role management addon</name>
     <version>${project.version}</version>
    	<packaging>jar</packaging>
