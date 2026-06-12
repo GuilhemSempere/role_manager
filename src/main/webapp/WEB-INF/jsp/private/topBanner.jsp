@@ -58,10 +58,8 @@
 </script>
 </head>
 
-<body>
-	<div
-		style='
-height: 47px; display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding-left: 15px; padding-right: 15px' class="navbar-inverse">
+<body style="overflow-y: hidden;">
+	<div style='height: 47px; display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding-left: 15px; padding-right: 15px' class="navbar-inverse">
 		<div style='font-weight: bold; font-size: 20px; color: white;'>
 			<a href='<c:url value="<%=BackOfficeController.mainPageURL%>" />'
 				target="_top"
