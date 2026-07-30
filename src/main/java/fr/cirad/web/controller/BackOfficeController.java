@@ -55,7 +55,7 @@ import javax.servlet.http.HttpSession;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -84,6 +84,7 @@ import fr.cirad.security.ReloadableInMemoryDaoImpl;
 import fr.cirad.security.UserWithMethod;
 import fr.cirad.security.base.IRoleDefinition;
 import fr.cirad.security.service.RoleService;
+import fr.cirad.web.controller.security.BearerTokenAuthResolver;
 import fr.cirad.web.controller.security.UserPermissionController;
 
 @Controller
@@ -133,6 +134,7 @@ public class BackOfficeController {
 	@Autowired private ReloadableInMemoryDaoImpl userDao;
 	@Autowired private DumpManager dumpManager;
 	@Autowired private RoleService roleService;
+	@Autowired private BearerTokenAuthResolver bearerTokenAuthResolver;
 
 	@GetMapping(mainPageURL)
 	protected ModelAndView mainPage(HttpSession session) throws Exception
@@ -174,8 +176,9 @@ public class BackOfficeController {
 	}
 
 	@GetMapping(moduleContentPageURL)
-	public void moduleContentPage(Model model, @RequestParam("user") String username, @RequestParam("module") String module, @RequestParam("entityType") String entityType) throws Exception
+	public void moduleContentPage(Model model, @RequestParam("user") String username, @RequestParam("module") String module, @RequestParam("entityType") String entityType, HttpServletRequest httpRequest) throws Exception
 	{
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
 		model.addAttribute(module);
 		model.addAttribute("roles", UserPermissionController.rolesByLevel1Type.get(entityType));
 		HashMap<String, LinkedHashSet<String>> subEntityTypeToRolesMap = UserPermissionController.rolesByLevel2Type.get(entityType);
@@ -235,15 +238,18 @@ public class BackOfficeController {
 		model.addAttribute("subEntities", subEntityMap);
 	}
 
-	@PreAuthorize("@roleService.hasDbCreatorOrAdminRole(authentication)")
 	@GetMapping(hostListURL)
-	protected @ResponseBody Collection<String> getHostList() throws IOException {
+	protected @ResponseBody Collection<String> getHostList(HttpServletRequest httpRequest) throws IOException {
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+		if (!roleService.hasDbCreatorOrAdminRole(SecurityContextHolder.getContext().getAuthentication()))
+			throw new AccessDeniedException("Access is denied");
     	return moduleManager.getHosts();
     }
 
 	@GetMapping(moduleListDataURL)
-	protected @ResponseBody Map<String, Map<String, Comparable>> listModules() throws Exception
+	protected @ResponseBody Map<String, Map<String, Comparable>> listModules(HttpServletRequest httpRequest) throws Exception
 	{
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
 		Collection<? extends GrantedAuthority> authorities = userDao.getLoggedUserAuthorities();
 		Collection<String> modulesToManage;
 		if (authorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)))
@@ -279,16 +285,20 @@ public class BackOfficeController {
 	}
 
 	@GetMapping(moduleDetailsURL)
-	@PreAuthorize("@roleService.hasSupervisorOrAdminRole(authentication, #module)")
 	protected @ResponseBody boolean modifyModuleDetails(HttpServletRequest request, @RequestParam String module, @RequestParam("public") boolean fPublic, @RequestParam("hidden") boolean fHidden, @RequestParam(required=false) String category) throws Exception
 	{
+		bearerTokenAuthResolver.resolveIfNeeded(request);
+		if (!roleService.hasSupervisorOrAdminRole(SecurityContextHolder.getContext().getAuthentication(), module))
+			throw new AccessDeniedException("Access is denied");
 		return moduleManager.updateDataSource(module, fPublic, fHidden, category);
 	}
 
 	@GetMapping(moduleCreationURL)
-	@PreAuthorize("@roleService.hasDbCreatorOrAdminRole(authentication)")
-	protected @ResponseBody boolean createModule(@RequestParam String module, @RequestParam("host") String sHost) throws Exception
+	protected @ResponseBody boolean createModule(@RequestParam String module, @RequestParam("host") String sHost, HttpServletRequest httpRequest) throws Exception
 	{
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+		if (!roleService.hasDbCreatorOrAdminRole(SecurityContextHolder.getContext().getAuthentication()))
+			throw new AccessDeniedException("Access is denied");
         boolean succeeded = moduleManager.createDataSource(module, sHost, null);
         if (succeeded)
 			try {
@@ -316,15 +326,18 @@ public class BackOfficeController {
 	}
 
 	@DeleteMapping(moduleRemovalURL)
-	@PreAuthorize("@roleService.hasSupervisorOrAdminRole(authentication, #module)")
-	protected @ResponseBody boolean removeModule(@RequestParam String module, @RequestParam(required=false, value="removeDumps") Boolean fRemoveDumps) throws Exception
+	protected @ResponseBody boolean removeModule(@RequestParam String module, @RequestParam(required=false, value="removeDumps") Boolean fRemoveDumps, HttpServletRequest httpRequest) throws Exception
 	{
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+		if (!roleService.hasSupervisorOrAdminRole(SecurityContextHolder.getContext().getAuthentication(), module))
+			throw new AccessDeniedException("Access is denied");
 		return moduleManager.removeDataSource(module, true, Boolean.TRUE.equals(fRemoveDumps));
 	}
-	
+
 	@PostMapping(moduleEntityInfoURL)
-	protected @ResponseBody String moduleEntityInfo(@RequestBody Map<String, Object> body) throws Exception
-	{	    
+	protected @ResponseBody String moduleEntityInfo(@RequestBody Map<String, Object> body, HttpServletRequest httpRequest) throws Exception
+	{
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
 	    String sModule = (String) body.get("module"), sEntityType = (String) body.get("entityType");
 	    Collection<Comparable> entityIDs = (Collection<Comparable>) body.get("allLevelEntityIDs");
 	    
@@ -348,8 +361,9 @@ public class BackOfficeController {
 	}
 
 	@DeleteMapping(moduleEntityRemovalURL)
-	protected @ResponseBody boolean removeModuleEntity(@RequestBody Map<String, Object> body) throws Exception
+	protected @ResponseBody boolean removeModuleEntity(@RequestBody Map<String, Object> body, HttpServletRequest httpRequest) throws Exception
 	{
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
 	    Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
 	    
 	    String sModule = (String) body.get("module"), sEntityType = (String) body.get("entityType");
@@ -370,8 +384,9 @@ public class BackOfficeController {
 	}
 
 	@PostMapping(moduleEntityVisibilityUpdateUrl)
-	protected @ResponseBody boolean modifyModuleEntityVisibility(@RequestParam("module") String sModule, @RequestParam("entityType") String sEntityType, @RequestParam("entityId") String sEntityId, @RequestParam("public") boolean fPublic) throws Exception
+	protected @ResponseBody boolean modifyModuleEntityVisibility(@RequestParam("module") String sModule, @RequestParam("entityType") String sEntityType, @RequestParam("entityId") String sEntityId, @RequestParam("public") boolean fPublic, HttpServletRequest httpRequest) throws Exception
 	{
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
 	    Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
 		Collection<Comparable> allowedEntities = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) || userDao.getSupervisedModules(loggedUserAuthorities).contains(sModule) ? null : userDao.getManagedEntitiesByModuleAndType(loggedUserAuthorities).get(sModule).get(sEntityType);
 		if (allowedEntities != null && !allowedEntities.stream().map(c -> c.toString()).collect(Collectors.toList()).contains(sEntityId))
@@ -381,8 +396,9 @@ public class BackOfficeController {
 	}
 	
 	@PostMapping(moduleEntityDescriptionUpdateUrl)
-	protected @ResponseBody boolean modifyModuleEntityDescription(@RequestParam("module") String sModule, @RequestParam("entityType") String sEntityType, @RequestParam("entityId") String sEntityId, @RequestParam("desc") String desc) throws Exception
+	protected @ResponseBody boolean modifyModuleEntityDescription(@RequestParam("module") String sModule, @RequestParam("entityType") String sEntityType, @RequestParam("entityId") String sEntityId, @RequestParam("desc") String desc, HttpServletRequest httpRequest) throws Exception
 	{
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
 	    Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
 		Collection<Comparable> allowedEntities = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) || userDao.getSupervisedModules(loggedUserAuthorities).contains(sModule) ? null : userDao.getManagedEntitiesByModuleAndType(loggedUserAuthorities).get(sModule).get(sEntityType);
 		if (allowedEntities != null && !allowedEntities.stream().map(c -> c.toString()).collect(Collectors.toList()).contains(sEntityId))
@@ -395,8 +411,10 @@ public class BackOfficeController {
 	}
 
 	@GetMapping(moduleDumpInfoURL)
-	@PreAuthorize("@roleService.hasSupervisorOrAdminRole(authentication, #module)")
-	protected @ResponseBody Map<String, Object> getModuleDumpInfo(@RequestParam String module) throws Exception {
+	protected @ResponseBody Map<String, Object> getModuleDumpInfo(@RequestParam String module, HttpServletRequest httpRequest) throws Exception {
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+		if (!roleService.hasSupervisorOrAdminRole(SecurityContextHolder.getContext().getAuthentication(), module))
+			throw new AccessDeniedException("Access is denied");
 		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 
@@ -409,8 +427,10 @@ public class BackOfficeController {
 	}
 	
     @GetMapping(moduleDumpDownloadURL)
-    @PreAuthorize("@roleService.hasSupervisorOrAdminRole(authentication, #module)")
-    protected void downloadDump(HttpServletResponse response, @RequestParam String module, @RequestParam("dumpId") String sDumpId) throws Exception {
+    protected void downloadDump(HttpServletRequest httpRequest, HttpServletResponse response, @RequestParam String module, @RequestParam("dumpId") String sDumpId) throws Exception {
+        bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+        if (!roleService.hasSupervisorOrAdminRole(SecurityContextHolder.getContext().getAuthentication(), module))
+            throw new AccessDeniedException("Access is denied");
         if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
             throw new Exception("The dump feature is disabled");  // TODO : 404 ?
         
@@ -427,8 +447,10 @@ public class BackOfficeController {
     }
 
     @GetMapping(moduleDumpLogDownloadURL)
-	@PreAuthorize("@roleService.hasSupervisorOrAdminRole(authentication, #module)")
-    protected void downloadDumpLog(HttpServletResponse response, @RequestParam String module, @RequestParam("dumpId") String sDumpId) throws Exception {
+    protected void downloadDumpLog(HttpServletRequest httpRequest, HttpServletResponse response, @RequestParam String module, @RequestParam("dumpId") String sDumpId) throws Exception {
+        bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+        if (!roleService.hasSupervisorOrAdminRole(SecurityContextHolder.getContext().getAuthentication(), module))
+            throw new AccessDeniedException("Access is denied");
         if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
             throw new Exception("The dump feature is disabled");  // TODO : 404 ?
         
@@ -445,8 +467,10 @@ public class BackOfficeController {
     }
     
 	@GetMapping(newDumpURL)
-	@PreAuthorize("@roleService.hasSupervisorOrAdminRole(authentication, #module)")
-	protected String startDumpProcess(@RequestParam String module, @RequestParam("name") String sName, @RequestParam("description") String sDescription) throws Exception {
+	protected String startDumpProcess(@RequestParam String module, @RequestParam("name") String sName, @RequestParam("description") String sDescription, HttpServletRequest httpRequest) throws Exception {
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+		if (!roleService.hasSupervisorOrAdminRole(SecurityContextHolder.getContext().getAuthentication(), module))
+			throw new AccessDeniedException("Access is denied");
 		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");
 
@@ -461,8 +485,10 @@ public class BackOfficeController {
 	}
 
 	@GetMapping(restoreDumpURL)
-	@PreAuthorize("@roleService.hasSupervisorOrAdminRole(authentication, #module)")
-	protected String startRestoreProcess(@RequestParam String module, @RequestParam("dump") String sDump, @RequestParam("drop") boolean drop) throws Exception {
+	protected String startRestoreProcess(@RequestParam String module, @RequestParam("dump") String sDump, @RequestParam("drop") boolean drop, HttpServletRequest httpRequest) throws Exception {
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+		if (!roleService.hasSupervisorOrAdminRole(SecurityContextHolder.getContext().getAuthentication(), module))
+			throw new AccessDeniedException("Access is denied");
 		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 
@@ -506,8 +532,10 @@ public class BackOfficeController {
 	}
 
 	@GetMapping(dumpStatusPageURL)
-	@PreAuthorize("@roleService.hasSupervisorOrAdminRole(authentication, #module)")
-	protected ModelAndView dumpStatusPage(@RequestParam String module, @RequestParam("processID") String processID) throws Exception {
+	protected ModelAndView dumpStatusPage(@RequestParam String module, @RequestParam("processID") String processID, HttpServletRequest httpRequest) throws Exception {
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+		if (!roleService.hasSupervisorOrAdminRole(SecurityContextHolder.getContext().getAuthentication(), module))
+			throw new AccessDeniedException("Access is denied");
 		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 
@@ -522,8 +550,10 @@ public class BackOfficeController {
 	}
 
 	@GetMapping(dumpStatusQueryURL)
-	@PreAuthorize("@roleService.hasSupervisorOrAdminRole(authentication, #module)")
-	protected @ResponseBody Map<String, Object> dumpStatusQuery(@RequestParam String module, @RequestParam("processID") String processID, @RequestParam(name="logStart", required=false) Integer logStart) throws Exception {
+	protected @ResponseBody Map<String, Object> dumpStatusQuery(@RequestParam String module, @RequestParam("processID") String processID, @RequestParam(name="logStart", required=false) Integer logStart, HttpServletRequest httpRequest) throws Exception {
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+		if (!roleService.hasSupervisorOrAdminRole(SecurityContextHolder.getContext().getAuthentication(), module))
+			throw new AccessDeniedException("Access is denied");
 		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 
@@ -561,7 +591,8 @@ public class BackOfficeController {
 	}
 
 	@GetMapping(processListPageURL)
-	protected ModelAndView processListPage() throws Exception {
+	protected ModelAndView processListPage(HttpServletRequest httpRequest) throws Exception {
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
 	    Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
 		if (!loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) && userDao.getSupervisedModules(loggedUserAuthorities).isEmpty())
 			throw new Exception("You are not allowed to access process list page!");
@@ -571,7 +602,8 @@ public class BackOfficeController {
 	}
 
 	@GetMapping(processListStatusURL)
-	protected @ResponseBody TreeSet<Map<String, String>> processListStatus() throws Exception {
+	protected @ResponseBody TreeSet<Map<String, String>> processListStatus(HttpServletRequest httpRequest) throws Exception {
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
 		Collection<? extends GrantedAuthority> loggedUserAuthorities = userDao.getLoggedUserAuthorities();
 		HashSet<String> supervisedModules = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN)) ? null : userDao.getSupervisedModules(loggedUserAuthorities);
 
@@ -618,8 +650,10 @@ public class BackOfficeController {
 	}
 
 	@GetMapping(abortProcessURL)
-	@PreAuthorize("@roleService.hasSupervisorOrAdminRole(authentication, #module)")
-	protected @ResponseBody Map<String, Boolean> abortProcess(@RequestParam String module, @RequestParam("processID") String processID) throws Exception {
+	protected @ResponseBody Map<String, Boolean> abortProcess(@RequestParam String module, @RequestParam("processID") String processID, HttpServletRequest httpRequest) throws Exception {
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+		if (!roleService.hasSupervisorOrAdminRole(SecurityContextHolder.getContext().getAuthentication(), module))
+			throw new AccessDeniedException("Access is denied");
 		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 
@@ -629,8 +663,10 @@ public class BackOfficeController {
 	}
 
 	@DeleteMapping(deleteDumpURL)
-	@PreAuthorize("@roleService.hasSupervisorOrAdminRole(authentication, #module)")
-	protected @ResponseBody Map<String, Boolean> deleteDump(@RequestParam String module, @RequestParam("dump") String dump) throws Exception {
+	protected @ResponseBody Map<String, Boolean> deleteDump(@RequestParam String module, @RequestParam("dump") String dump, HttpServletRequest httpRequest) throws Exception {
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+		if (!roleService.hasSupervisorOrAdminRole(SecurityContextHolder.getContext().getAuthentication(), module))
+			throw new AccessDeniedException("Access is denied");
 		if (!moduleManager.getActionRequiredToEnableDumps().isEmpty())
 			throw new Exception("The dump feature is disabled");  // TODO : 404 ?
 

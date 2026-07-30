@@ -26,12 +26,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -64,6 +67,9 @@ public class RoleManagerRestController {
 
     @Autowired
     private IModuleManager moduleManager;
+
+    @Autowired
+    private BearerTokenAuthResolver bearerTokenAuthResolver;
 
     // ============================================================
     // Role Configuration Endpoint - exposes roles.properties config
@@ -103,7 +109,9 @@ public class RoleManagerRestController {
     // ============================================================
 
     @GetMapping({"/currentUser", "/currentUser.json_"})
-    public Map<String, Object> getCurrentUser(Authentication auth) {
+    public Map<String, Object> getCurrentUser(HttpServletRequest httpRequest) {
+        bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
             return Map.of("authenticated", false);
         }
@@ -130,7 +138,9 @@ public class RoleManagerRestController {
     // ============================================================
 
     @GetMapping({"/user/{username}", "/user/{username}.json_"})
-    public ResponseEntity<?> getUserDetails(@PathVariable String username, Authentication auth) {
+    public ResponseEntity<?> getUserDetails(@PathVariable String username, HttpServletRequest httpRequest) {
+        bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         try {
             UserWithMethod user = (UserWithMethod) userDao.loadUserByUsername(username);
             return ResponseEntity.ok(buildUserResponse(user, auth));
@@ -165,7 +175,9 @@ public class RoleManagerRestController {
     // ============================================================
 
     @PostMapping({"/user", "/user.json_"})
-    public ResponseEntity<?> createOrUpdateUser(@RequestBody UserSaveRequest request, Authentication auth) {
+    public ResponseEntity<?> createOrUpdateUser(@RequestBody UserSaveRequest request, HttpServletRequest httpRequest) {
+        bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         try {
             return saveUser(request, auth, true);
         } catch (Exception e) {
@@ -175,7 +187,9 @@ public class RoleManagerRestController {
     }
 
     @PutMapping({"/user/{username}", "/user/{username}.json_"})
-    public ResponseEntity<?> updateUser(@PathVariable String username, @RequestBody UserSaveRequest request, Authentication auth) {
+    public ResponseEntity<?> updateUser(@PathVariable String username, @RequestBody UserSaveRequest request, HttpServletRequest httpRequest) {
+        bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         request.setUsername(username);
         try {
             return saveUser(request, auth, false);
@@ -333,7 +347,9 @@ public class RoleManagerRestController {
     // ============================================================
 
     @GetMapping({"/modules", "/modules.json_"})
-    public Map<String, Object> getModules(Authentication auth) {
+    public Map<String, Object> getModules(HttpServletRequest httpRequest) {
+        bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Collection<? extends GrantedAuthority> loggedUserAuthorities = auth.getAuthorities();
         boolean isAdmin = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
         Map<String, Map<String, Collection<Comparable>>> managedEntities = userDao.getManagedEntitiesByModuleAndType(loggedUserAuthorities);
@@ -383,8 +399,9 @@ public class RoleManagerRestController {
             @PathVariable String module,
             @RequestParam String entityType,
             @RequestParam(required = false) String parentEntityId,
-            Authentication auth) throws Exception {
-        
+            HttpServletRequest httpRequest) throws Exception {
+        bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+
         boolean visibilitySupported = moduleManager.doesEntityTypeSupportVisibility(module, entityType);
         boolean descriptionSupported = moduleManager.isInlineDescriptionUpdateSupportedForEntity(entityType);
         
@@ -490,7 +507,8 @@ public class RoleManagerRestController {
             @PathVariable String module,
             @RequestParam String entityType,
             @RequestParam String mainEntityId,
-            Authentication auth) throws Exception {
+            HttpServletRequest httpRequest) throws Exception {
+        bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
 
         Map<Comparable, String> subEntities = moduleManager.getSubEntities(
             entityType,
@@ -525,8 +543,9 @@ public class RoleManagerRestController {
             @RequestParam String username,
             @RequestParam String module,
             @RequestParam String entityType,
-            Authentication auth) throws Exception {
-        
+            HttpServletRequest httpRequest) throws Exception {
+        bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
+
         Map<String, Object> result = new HashMap<>();
         result.put("module", module);
         result.put("entityType", entityType);
@@ -585,7 +604,8 @@ public class RoleManagerRestController {
     public ResponseEntity<?> addPermission(
             @PathVariable String username,
             @RequestBody PermissionEntry permission,
-            Authentication auth) {
+            HttpServletRequest httpRequest) {
+        bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
         try {
             UserWithMethod user = (UserWithMethod) userDao.loadUserByUsername(username);
             
@@ -624,10 +644,11 @@ public class RoleManagerRestController {
             @RequestParam String entityType,
             @RequestParam String role,
             @RequestParam String entityId,
-            Authentication auth) {
+            HttpServletRequest httpRequest) {
+        bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
         try {
             UserWithMethod user = (UserWithMethod) userDao.loadUserByUsername(username);
-            
+
             String authorityString = module + UserPermissionController.ROLE_STRING_SEPARATOR +
                 entityType + UserPermissionController.ROLE_STRING_SEPARATOR +
                 role + UserPermissionController.ROLE_STRING_SEPARATOR +

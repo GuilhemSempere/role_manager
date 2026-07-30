@@ -43,6 +43,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -86,6 +87,7 @@ public class UserPermissionController
 	public static final HashMap<String, HashMap<String, LinkedHashSet<String>>> rolesByLevel2Type = new HashMap<>();
 
 	@Autowired private ReloadableInMemoryDaoImpl userDao;
+	@Autowired private BearerTokenAuthResolver bearerTokenAuthResolver;
 	private static IModuleManager moduleManager;
 
 	@Autowired void setModuleManager(IModuleManager modMgr) {
@@ -166,14 +168,16 @@ public class UserPermissionController
     }
 
 	@GetMapping(userListCountURL)
-	protected @ResponseBody int countUsersByLoginLookup(@RequestParam("loginLookup") String sLoginLookup) throws Exception
+	protected @ResponseBody int countUsersByLoginLookup(@RequestParam("loginLookup") String sLoginLookup, HttpServletRequest httpRequest) throws Exception
 	{
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
 		return userDao.countByLoginLookup(sLoginLookup);
 	}
 
 	@GetMapping(userListDataURL)
-	protected @ResponseBody Comparable[][] listUsersByLoginLookup(@RequestParam("loginLookup") String sLoginLookup, @RequestParam("page") int page, @RequestParam("size") int size) throws Exception
+	protected @ResponseBody Comparable[][] listUsersByLoginLookup(@RequestParam("loginLookup") String sLoginLookup, @RequestParam("page") int page, @RequestParam("size") int size, HttpServletRequest httpRequest) throws Exception
 	{
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
 		List<UserDetails> users = userDao.listByLoginLookup(sLoginLookup, Math.max(0, page), size);
 		Comparable[][] result = new Comparable[users.size()][3];
 		for (int i=0; i<users.size(); i++)
@@ -197,8 +201,9 @@ public class UserPermissionController
 	}
 
 	@GetMapping(value = userDetailsURL)
-	protected void setupForm(Model model, @RequestParam(value="user", required=false) String username)
+	protected void setupForm(Model model, @RequestParam(value="user", required=false) String username, HttpServletRequest httpRequest)
 	{
+		bearerTokenAuthResolver.resolveIfNeeded(httpRequest);
 		model.addAttribute("rolesByLevel1Type", rolesByLevel1Type);
 
 		UserDetails user = username != null ? userDao.loadUserByUsername(username) : new UserWithMethod(" ", "", new ArrayList<>(), true, "", null);
@@ -224,8 +229,11 @@ public class UserPermissionController
 	}
 
 	@PostMapping(value = userDetailsURL)
-	protected String processForm(Authentication authentication, Model model, HttpServletRequest request) throws Exception
+	protected String processForm(Model model, HttpServletRequest request) throws Exception
 	{
+		bearerTokenAuthResolver.resolveIfNeeded(request);
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
 		String sUserName = request.getParameter("username"), sPassword = request.getParameter("password"), sEmail = request.getParameter("email");
 		boolean fGotUserName = sUserName != null && sUserName.trim().length() > 0;
 		boolean fGotPassword = sPassword != null && sPassword.trim().length() > 0;
@@ -356,7 +364,7 @@ public class UserPermissionController
 				grantedAuthorities.add(new SimpleGrantedAuthority(sGA));
 			user = new UserWithMethod(fGotUserName ? sUserName : " ", "", grantedAuthorities, true, user == null ? "" : user.getMethod(), sEmail);
 			model.addAttribute("errors", errors);
-			setupForm(model, null);
+			setupForm(model, null, request);
 			model.addAttribute("user", user);
 			model.addAttribute("isNew", fIsNewUser);
 			return userDetailsURL.substring(0, userDetailsURL.lastIndexOf("."));
@@ -372,7 +380,7 @@ public class UserPermissionController
 				grantedAuthorities.add(new SimpleGrantedAuthority(sGA));
 			user = new UserWithMethod(fGotUserName ? sUserName : " ", "", grantedAuthorities, true, user == null ? "" : user.getMethod(), sEmail);
 			model.addAttribute("errors", errors);
-			setupForm(model, null);
+			setupForm(model, null, request);
 			model.addAttribute("user", user);
 			model.addAttribute("isNew", fIsNewUser);
 			return userDetailsURL.substring(0, userDetailsURL.lastIndexOf("."));

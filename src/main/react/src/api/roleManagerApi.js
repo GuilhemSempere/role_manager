@@ -46,6 +46,17 @@ export function getAppContextPath() {
   return CONTEXT_PATH;
 }
 
+// Same-origin iframes share localStorage with the host page, so if the host app (e.g. Gigwa2's
+// React UI) stores a bearer token there, forward it — the backend session is otherwise anonymous
+// when embedded this way, since the host app authenticates statelessly rather than via cookies.
+// The storage key is overridable by the host app, defaulting to Gigwa2's own key.
+const AUTH_TOKEN_STORAGE_KEY = window.roleManagerAuthTokenStorageKey || 'auth_token';
+
+function getAuthHeaders() {
+  const token = localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 function withJsonSuffix(endpoint) {
   const [path, query] = endpoint.split('?');
   const suffixedPath = path.endsWith('.json_') ? path : `${path}.json_`;
@@ -62,6 +73,7 @@ async function apiFetch(endpoint, options = {}) {
     credentials: 'same-origin', // Include cookies for session auth
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeaders(),
       ...options.headers,
     },
   };
@@ -123,6 +135,7 @@ export async function listUsers(loginLookup = '', page = 0, size = 20) {
   // Use the existing endpoint (not in /api)
   const response = await fetch(`${LEGACY_BASE}/listUsers.json_?${params}`, {
     credentials: 'same-origin',
+    headers: getAuthHeaders(),
   });
   
   if (!response.ok) {
@@ -138,6 +151,7 @@ export async function listUsers(loginLookup = '', page = 0, size = 20) {
 export async function countUsers(loginLookup = '') {
   const response = await fetch(`${LEGACY_BASE}/countUsers.json_?loginLookup=${encodeURIComponent(loginLookup)}`, {
     credentials: 'same-origin',
+    headers: getAuthHeaders(),
   });
   
   if (!response.ok) {
@@ -182,6 +196,7 @@ export async function deleteUser(username) {
   const response = await fetch(`${LEGACY_BASE}/removeUser.json_?user=${encodeURIComponent(username)}`, {
     method: 'DELETE',
     credentials: 'same-origin',
+    headers: getAuthHeaders(),
   });
   
   if (!response.ok) {
@@ -261,6 +276,7 @@ export async function removePermission(username, module, entityType, role, entit
 export async function listDatabases() {
   const response = await fetch(`${BACKOFFICE_BASE}/listModules.json_`, {
     credentials: 'same-origin',
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
@@ -273,6 +289,7 @@ export async function listDatabases() {
 export async function listDatabaseHosts() {
   const response = await fetch(`${BACKOFFICE_BASE}/hosts.json_`, {
     credentials: 'same-origin',
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
@@ -286,6 +303,7 @@ export async function createDatabase(moduleName, host) {
   const params = new URLSearchParams({ module: moduleName, host });
   const response = await fetch(`${BACKOFFICE_BASE}/createModule.json_?${params}`, {
     credentials: 'same-origin',
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
@@ -303,6 +321,7 @@ export async function deleteDatabase(moduleName, removeDumps = true) {
   const response = await fetch(`${BACKOFFICE_BASE}/removeModule.json_?${params}`, {
     method: 'DELETE',
     credentials: 'same-origin',
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
@@ -321,6 +340,7 @@ export async function updateDatabaseDetails(moduleName, isPublic, isHidden, cate
   });
   const response = await fetch(`${BACKOFFICE_BASE}/moduleDetails.json_?${params}`, {
     credentials: 'same-origin',
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
@@ -334,6 +354,7 @@ export async function getDatabaseDumpInfo(moduleName) {
   const params = new URLSearchParams({ module: moduleName });
   const response = await fetch(`${BACKOFFICE_BASE}/moduleDumpInfo.json_?${params}`, {
     credentials: 'same-origin',
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
@@ -349,6 +370,7 @@ export async function getModuleEntityInfo(moduleName, entityType, allLevelEntity
     credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeaders(),
     },
     body: JSON.stringify({
       module: moduleName,
@@ -371,6 +393,7 @@ export async function removeModuleEntity(moduleName, entityType, allLevelEntityI
     credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeaders(),
     },
     body: JSON.stringify({
       module: moduleName,
@@ -398,6 +421,7 @@ export async function updateModuleEntityVisibility(moduleName, entityType, entit
   const response = await fetch(`${BACKOFFICE_BASE}/entityVisibility.json_?${params}`, {
     method: 'POST',
     credentials: 'same-origin',
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
@@ -419,6 +443,7 @@ export async function updateModuleEntityDescription(moduleName, entityType, enti
   const response = await fetch(`${BACKOFFICE_BASE}/entityDescUpdate.json_?${params}`, {
     method: 'POST',
     credentials: 'same-origin',
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
@@ -434,6 +459,7 @@ export async function getDumpRestoreWarning(moduleName, dumpId) {
   const params = new URLSearchParams({ module: moduleName, dump: dumpId });
   const response = await fetch(`${BACKOFFICE_BASE}/dumpRestoreWarning.do_?${params}`, {
     credentials: 'same-origin',
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
@@ -448,6 +474,7 @@ export async function deleteDatabaseDump(moduleName, dumpId) {
   const response = await fetch(`${BACKOFFICE_BASE}/deleteDump.json_?${params}`, {
     method: 'DELETE',
     credentials: 'same-origin',
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
@@ -496,6 +523,7 @@ export function getRestoreDumpUrl(moduleName, dumpId, dropBeforeRestore) {
 export async function getProcessList() {
   const response = await fetch(`${BACKOFFICE_BASE}/processListStatus.json_`, {
     credentials: 'same-origin',
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
