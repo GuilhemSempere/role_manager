@@ -1,20 +1,37 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useRoleConfig } from '../context/RoleConfigContext';
 
 export default function Layout({ children }) {
-  const { currentUser, loading: authLoading } = useAuth();
+  const { currentUser, supervisedModules, loading: authLoading } = useAuth();
   const { roleDbCreator, loading: configLoading } = useRoleConfig();
-  const location = useLocation();
+  const isEmbeddedInFrame = typeof window !== 'undefined' && window.self !== window.top;
 
   const isLoading = authLoading || configLoading;
   const hasDbCreatorRole = Boolean(
     currentUser?.authorities?.includes(roleDbCreator)
   );
   const canManageDatabases = Boolean(currentUser?.isAdmin || hasDbCreatorRole);
+  const canViewProcesses = Boolean(currentUser?.isAdmin || supervisedModules.length > 0);
+
+  if (isEmbeddedInFrame) {
+    return (
+      <main className="role-theme container-fluid py-3">
+        {isLoading ? (
+          <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '200px' }}>
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        ) : (
+          children
+        )}
+      </main>
+    );
+  }
 
   return (
-    <div className="min-vh-100 bg-light">
+    <div className="role-theme min-vh-100 bg-light">
       {/* Navbar */}
       <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
         <div className="container">
@@ -36,7 +53,7 @@ export default function Layout({ children }) {
             <ul className="navbar-nav me-auto">
               <li className="nav-item">
                 <Link 
-                  className={`nav-link ${location.pathname === '/' || location.pathname === '/users' ? 'active' : ''}`} 
+                  className="nav-link" 
                   to="/users"
                 >
                   <i className="bi bi-people me-1"></i>
@@ -46,11 +63,22 @@ export default function Layout({ children }) {
               {canManageDatabases && (
                 <li className="nav-item">
                   <Link
-                    className={`nav-link ${location.pathname === '/databases' ? 'active' : ''}`}
+                    className="nav-link"
                     to="/databases"
                   >
                     <i className="bi bi-hdd-stack me-1"></i>
                     Manage databases
+                  </Link>
+                </li>
+              )}
+              {canViewProcesses && (
+                <li className="nav-item">
+                  <Link
+                    className="nav-link"
+                    to="/processes"
+                  >
+                    <i className="bi bi-list-task me-1"></i>
+                    Admin processes
                   </Link>
                 </li>
               )}

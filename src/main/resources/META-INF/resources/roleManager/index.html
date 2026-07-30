@@ -2,12 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Role Manager</title>
-    <script type="module" crossorigin src="./assets/index.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index.css">
+    <title>Role Manager - Permission Management</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+      }
+    </style>
   </head>
-  <body>
-    <div id="root"></div>
-  </body>
+  <frameset cols="180,*">
+    <frame name="menuFrame" src="menu.html" />
+    <frame name="managementFrame" src="" />
+  </frameset>
 </html>

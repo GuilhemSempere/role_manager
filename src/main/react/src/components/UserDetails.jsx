@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useRoleConfig } from '../context/RoleConfigContext';
 import { useModules } from '../hooks/useModules';
@@ -9,6 +9,7 @@ import Toast from './common/Toast';
 export default function UserDetails({ isNew = false, isClone = false }) {
   const { username } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser, isAdmin } = useAuth();
   const { level1Types, roleDbCreator, roleDbSupervisor, roleSeparator } = useRoleConfig();
   const { publicModules, privateModules, loading: modulesLoading } = useModules();
@@ -31,6 +32,7 @@ export default function UserDetails({ isNew = false, isClone = false }) {
   
   const [userData, setUserData] = useState(null);
   const [errors, setErrors] = useState([]);
+  const cloneName = isClone ? new URLSearchParams(location.search).get('cloneName') : null;
 
   // Load existing user data
   useEffect(() => {
@@ -52,7 +54,7 @@ export default function UserDetails({ isNew = false, isClone = false }) {
       
       // Pre-fill form (don't pre-fill password for security)
       setFormData({
-        username: isClone ? '' : data.username,
+        username: isClone ? (cloneName || '') : data.username,
         password: '',
         confirmPassword: '',
         email: isClone ? '' : (data.email || ''),
@@ -110,7 +112,7 @@ export default function UserDetails({ isNew = false, isClone = false }) {
       newErrors.push('Username is required');
     }
     
-    if ((isNew || isClone) && !formData.password) {
+    if (isNew && !formData.password) {
       newErrors.push('Password is required for new users');
     }
     
@@ -260,7 +262,7 @@ export default function UserDetails({ isNew = false, isClone = false }) {
     <div className="role-manager-container">
       {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>
+        <h2 className="text-dark fw-semibold mb-0">
           <i className={`bi ${isNew ? 'bi-person-plus' : isClone ? 'bi-copy' : 'bi-person-gear'} me-2`}></i>
           {pageTitle}
         </h2>

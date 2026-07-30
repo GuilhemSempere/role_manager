@@ -6,6 +6,7 @@ import UserList from './components/UserList';
 import UserDetails from './components/UserDetails';
 import UserPermissions from './components/UserPermissions';
 import DatabaseManager from './components/DatabaseManager';
+import AdminProcesses from './components/AdminProcesses';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
             <Route path="/user/:username/clone" element={<UserDetails isClone={true} />} />
             <Route path="/user/:username/permissions/:module/:entityType" element={<UserPermissions />} />
             <Route path="/databases" element={<DatabaseManager />} />
+            <Route path="/processes" element={<AdminProcesses />} />
           </Routes>
         </Layout>
       </RoleConfigProvider>

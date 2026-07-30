@@ -1,0 +1,1 @@
+import{i}from"./roleManagerApi.js";i().then(function(e){if(!(!e||!e.authenticated)){var t=e.isAdmin||e.supervisedModules&&e.supervisedModules.length>0;t&&(document.getElementById("adminProcessesLink").style.display="")}}).catch(function(){});

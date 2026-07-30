@@ -1015,7 +1015,7 @@ export default function DatabaseManager() {
   return (
     <div className="role-manager-container database-manager-page">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>
+        <h2 className="text-dark fw-semibold mb-0">
           <i className="bi bi-hdd-stack me-2"></i>
           Manage Databases
         </h2>
@@ -1229,7 +1229,7 @@ export default function DatabaseManager() {
                         );
                       })()}
                       <td>
-                        <div className="d-flex gap-1 flex-wrap">
+                        <div className="action-buttons">
                           {editable && (
                             <>
                               <button
@@ -1372,7 +1372,7 @@ export default function DatabaseManager() {
                               <td>{new Date(dump.creationDate).toLocaleString()}</td>
                               <td style={{ whiteSpace: 'pre-wrap' }}>{dump.description || ''}</td>
                               <td>
-                                <div className="d-flex gap-1 flex-wrap">
+                                <div className="action-buttons">
                                   {!downloadDisabled && (
                                     <a className="btn btn-sm btn-outline-secondary" target="_blank" rel="noreferrer" href={getDumpDownloadUrl(dumpDialog.moduleName, dump.identifier)}>
                                       Download
@@ -1545,7 +1545,7 @@ export default function DatabaseManager() {
                               const subEntities = getSubEntities(entity.id, subEntityType);
                               return (
                                 <td key={`public-${String(entity.id)}-${subEntityType}`}>
-                                  <div className="d-flex gap-1 flex-wrap">
+                                  <div className="action-buttons">
                                     {subEntities.length === 0 ? (
                                       <span className="text-muted">-</span>
                                     ) : (
@@ -1599,7 +1599,7 @@ export default function DatabaseManager() {
                               </td>
                             )}
                             <td className="align-middle">
-                              <div className="d-flex gap-1 flex-wrap">
+                              <div className="action-buttons">
                                 <button
                                   type="button"
                                   className="btn btn-sm btn-outline-danger"
@@ -1621,7 +1621,7 @@ export default function DatabaseManager() {
                               const subEntities = getSubEntities(entity.id, subEntityType);
                               return (
                                 <td key={`private-${String(entity.id)}-${subEntityType}`}>
-                                  <div className="d-flex gap-1 flex-wrap">
+                                  <div className="action-buttons">
                                     {subEntities.length === 0 ? (
                                       <span className="text-muted">-</span>
                                     ) : (
@@ -1675,7 +1675,7 @@ export default function DatabaseManager() {
                               </td>
                             )}
                             <td className="align-middle">
-                              <div className="d-flex gap-1 flex-wrap">
+                              <div className="action-buttons">
                                 <button
                                   type="button"
                                   className="btn btn-sm btn-outline-danger"

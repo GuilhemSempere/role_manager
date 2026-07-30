@@ -486,6 +486,35 @@ export function getRestoreDumpUrl(moduleName, dumpId, dropBeforeRestore) {
 }
 
 // ============================================================
+// Admin Processes API (legacy back-office endpoints)
+// ============================================================
+
+/**
+ * List background processes (imports and dumps/restores) visible to the current user.
+ * Server-side filters by admin/supervised-modules, same as the legacy processList page.
+ */
+export async function getProcessList() {
+  const response = await fetch(`${BACKOFFICE_BASE}/processListStatus.json_`, {
+    credentials: 'same-origin',
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * URL of the legacy dump status page for a given process, opened in a new tab
+ * to view live logs / abort the process.
+ */
+export function getDumpStatusPageUrl(moduleName, processID) {
+  const params = new URLSearchParams({ module: moduleName, processID });
+  return `${BACKOFFICE_BASE}/dumpStatus.do_?${params}`;
+}
+
+// ============================================================
 // Utility Functions
 // ============================================================
 

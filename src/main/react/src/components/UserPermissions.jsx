@@ -229,7 +229,7 @@ export default function UserPermissions() {
       {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2>
+          <h2 className="text-dark fw-semibold mb-0">
             <i className="bi bi-key me-2"></i>
             {entityType} Permissions
           </h2>

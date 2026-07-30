@@ -31,7 +31,8 @@
     <target name="default" description="Creates a jar with static resources in META-INF/resources">
         <echo message="running ant build (target :: default)"/>
 	    <jar destfile="jar/role_manager-1.2-beta.jar">
-	    	<fileset dir="target/classes" includes="**/*.class" />	    	
+        	<!-- Include everything from target/classes so META-INF/resources from React build is packaged -->
+        	<fileset dir="target/classes" includes="**/*" />
 	    	<zipfileset dir="src/main/webapp" prefix="META-INF/resources" />
 	    </jar>
         <echo message="ant build done"/>

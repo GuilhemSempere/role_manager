@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useUsers } from '../hooks/useUsers';
 import { useAuth } from '../context/AuthContext';
 import { deleteUser } from '../api/roleManagerApi';
@@ -7,7 +7,9 @@ import ConfirmModal from './common/ConfirmModal';
 import Toast from './common/Toast';
 
 export default function UserList() {
+  const navigate = useNavigate();
   const { canWriteToSystem, isAdmin } = useAuth();
+  const canManageUsers = canWriteToSystem || isAdmin;
   const {
     users,
     totalCount,
@@ -49,6 +51,17 @@ export default function UserList() {
       setDeleting(false);
       setDeleteTarget(null);
     }
+  };
+
+  const handleClone = (sourceUsername) => {
+    const cloneName = window.prompt('Enter the username for the new clone:', '');
+    const trimmedCloneName = cloneName?.trim();
+
+    if (!trimmedCloneName) {
+      return;
+    }
+
+    navigate(`/user/${encodeURIComponent(sourceUsername)}/clone?cloneName=${encodeURIComponent(trimmedCloneName)}`);
   };
 
   const renderPagination = () => {
@@ -134,11 +147,11 @@ export default function UserList() {
     <div className="role-manager-container">
       {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>
+        <h2 className="text-dark fw-semibold mb-0">
           <i className="bi bi-people me-2"></i>
           User Management
         </h2>
-        {canWriteToSystem && (
+        {canManageUsers && (
           <Link to="/user/new" className="btn btn-primary">
             <i className="bi bi-person-plus me-1"></i>
             New User
@@ -218,7 +231,7 @@ export default function UserList() {
                       </Link>
                     </td>
                     <td>
-                      <span className="text-muted" style={{ fontSize: '0.9em' }}>
+                      <span className="text-dark" style={{ fontSize: '0.9em', fontWeight: 600 }}>
                         {user.authoritySummary || '-'}
                       </span>
                     </td>
@@ -228,7 +241,7 @@ export default function UserList() {
                       </span>
                     </td>
                     <td>
-                      <div className="btn-group btn-group-sm">
+                      <div className="btn-group btn-group-sm action-buttons">
                         <Link 
                           to={`/user/${encodeURIComponent(user.username)}`} 
                           className="btn btn-outline-primary action-btn"
@@ -236,15 +249,16 @@ export default function UserList() {
                         >
                           <i className="bi bi-pencil"></i>
                         </Link>
-                        {canWriteToSystem && (
+                        {canManageUsers && (
                           <>
-                            <Link 
-                              to={`/user/${encodeURIComponent(user.username)}/clone`} 
+                            <button
+                              type="button"
                               className="btn btn-outline-secondary action-btn"
                               title="Clone"
+                              onClick={() => handleClone(user.username)}
                             >
                               <i className="bi bi-copy"></i>
-                            </Link>
+                            </button>
                             <button 
                               className="btn btn-outline-danger action-btn"
                               title="Delete"
