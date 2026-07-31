@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { getCurrentUser } from '../api/roleManagerApi';
+import { getCurrentUser, subscribeToAuthChanges } from '../api/roleManagerApi';
 
 const AuthContext = createContext(null);
 
@@ -10,6 +10,12 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     loadCurrentUser();
+
+    const unsubscribe = subscribeToAuthChanges(() => {
+      loadCurrentUser();
+    });
+
+    return unsubscribe;
   }, []);
 
   async function loadCurrentUser() {

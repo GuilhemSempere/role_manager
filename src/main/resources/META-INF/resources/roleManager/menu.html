@@ -68,7 +68,7 @@
       }
     </style>
     <script type="module" crossorigin src="./assets/menu.js"></script>
-    <link rel="modulepreload" crossorigin href="./assets/roleManagerApi.js">
+    <link rel="modulepreload" crossorigin href="./assets/modulepreload-polyfill.js">
   </head>
   <body>
     <div class="menu">
@@ -76,6 +76,39 @@
       <a class="menu-link" href="app.html#/users" target="managementFrame">Manage users and permissions</a>
       <a class="menu-link" id="adminProcessesLink" href="app.html#/processes" target="managementFrame" style="display: none;">Admin processes</a>
     </div>
+    <script>
+      (function installRoleManagerAuthBridge() {
+        const storageKey = window.roleManagerAuthTokenStorageKey || 'auth_token';
+        const eventName = 'gigwa-auth-changed';
+
+        const bridge = {
+          getAccessToken() {
+            try {
+              return window.localStorage.getItem(storageKey);
+            } catch (error) {
+              return null;
+            }
+          },
+          onAuthChange(callback) {
+            if (typeof callback !== 'function') {
+              return () => {};
+            }
+
+            const handleAuthChange = () => callback();
+            window.addEventListener(eventName, handleAuthChange);
+            window.addEventListener('storage', handleAuthChange);
+
+            return () => {
+              window.removeEventListener(eventName, handleAuthChange);
+              window.removeEventListener('storage', handleAuthChange);
+            };
+          }
+        };
+
+        window.gigwaAuth = bridge;
+        window.roleManagerAuth = bridge;
+      })();
+    </script>
     <script>
       const links = Array.from(document.querySelectorAll('.menu-link'));
 
@@ -92,10 +125,6 @@
       links.forEach((link) => {
         link.addEventListener('click', () => setActive(link));
       });
-
-      if (links.length > 0) {
-        setActive(links[0]);
-      }
     </script>
   </body>
 </html>

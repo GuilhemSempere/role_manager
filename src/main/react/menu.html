@@ -75,6 +75,39 @@
       <a class="menu-link" id="adminProcessesLink" href="app.html#/processes" target="managementFrame" style="display: none;">Admin processes</a>
     </div>
     <script>
+      (function installRoleManagerAuthBridge() {
+        const storageKey = window.roleManagerAuthTokenStorageKey || 'auth_token';
+        const eventName = 'gigwa-auth-changed';
+
+        const bridge = {
+          getAccessToken() {
+            try {
+              return window.localStorage.getItem(storageKey);
+            } catch (error) {
+              return null;
+            }
+          },
+          onAuthChange(callback) {
+            if (typeof callback !== 'function') {
+              return () => {};
+            }
+
+            const handleAuthChange = () => callback();
+            window.addEventListener(eventName, handleAuthChange);
+            window.addEventListener('storage', handleAuthChange);
+
+            return () => {
+              window.removeEventListener(eventName, handleAuthChange);
+              window.removeEventListener('storage', handleAuthChange);
+            };
+          }
+        };
+
+        window.gigwaAuth = bridge;
+        window.roleManagerAuth = bridge;
+      })();
+    </script>
+    <script>
       const links = Array.from(document.querySelectorAll('.menu-link'));
 
       function setActive(activeLink) {
@@ -90,23 +123,55 @@
       links.forEach((link) => {
         link.addEventListener('click', () => setActive(link));
       });
-
-      if (links.length > 0) {
-        setActive(links[0]);
-      }
     </script>
     <script type="module">
-      import { getCurrentUser } from './src/api/roleManagerApi.js';
-
-      getCurrentUser()
-        .then(function (user) {
-          if (!user || !user.authenticated) return;
-          var canViewProcesses = user.isAdmin || (user.supervisedModules && user.supervisedModules.length > 0);
-          if (canViewProcesses) {
-            document.getElementById('adminProcessesLink').style.display = '';
+      async function refreshFromCurrentUser() {
+        try {
+          const response = await fetch('./api/current-user.json_', { credentials: 'same-origin' });
+          if (!response.ok) {
+            return;
           }
-        })
-        .catch(function () {});
+
+          const user = await response.json();
+          if (!user || !user.authenticated) {
+            return;
+          }
+
+          const canViewProcesses = user.isAdmin || (user.supervisedModules && user.supervisedModules.length > 0);
+          const adminProcessesLink = document.getElementById('adminProcessesLink');
+          if (adminProcessesLink) {
+            adminProcessesLink.style.display = canViewProcesses ? '' : 'none';
+          }
+        } catch (error) {
+          // Keep menu functional even if user lookup fails.
+        }
+      }
+
+      function subscribeToAuthChanges(callback) {
+        const onStorage = function (event) {
+          if (event.storageArea !== localStorage) return;
+          if (event.key === null || event.key === 'auth_token' || event.key === 'token_expires_at' || event.key === 'username') {
+            callback();
+          }
+        };
+
+        const onCustomEvent = function () {
+          callback();
+        };
+
+        window.addEventListener('storage', onStorage);
+        window.addEventListener('gigwa-auth-changed', onCustomEvent);
+
+        return function () {
+          window.removeEventListener('storage', onStorage);
+          window.removeEventListener('gigwa-auth-changed', onCustomEvent);
+        };
+      }
+
+      refreshFromCurrentUser();
+      subscribeToAuthChanges(function () {
+        refreshFromCurrentUser();
+      });
     </script>
   </body>
 </html>

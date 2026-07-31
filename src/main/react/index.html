@@ -11,6 +11,39 @@
         height: 100%;
       }
     </style>
+    <script>
+      (function installRoleManagerAuthBridge() {
+        const storageKey = window.roleManagerAuthTokenStorageKey || 'auth_token';
+        const eventName = 'gigwa-auth-changed';
+
+        const bridge = {
+          getAccessToken() {
+            try {
+              return window.localStorage.getItem(storageKey);
+            } catch (error) {
+              return null;
+            }
+          },
+          onAuthChange(callback) {
+            if (typeof callback !== 'function') {
+              return () => {};
+            }
+
+            const handleAuthChange = () => callback();
+            window.addEventListener(eventName, handleAuthChange);
+            window.addEventListener('storage', handleAuthChange);
+
+            return () => {
+              window.removeEventListener(eventName, handleAuthChange);
+              window.removeEventListener('storage', handleAuthChange);
+            };
+          }
+        };
+
+        window.gigwaAuth = bridge;
+        window.roleManagerAuth = bridge;
+      })();
+    </script>
   </head>
   <frameset cols="180,*">
     <frame name="menuFrame" src="menu.html" />

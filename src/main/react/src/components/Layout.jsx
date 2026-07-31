@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useRoleConfig } from '../context/RoleConfigContext';
+import { hasHostAuthBridge } from '../api/roleManagerApi';
 
 export default function Layout({ children }) {
   const { currentUser, supervisedModules, loading: authLoading } = useAuth();
   const { roleDbCreator, loading: configLoading } = useRoleConfig();
   const isEmbeddedInFrame = typeof window !== 'undefined' && window.self !== window.top;
+  const usingLocalStorageFallback = isEmbeddedInFrame && !hasHostAuthBridge();
 
   const isLoading = authLoading || configLoading;
   const hasDbCreatorRole = Boolean(
@@ -17,6 +19,11 @@ export default function Layout({ children }) {
   if (isEmbeddedInFrame) {
     return (
       <main className="role-theme container-fluid py-3">
+        {usingLocalStorageFallback && (
+          <div className="alert alert-warning border-0 shadow-sm mb-3" role="alert">
+            <strong>Fallback auth in use.</strong> Gigwa&apos;s React auth bridge was not available, so Role Manager is reading the bearer token from shared localStorage.
+          </div>
+        )}
         {isLoading ? (
           <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '200px' }}>
             <div className="spinner-border text-primary" role="status">

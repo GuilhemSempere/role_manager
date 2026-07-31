@@ -42,19 +42,96 @@ const API_BASE = `${CONTEXT_PATH}/private/roleManager/api`;
 const LEGACY_BASE = `${CONTEXT_PATH}/private/roleManager`;
 const BACKOFFICE_BASE = `${CONTEXT_PATH}/private`;
 
+const AUTH_CHANGE_EVENT = 'gigwa-auth-changed';
+
 export function getAppContextPath() {
   return CONTEXT_PATH;
 }
 
-// Same-origin iframes share localStorage with the host page, so if the host app (e.g. Gigwa2's
-// React UI) stores a bearer token there, forward it — the backend session is otherwise anonymous
-// when embedded this way, since the host app authenticates statelessly rather than via cookies.
-// The storage key is overridable by the host app, defaulting to Gigwa2's own key.
+function getParentWindow() {
+  try {
+    if (window.parent && window.parent !== window) {
+      return window.parent;
+    }
+  } catch (error) {
+    return null;
+  }
+
+  return null;
+}
+
+export function hasHostAuthBridge() {
+  const parentWindow = getParentWindow();
+  return Boolean(
+    window.gigwaAuth ||
+    window.roleManagerAuth ||
+    parentWindow?.gigwaAuth ||
+    parentWindow?.roleManagerAuth
+  );
+}
+
+// Prefer an explicit host bridge when Gigwa provides one, then fall back to shared localStorage.
+// The storage fallback keeps existing embedded JSP pages working without requiring a host bridge.
 const AUTH_TOKEN_STORAGE_KEY = window.roleManagerAuthTokenStorageKey || 'auth_token';
 
+function readHostAuthToken() {
+  const parentWindow = getParentWindow();
+  const hostBridge = window.gigwaAuth || window.roleManagerAuth || parentWindow?.gigwaAuth || parentWindow?.roleManagerAuth;
+
+  if (hostBridge && typeof hostBridge.getAccessToken === 'function') {
+    return hostBridge.getAccessToken();
+  }
+
+  return null;
+}
+
+export function getAuthToken() {
+  const bridgedToken = readHostAuthToken();
+  if (bridgedToken) {
+    return bridgedToken;
+  }
+
+  return localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+}
+
 function getAuthHeaders() {
-  const token = localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  const token = getAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export function subscribeToAuthChanges(callback) {
+  const parentWindow = getParentWindow();
+  const hostBridge = window.gigwaAuth || window.roleManagerAuth || parentWindow?.gigwaAuth || parentWindow?.roleManagerAuth;
+  const cleanup = [];
+
+  if (hostBridge && typeof hostBridge.onAuthChange === 'function') {
+    const unsubscribe = hostBridge.onAuthChange(callback);
+    if (typeof unsubscribe === 'function') {
+      cleanup.push(unsubscribe);
+    }
+  }
+
+  const onStorage = (event) => {
+    if (event.storageArea !== localStorage) {
+      return;
+    }
+
+    if (event.key === null || event.key === AUTH_TOKEN_STORAGE_KEY) {
+      callback();
+    }
+  };
+
+  const onCustomEvent = () => callback();
+
+  window.addEventListener('storage', onStorage);
+  window.addEventListener(AUTH_CHANGE_EVENT, onCustomEvent);
+
+  cleanup.push(() => window.removeEventListener('storage', onStorage));
+  cleanup.push(() => window.removeEventListener(AUTH_CHANGE_EVENT, onCustomEvent));
+
+  return () => {
+    cleanup.splice(0).forEach((dispose) => dispose());
+  };
 }
 
 function withJsonSuffix(endpoint) {
