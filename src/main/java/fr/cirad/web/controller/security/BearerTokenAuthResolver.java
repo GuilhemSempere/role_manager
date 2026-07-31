@@ -63,7 +63,7 @@ public class BearerTokenAuthResolver {
     @Autowired
     private ReloadableInMemoryDaoImpl userDao;
 
-    // Configurable so this stays reusable by host apps other than Gigwa2.
+    // Configurable so this stays reusable by host apps
     @Value("${roleManager.tokenValidationPath:/rest/gigwa/userInfo}")
     private String tokenValidationPath;
 

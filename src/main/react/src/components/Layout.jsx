@@ -21,7 +21,7 @@ export default function Layout({ children }) {
       <main className="role-theme container-fluid py-3">
         {usingLocalStorageFallback && (
           <div className="alert alert-warning border-0 shadow-sm mb-3" role="alert">
-            <strong>Fallback auth in use.</strong> Gigwa&apos;s React auth bridge was not available, so Role Manager is reading the bearer token from shared localStorage.
+            <strong>Fallback auth in use.</strong> Parent application&apos;s React auth bridge was not available, so Role Manager is reading the bearer token from shared localStorage.
           </div>
         )}
         {isLoading ? (

@@ -16,6 +16,7 @@ node_modules
 .DS_Store
 target/
 
+/src/main/resources/
 /target/
 /.classpath
 /.project

@@ -28,7 +28,7 @@ function getContextPath() {
     return fromBase;
   }
 
-  // Fallback for URLs like /Gigwa2/ where marker segments are not present.
+  // Fallback for URLs where marker segments are not present.
   const segments = window.location.pathname.split('/').filter(Boolean);
   if (segments.length === 1 && segments[0] !== 'private' && segments[0] !== 'roleManager') {
     return `/${segments[0]}`;
@@ -42,7 +42,7 @@ const API_BASE = `${CONTEXT_PATH}/private/roleManager/api`;
 const LEGACY_BASE = `${CONTEXT_PATH}/private/roleManager`;
 const BACKOFFICE_BASE = `${CONTEXT_PATH}/private`;
 
-const AUTH_CHANGE_EVENT = 'gigwa-auth-changed';
+const AUTH_CHANGE_EVENT = 'parentApp-auth-changed';
 
 export function getAppContextPath() {
   return CONTEXT_PATH;
@@ -63,20 +63,20 @@ function getParentWindow() {
 export function hasHostAuthBridge() {
   const parentWindow = getParentWindow();
   return Boolean(
-    window.gigwaAuth ||
+    window.parentAppAuth ||
     window.roleManagerAuth ||
-    parentWindow?.gigwaAuth ||
+    parentWindow?.parentAppAuth ||
     parentWindow?.roleManagerAuth
   );
 }
 
-// Prefer an explicit host bridge when Gigwa provides one, then fall back to shared localStorage.
+// Prefer an explicit host bridge when the parent application provides one, then fall back to shared localStorage.
 // The storage fallback keeps existing embedded JSP pages working without requiring a host bridge.
 const AUTH_TOKEN_STORAGE_KEY = window.roleManagerAuthTokenStorageKey || 'auth_token';
 
 function readHostAuthToken() {
   const parentWindow = getParentWindow();
-  const hostBridge = window.gigwaAuth || window.roleManagerAuth || parentWindow?.gigwaAuth || parentWindow?.roleManagerAuth;
+  const hostBridge = window.parentAppAuth || window.roleManagerAuth || parentWindow?.parentAppAuth || parentWindow?.roleManagerAuth;
 
   if (hostBridge && typeof hostBridge.getAccessToken === 'function') {
     return hostBridge.getAccessToken();
@@ -101,7 +101,7 @@ function getAuthHeaders() {
 
 export function subscribeToAuthChanges(callback) {
   const parentWindow = getParentWindow();
-  const hostBridge = window.gigwaAuth || window.roleManagerAuth || parentWindow?.gigwaAuth || parentWindow?.roleManagerAuth;
+  const hostBridge = window.parentAppAuth || window.roleManagerAuth || parentWindow?.parentAppAuth || parentWindow?.roleManagerAuth;
   const cleanup = [];
 
   if (hostBridge && typeof hostBridge.onAuthChange === 'function') {

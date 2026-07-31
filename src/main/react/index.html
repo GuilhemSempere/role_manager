@@ -14,7 +14,7 @@
     <script>
       (function installRoleManagerAuthBridge() {
         const storageKey = window.roleManagerAuthTokenStorageKey || 'auth_token';
-        const eventName = 'gigwa-auth-changed';
+        const eventName = 'parentApp-auth-changed';
 
         const bridge = {
           getAccessToken() {
@@ -40,7 +40,7 @@
           }
         };
 
-        window.gigwaAuth = bridge;
+        window.parentAppAuth = bridge;
         window.roleManagerAuth = bridge;
       })();
     </script>
