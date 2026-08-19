@@ -69,12 +69,12 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         m_users = null;
     }
 
-    @Value("${datasources.directory:data}")
-    private String datasourcesDirectory; //comes from config.properties
+    @Value("${config.directory:config}")
+    private String configDirectory; //comes from config.properties
 
     @PostConstruct
     public void init() throws Exception {
-        File externalFile = new File(datasourcesDirectory, "users.properties");
+        File externalFile = new File(configDirectory, "users.properties");
         LOG.info("users file = {}", externalFile.getAbsoluteFile());
         if (externalFile.exists()) {
             m_resourceFile = externalFile;
@@ -103,7 +103,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 
     public void setResource(Resource resource) throws Exception {
         //Copy the file to external directory to be updated
-        File configDir = new File(datasourcesDirectory);
+        File configDir = new File(configDirectory);
         configDir.mkdirs();
         m_resourceFile = new File(configDir, "users.properties");
         if (!m_resourceFile.exists()) {
