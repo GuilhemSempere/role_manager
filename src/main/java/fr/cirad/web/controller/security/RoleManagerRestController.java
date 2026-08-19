@@ -26,9 +26,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -60,7 +61,7 @@ import fr.cirad.security.base.IRoleDefinition;
 @SuppressWarnings("rawtypes")
 public class RoleManagerRestController {
 
-    private static final Logger LOG = Logger.getLogger(RoleManagerRestController.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RoleManagerRestController.class);
 
     @Autowired
     private ReloadableInMemoryDaoImpl userDao;

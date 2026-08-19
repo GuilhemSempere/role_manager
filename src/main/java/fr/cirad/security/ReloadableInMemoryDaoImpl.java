@@ -16,12 +16,8 @@
  *******************************************************************************/
 package fr.cirad.security;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.*;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,8 +31,13 @@ import java.util.Scanner;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.apache.log4j.Logger;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -53,140 +54,163 @@ import fr.cirad.web.controller.security.UserPermissionController;
 
 public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 
-    private static final Logger LOG = Logger.getLogger(ReloadableInMemoryDaoImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ReloadableInMemoryDaoImpl.class);
 
     @Autowired
     private IModuleManager moduleManager;
-    
+
     @Autowired
     private PasswordEncoder passwordEncoder;	// this may be either a CustomBCryptPasswordEncoder or a NoOpPasswordEncoder
 
     private File m_resourceFile;
     private HashMap<String, UserWithMethod> m_users;
-    
+
     public ReloadableInMemoryDaoImpl() {
-    	m_users = null;
+        m_users = null;
+    }
+
+    @Value("${datasources.directory:data}")
+    private String datasourcesDirectory; //comes from config.properties
+
+    @PostConstruct
+    public void init() throws Exception {
+        File externalFile = new File(datasourcesDirectory, "users.properties");
+        LOG.info("users file = {}", externalFile.getAbsoluteFile());
+        if (externalFile.exists()) {
+            m_resourceFile = externalFile;
+            loadProperties();
+        } else {
+            setResource(new ClassPathResource("users.properties"));
+        }
     }
 
     public PasswordEncoder getPasswordEncoder() {
-		return passwordEncoder;
-	}
+        return passwordEncoder;
+    }
 
-	@Override
+    @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-		try {
-			UserWithMethod user = m_users.get(username);
-			if (user == null)
-				throw new UsernameNotFoundException("Username not found");
-			else
-				return user;
-		} catch (NullPointerException exc) {  // Resource probably not set
-			throw new UsernameNotFoundException("No data loaded", exc);
-		}
+        try {
+            UserWithMethod user = m_users.get(username);
+            if (user == null)
+                throw new UsernameNotFoundException("Username not found");
+            else
+                return user;
+        } catch (NullPointerException exc) {  // Resource probably not set
+            throw new UsernameNotFoundException("No data loaded", exc);
+        }
     }
 
     public void setResource(Resource resource) throws Exception {
-        m_resourceFile = resource.getFile();
-        loadProperties();
-        
-		
-		PasswordEncoder pe = getPasswordEncoder();
-		boolean fBCryptEnabled = pe != null && pe instanceof CustomBCryptPasswordEncoder;
-		if (fBCryptEnabled) {
-			int nConvertedPasswordCount = 0;
-			for (String username : m_users.keySet()) {
-				UserWithMethod user = m_users.get(username);
-				String password = user.getPassword();
-				if (nConvertedPasswordCount == 0 && ((CustomBCryptPasswordEncoder) pe).looksLikeBCrypt(password))
-					break;	// all is fine, passwords are encoded
+        //Copy the file to external directory to be updated
+        File configDir = new File(datasourcesDirectory);
+        configDir.mkdirs();
+        m_resourceFile = new File(configDir, "users.properties");
+        if (!m_resourceFile.exists()) {
+            try (InputStream is = resource.getInputStream()) {
+                Files.copy(is, m_resourceFile.toPath());
+            }
+        }
 
-				bufferSaveOrUpdateUser(username, password, user.getAuthorities(), user.isEnabled(), user.getMethod(), user.getEmail());
-				nConvertedPasswordCount++;
-			}
-			
-			if (nConvertedPasswordCount > 0) {
-				saveUsers();
-				LOG.warn("This is the first time the system starts in the encoded password mode: users.properties file was converted to BCrypt-encoded version. " + nConvertedPasswordCount + " passwords were converted. This is a non-reversible operation.");
-			}
-		}
-		else
-			for (String username : m_users.keySet()) {
-				UserDetails user = m_users.get(username);
-				String password = user.getPassword();
-				if (new CustomBCryptPasswordEncoder().looksLikeBCrypt(password))
-					throw new Exception("It looks like the system was reverted back from encoded to plain password mode. The users.properties file contains BCrypt-encoded passwords which cannot be decoded. This can only be fixed by editing it manually.");
-				else
-					break;
-			}
+        loadProperties();
+
+        PasswordEncoder pe = getPasswordEncoder();
+        boolean fBCryptEnabled = pe != null && pe instanceof CustomBCryptPasswordEncoder;
+        if (fBCryptEnabled) {
+            int nConvertedPasswordCount = 0;
+            for (String username : m_users.keySet()) {
+                UserWithMethod user = m_users.get(username);
+                String password = user.getPassword();
+                if (nConvertedPasswordCount == 0 && ((CustomBCryptPasswordEncoder) pe).looksLikeBCrypt(password))
+                    break;	// all is fine, passwords are encoded
+
+                bufferSaveOrUpdateUser(username, password, user.getAuthorities(), user.isEnabled(), user.getMethod(), user.getEmail());
+                nConvertedPasswordCount++;
+            }
+
+            if (nConvertedPasswordCount > 0) {
+                saveUsers();
+                LOG.warn("This is the first time the system starts in the encoded password mode: users.properties file was converted to BCrypt-encoded version. " + nConvertedPasswordCount + " passwords were converted. This is a non-reversible operation.");
+            }
+        }
+        else
+            for (String username : m_users.keySet()) {
+                UserDetails user = m_users.get(username);
+                String password = user.getPassword();
+                if (new CustomBCryptPasswordEncoder().looksLikeBCrypt(password))
+                    throw new Exception("It looks like the system was reverted back from encoded to plain password mode. The users.properties file contains BCrypt-encoded passwords which cannot be decoded. This can only be fixed by editing it manually.");
+                else
+                    break;
+            }
     }
 
     @SuppressWarnings("resource")
-	private void loadProperties() throws IOException {
-    	try {
-	        if (m_resourceFile != null && m_users == null) {
-	        	m_users = new HashMap<>();
-	        	List<UserWithMethod> usersForWhichToCopyEmailFromUsername = new ArrayList<>();
-	            Properties props = new Properties();
-	            props.load(new InputStreamReader(new FileInputStream(m_resourceFile), "UTF-8"));
-	            
-	            m_users.clear();
-	            for (String username : props.stringPropertyNames()) {
-	            	String[] tokens = props.getProperty(username).split(",", -1);  // Negative limit to keep trailing empty strings
-	            	String password = tokens[0];
-	            	String email = null;
-	            	boolean enabled = true;
-	            	String method = "";
-	            	List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
-	            	
-	            	// Compatibility mode
-	            	if (!tokens[1].equals("enabled") && !tokens[1].equals("disabled")) {	// old format looking like: gui=tou,IAVAO_Sorgho$project$SNPCLUST_EDITOR$2,IAVAO_Sorgho$project$READER$1,enabled
-		            	for (int i = 1; i < tokens.length; i++) {
-		            		if (tokens[i].equals("disabled"))
-		            			enabled = false;
-		            		else
-		            			authorities.add(new SimpleGrantedAuthority(tokens[i]));
-		            	}
-		            	bufferSaveOrUpdateUser(username, password, authorities, enabled, method, email);
-						LOG.info("Updated user info from obsolete to current structure for " + username);
-	            	} else {
-	            		enabled = tokens[1].equals("enabled");
-	            		method = tokens[2];
-	            		for (String authority : tokens[3].split(";")) {
-	            			if (!authority.isEmpty())
-	            				authorities.add(new SimpleGrantedAuthority(authority));
-	            		}
-	            		if (tokens.length == 5 && !tokens[4].trim().isEmpty())
-	            			email = tokens[4].trim();
-	            	}
+    private void loadProperties() throws IOException {
+        try {
+            if (m_resourceFile != null && m_users == null) {
+                m_users = new HashMap<>();
+                List<UserWithMethod> usersForWhichToCopyEmailFromUsername = new ArrayList<>();
+                Properties props = new Properties();
+                props.load(new InputStreamReader(new FileInputStream(m_resourceFile), "UTF-8"));
 
-	            	UserWithMethod userWM = new UserWithMethod(username, password, authorities, enabled, method, email);
-	            	m_users.put(username, userWM);
-        			if (email == null) {
-        				if (UserWithMethod.isEmailAddress(username))
-        					usersForWhichToCopyEmailFromUsername.add(userWM);	// we will try and set it from the username (which appears to be an email address) once all users have been loaded
-            			else
-            				LOG.debug("No e-mail address available for user " + username);
-        			}
-	            }
-	            
-	            for (UserWithMethod user : usersForWhichToCopyEmailFromUsername)
-    				try {
-        				if (getUserWithMethodByEmailAddress(user.getUsername()) != null)
-        					throw new IllegalArgumentException("A different user already has this e-mail address");
+                m_users.clear();
+                for (String username : props.stringPropertyNames()) {
+                    String[] tokens = props.getProperty(username).split(",", -1);  // Negative limit to keep trailing empty strings
+                    String password = tokens[0];
+                    String email = null;
+                    boolean enabled = true;
+                    String method = "";
+                    List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
 
-        				user.setEmail(user.getUsername().toLowerCase());
-        				LOG.info("Set e-mail address from username for user " + user.getUsername());
-    				}
-    				catch (IllegalArgumentException iae) {
-    					LOG.warn("Unable to set e-mail address from username for user " + user.getUsername() + ", because this address is already used", iae);
-    				}
+                    // Compatibility mode
+                    if (!tokens[1].equals("enabled") && !tokens[1].equals("disabled")) {	// old format looking like: gui=tou,IAVAO_Sorgho$project$SNPCLUST_EDITOR$2,IAVAO_Sorgho$project$READER$1,enabled
+                        for (int i = 1; i < tokens.length; i++) {
+                            if (tokens[i].equals("disabled"))
+                                enabled = false;
+                            else
+                                authorities.add(new SimpleGrantedAuthority(tokens[i]));
+                        }
+                        bufferSaveOrUpdateUser(username, password, authorities, enabled, method, email);
+                        LOG.info("Updated user info from obsolete to current structure for " + username);
+                    } else {
+                        enabled = tokens[1].equals("enabled");
+                        method = tokens[2];
+                        for (String authority : tokens[3].split(";")) {
+                            if (!authority.isEmpty())
+                                authorities.add(new SimpleGrantedAuthority(authority));
+                        }
+                        if (tokens.length == 5 && !tokens[4].trim().isEmpty())
+                            email = tokens[4].trim();
+                    }
 
-	            saveUsers();
-	        }
-    	} catch (Throwable t) {
-    		LOG.error(t);
-    		throw t;
-    	}
+                    UserWithMethod userWM = new UserWithMethod(username, password, authorities, enabled, method, email);
+                    m_users.put(username, userWM);
+                    if (email == null) {
+                        if (UserWithMethod.isEmailAddress(username))
+                            usersForWhichToCopyEmailFromUsername.add(userWM);	// we will try and set it from the username (which appears to be an email address) once all users have been loaded
+                        else
+                            LOG.debug("No e-mail address available for user " + username);
+                    }
+                }
+
+                for (UserWithMethod user : usersForWhichToCopyEmailFromUsername)
+                    try {
+                        if (getUserWithMethodByEmailAddress(user.getUsername()) != null)
+                            throw new IllegalArgumentException("A different user already has this e-mail address");
+
+                        user.setEmail(user.getUsername().toLowerCase());
+                        LOG.info("Set e-mail address from username for user " + user.getUsername());
+                    }
+                    catch (IllegalArgumentException iae) {
+                        LOG.warn("Unable to set e-mail address from username for user " + user.getUsername() + ", because this address is already used", iae);
+                    }
+
+                saveUsers();
+            }
+        } catch (Throwable t) {
+            LOG.error(String.valueOf(t));
+            throw t;
+        }
     }
 
     public List<String> listUsers(boolean fExcludeAdministrators) throws IOException {
@@ -198,74 +222,74 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         }
         return result;
     }
-    
+
     /** Update a user in memory, without saving it immediately to disk */
     synchronized public void bufferSaveOrUpdateUser(String username, String password, Collection<? extends GrantedAuthority> grantedAuthorities, boolean enabled, String method, String email) throws IOException {
         if (password == null && grantedAuthorities == null && enabled == false) {
-        	m_users.remove(username);	// we actually want to delete it
+            m_users.remove(username);	// we actually want to delete it
         } else {
-        	UserWithMethod user = m_users.get(username);
-        	password = (passwordEncoder instanceof CustomBCryptPasswordEncoder && !((CustomBCryptPasswordEncoder) passwordEncoder).looksLikeBCrypt(password)) ? passwordEncoder.encode(password) : password;
-        	boolean fValidEmailPassed = email != null && !email.trim().isEmpty();
-        	if (user == null) {	// it's a new one
-        		if (fValidEmailPassed && getUserWithMethodByEmailAddress(email) != null)
-        			throw new IOException("A user with this e-mail address already exists: " + email);
-        		else {
-	        		user = new UserWithMethod(username, password, grantedAuthorities, enabled, method, email);
-	        		m_users.put(username, user);
-        		}
-        	} else {
-        		if (fValidEmailPassed && !email.trim().equalsIgnoreCase(user.getEmail()) && getUserWithMethodByEmailAddress(email) != null)
-        			throw new IOException("A user with this e-mail address already exists: " + email);
+            UserWithMethod user = m_users.get(username);
+            password = (passwordEncoder instanceof CustomBCryptPasswordEncoder && !((CustomBCryptPasswordEncoder) passwordEncoder).looksLikeBCrypt(password)) ? passwordEncoder.encode(password) : password;
+            boolean fValidEmailPassed = email != null && !email.trim().isEmpty();
+            if (user == null) {	// it's a new one
+                if (fValidEmailPassed && getUserWithMethodByEmailAddress(email) != null)
+                    throw new IOException("A user with this e-mail address already exists: " + email);
+                else {
+                    user = new UserWithMethod(username, password, grantedAuthorities, enabled, method, email);
+                    m_users.put(username, user);
+                }
+            } else {
+                if (fValidEmailPassed && !email.trim().equalsIgnoreCase(user.getEmail()) && getUserWithMethodByEmailAddress(email) != null)
+                    throw new IOException("A user with this e-mail address already exists: " + email);
 
-        		user.setUsername(username);
-        		user.setPassword(method.isEmpty() ? password : "" /* if using a remote auth system then we don't need to store a password */);
-        		user.setAuthorities(grantedAuthorities);
-        		user.setEnabled(enabled);
-        		user.setMethod(method);
-        		user.setEmail(email == null ? user.getEmail() : email.trim());
-        	}
-	    }
+                user.setUsername(username);
+                user.setPassword(method.isEmpty() ? password : "" /* if using a remote auth system then we don't need to store a password */);
+                user.setAuthorities(grantedAuthorities);
+                user.setEnabled(enabled);
+                user.setMethod(method);
+                user.setEmail(email == null ? user.getEmail() : email.trim());
+            }
+        }
     }
-    
+
     public void bufferSaveOrUpdateUser(String username, String password, String[] stringAuthorities, boolean enabled, String method, String email) throws IOException {
-    	List<GrantedAuthority> grantedAuthorities = Arrays.stream(stringAuthorities).map(authority -> new SimpleGrantedAuthority(authority)).collect(Collectors.toList());
-    	bufferSaveOrUpdateUser(username, password, grantedAuthorities, enabled, method, email);
+        List<GrantedAuthority> grantedAuthorities = Arrays.stream(stringAuthorities).map(authority -> new SimpleGrantedAuthority(authority)).collect(Collectors.toList());
+        bufferSaveOrUpdateUser(username, password, grantedAuthorities, enabled, method, email);
     }
 
     /** Update a user, save it to disk and reload users */
     public void saveOrUpdateUser(String username, String password, Collection<? extends GrantedAuthority> grantedAuthorities, boolean enabled, String method, String email) throws IOException {
-	    bufferSaveOrUpdateUser(username, password, grantedAuthorities, enabled, method, email);
-	    saveUsers();
+        bufferSaveOrUpdateUser(username, password, grantedAuthorities, enabled, method, email);
+        saveUsers();
     }
-    
+
     /** Update a user, save it to disk and reload users */
     public void saveOrUpdateUser(String username, String password, String[] stringAuthorities, boolean enabled, String method, String email) throws IOException {
-	    bufferSaveOrUpdateUser(username, password, stringAuthorities, enabled, method, email);
-	    saveUsers();
+        bufferSaveOrUpdateUser(username, password, stringAuthorities, enabled, method, email);
+        saveUsers();
     }
 
     /** Save and reload users stored in memory */
     synchronized public void saveUsers() throws IOException {
-    	Properties props = new Properties();
-    	for (String username : m_users.keySet()) {
-    		UserWithMethod user = m_users.get(username);
-    		String sPropValue = user.getPassword();
+        Properties props = new Properties();
+        for (String username : m_users.keySet()) {
+            UserWithMethod user = m_users.get(username);
+            String sPropValue = user.getPassword();
             sPropValue += "," + (user.isEnabled() ? "enabled" : "disabled");
             sPropValue += "," + user.getMethod();
             sPropValue += "," + String.join(";", user.getAuthorities().stream().map(authority -> authority.toString()).collect(Collectors.toList()));
             sPropValue += (user.getEmail() == null ? "" : ("," + user.getEmail()));
             props.put(username, sPropValue);
-    	}
-    	
-	    props.store(new OutputStreamWriter(new FileOutputStream(m_resourceFile), "UTF-8"), "");
+        }
+
+        props.store(new OutputStreamWriter(new FileOutputStream(m_resourceFile), "UTF-8"), "");
     }
 
     synchronized public boolean deleteUser(String username) throws IOException {
         if (!m_users.containsKey(username)) {
             return false;
         }
-        
+
         m_users.remove(username);
         saveUsers();
         return true;
@@ -282,7 +306,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         }
         return false;
     }
-    
+
     public boolean doesLoggedUserOwnEntities() {
         Collection<? extends GrantedAuthority> loggedUserAuthorities = getLoggedUserAuthorities();
         for (GrantedAuthority auth : loggedUserAuthorities) {
@@ -366,12 +390,12 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     }
 
     public int countByLoginLookup(String sLoginLookup) throws IOException {
-    	Collection<? extends GrantedAuthority> loggedUserAuthorities = getLoggedUserAuthorities();
-    	if (loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ANONYMOUS)))
-   			return 0;
-    	
-    	if (!canLoggedUserWriteToSystem())
-    		return 1;	// he may only see himself
+        Collection<? extends GrantedAuthority> loggedUserAuthorities = getLoggedUserAuthorities();
+        if (loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ANONYMOUS)))
+            return 0;
+
+        if (!canLoggedUserWriteToSystem())
+            return 1;	// he may only see himself
 
         boolean fLoggedUserIsAdmin = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
         if (sLoginLookup == null)
@@ -388,9 +412,9 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 
     public List<UserDetails> listByLoginLookup(String sLoginLookup, int page, int size) throws IOException {
         List<UserDetails> result = new ArrayList<>();
-    	Collection<? extends GrantedAuthority> loggedUserAuthorities = getLoggedUserAuthorities();
-    	if (loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ANONYMOUS)))
-   			return result;
+        Collection<? extends GrantedAuthority> loggedUserAuthorities = getLoggedUserAuthorities();
+        if (loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ANONYMOUS)))
+            return result;
 
         boolean fLoggedUserIsAdmin = loggedUserAuthorities.contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN));
         List<String> userList = !canLoggedUserWriteToSystem() ? Arrays.asList(SecurityContextHolder.getContext().getAuthentication().getName()) /* he may only see himself */: listUsers(!fLoggedUserIsAdmin);
@@ -412,12 +436,12 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
      * Reload users properties file. The users currently in memory are not saved beforehand.
      */
     public void reloadProperties() throws IOException {
-    	m_users = null;
-    	loadProperties();
+        m_users = null;
+        loadProperties();
     }
-    
+
     public int getUserCount() {
-    	return m_users.size();
+        return m_users.size();
     }
 
     /**
@@ -436,7 +460,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         String username = auth.getName();
         if ("anonymousUser".equals(username))
             return auth.getAuthorities();
-        
+
         return loadUserByUsername(username).getAuthorities();
     }
 
@@ -461,17 +485,17 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     }
 
     public UserWithMethod getUserWithMethodByEmailAddress(String email) throws IllegalArgumentException {
-    	if (email != null)
-    		email = email.trim().toLowerCase();
+        if (email != null)
+            email = email.trim().toLowerCase();
 
-    	List<UserWithMethod> users = new ArrayList<>();
-    	for (UserWithMethod user : m_users.values()) {
-    		if (user.getEmail() != null && user.getEmail().equalsIgnoreCase(email))
-    			users.add(user);
-    	}
-    	if (users.size() > 1)
-    		throw new IllegalArgumentException(users.size() + " users found with e-mail address: " + email);
+        List<UserWithMethod> users = new ArrayList<>();
+        for (UserWithMethod user : m_users.values()) {
+            if (user.getEmail() != null && user.getEmail().equalsIgnoreCase(email))
+                users.add(user);
+        }
+        if (users.size() > 1)
+            throw new IllegalArgumentException(users.size() + " users found with e-mail address: " + email);
 
-    	return users.isEmpty() ? null : users.get(0);
+        return users.isEmpty() ? null : users.get(0);
     }
 }

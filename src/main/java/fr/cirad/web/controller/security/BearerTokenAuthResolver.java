@@ -25,9 +25,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -56,7 +57,7 @@ import fr.cirad.security.UserWithMethod;
 @Component
 public class BearerTokenAuthResolver {
 
-    private static final Logger LOG = Logger.getLogger(BearerTokenAuthResolver.class);
+    private static final Logger LOG = LoggerFactory.getLogger(BearerTokenAuthResolver.class);
 
     private static final Pattern USERNAME_PATTERN = Pattern.compile("\"username\"\\s*:\\s*\"([^\"]*)\"");
 

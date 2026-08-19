@@ -25,17 +25,18 @@ import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 import org.apache.commons.compress.compressors.gzip.GzipParameters;
-import org.apache.log4j.Logger;
-
 import fr.cirad.manager.AbstractProcess;
 import fr.cirad.manager.IModuleManager;
 import fr.cirad.manager.ProcessStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DumpProcess extends AbstractProcess {
-    
-    private static final Logger LOG = Logger.getLogger(DumpProcess.class);
-    
-    public static final String dumpManagementPath = "WEB-INF" + File.separator + "dump_management";
+
+	private static final Logger LOG = LoggerFactory.getLogger(DumpProcess.class);
+
+
+	public static final String dumpManagementPath = "WEB-INF" + File.separator + "dump_management";
     public static String operatingSystem = System.getProperty("os.name").toLowerCase();
     private static String scriptExtension = operatingSystem.startsWith("win") ? "bat" : (operatingSystem.startsWith("mac") ? "command" : "sh");
     private static final String dumpCommand = dumpManagementPath + File.separator + "dbDump." + scriptExtension;
@@ -223,7 +224,7 @@ public class DumpProcess extends AbstractProcess {
 					if (logIS != null)
 						logIS.close();
 				} catch (Throwable t) {
-					LOG.error(t);
+					LOG.error(String.valueOf(t));
 				}
 			}
 		}

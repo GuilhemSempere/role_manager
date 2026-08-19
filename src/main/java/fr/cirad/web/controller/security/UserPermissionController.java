@@ -37,10 +37,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -66,7 +67,7 @@ import fr.cirad.security.base.IRoleDefinition;
 @Controller
 public class UserPermissionController
 {
-	private static final Logger LOG = Logger.getLogger(UserPermissionController.class);
+	private static final Logger LOG = LoggerFactory.getLogger(UserPermissionController.class);
 
 	static final public String FRONTEND_URL = "private/roleManager";
 

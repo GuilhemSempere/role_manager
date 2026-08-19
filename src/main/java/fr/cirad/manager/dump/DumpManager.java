@@ -4,7 +4,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -16,8 +17,8 @@ import fr.cirad.manager.IModuleManager;
 @Component
 @EnableScheduling
 public class DumpManager {
-	private static final Logger LOG = Logger.getLogger(DumpManager.class);
-	
+	private static final Logger LOG = LoggerFactory.getLogger(DumpManager.class);
+
 	@Autowired private IModuleManager moduleManager;
 	
 	private Map<String, AbstractProcess> m_processes = new TreeMap<String, AbstractProcess>();
