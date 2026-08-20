@@ -80,7 +80,12 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
             m_resourceFile = externalFile;
             loadProperties();
         } else {
-            setResource(new ClassPathResource("users.properties"));
+            ClassPathResource resource = new ClassPathResource("users.default");
+            try (InputStream is = resource.getInputStream()) {
+                Files.createDirectories(externalFile.toPath().getParent());
+                Files.copy(is, externalFile.toPath());
+                m_resourceFile = externalFile;
+            }
         }
     }
 
