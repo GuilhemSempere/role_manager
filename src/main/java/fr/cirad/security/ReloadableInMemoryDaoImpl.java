@@ -18,10 +18,9 @@ package fr.cirad.security;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -49,6 +48,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import fr.cirad.manager.IModuleManager;
 import fr.cirad.security.base.IRoleDefinition;
+import fr.cirad.tools.PropertiesFileUtils;
 import fr.cirad.web.controller.security.UserPermissionController;
 
 public class ReloadableInMemoryDaoImpl implements UserDetailsService {
@@ -63,7 +63,8 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 
     private File m_resourceFile;
     private HashMap<String, UserWithMethod> m_users;
-    
+    private boolean m_fAdminExistedAtLoadTime = false;	// used to prevent persisting the removal of the last administrator
+
     public ReloadableInMemoryDaoImpl() {
     	m_users = null;
     }
@@ -104,10 +105,14 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 				nConvertedPasswordCount++;
 			}
 			
-			if (nConvertedPasswordCount > 0) {
-				saveUsers();
-				LOG.warn("This is the first time the system starts in the encoded password mode: users.properties file was converted to BCrypt-encoded version. " + nConvertedPasswordCount + " passwords were converted. This is a non-reversible operation.");
-			}
+			if (nConvertedPasswordCount > 0)
+				try {
+					saveUsers();
+					LOG.warn("This is the first time the system starts in the encoded password mode: users.properties file was converted to BCrypt-encoded version. " + nConvertedPasswordCount + " passwords were converted. This is a non-reversible operation.");
+				}
+				catch (IOException ioe) {
+					LOG.error("Unable to save BCrypt-encoded passwords to " + m_resourceFile + ", they will be saved next time users are", ioe);
+				}
 		}
 		else
 			for (String username : m_users.keySet()) {
@@ -120,15 +125,34 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 			}
     }
 
-    @SuppressWarnings("resource")
+    private static Properties readProperties(File file) throws IOException {
+    	Properties props = new Properties();
+    	try (InputStreamReader reader = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)) {
+    		props.load(reader);
+    	}
+    	return props;
+    }
+
 	private void loadProperties() throws IOException {
     	try {
 	        if (m_resourceFile != null && m_users == null) {
 	        	m_users = new HashMap<>();
 	        	List<UserWithMethod> usersForWhichToCopyEmailFromUsername = new ArrayList<>();
-	            Properties props = new Properties();
-	            props.load(new InputStreamReader(new FileInputStream(m_resourceFile), "UTF-8"));
-	            
+	            Properties props = readProperties(m_resourceFile);
+	            boolean fNeedToSave = false;
+
+	            if (props.isEmpty()) {	// may result from an interrupted write (e.g. disk full) in a previous version
+	            	File backupFile = new File(m_resourceFile.getPath() + PropertiesFileUtils.BACKUP_SUFFIX);
+	            	Properties backupProps = backupFile.exists() ? readProperties(backupFile) : new Properties();
+	            	if (backupProps.isEmpty())
+	            		LOG.error(m_resourceFile + " contains no users and no usable backup was found at " + backupFile + ": nobody will be able to log in until it is fixed manually");
+	            	else {
+	            		LOG.error(m_resourceFile + " contains no users, restoring " + backupProps.size() + " users from " + backupFile);
+	            		props = backupProps;
+	            		fNeedToSave = true;
+	            	}
+	            }
+
 	            m_users.clear();
 	            for (String username : props.stringPropertyNames()) {
 	            	String[] tokens = props.getProperty(username).split(",", -1);  // Negative limit to keep trailing empty strings
@@ -148,6 +172,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 		            	}
 		            	bufferSaveOrUpdateUser(username, password, authorities, enabled, method, email);
 						LOG.info("Updated user info from obsolete to current structure for " + username);
+						fNeedToSave = true;
 	            	} else {
 	            		enabled = tokens[1].equals("enabled");
 	            		method = tokens[2];
@@ -176,12 +201,23 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 
         				user.setEmail(user.getUsername().toLowerCase());
         				LOG.info("Set e-mail address from username for user " + user.getUsername());
+        				fNeedToSave = true;
     				}
     				catch (IllegalArgumentException iae) {
     					LOG.warn("Unable to set e-mail address from username for user " + user.getUsername() + ", because this address is already used", iae);
     				}
 
-	            saveUsers();
+	            m_fAdminExistedAtLoadTime = containsAdministrator();
+	            if (!m_users.isEmpty() && !m_fAdminExistedAtLoadTime)
+	            	LOG.error(m_resourceFile + " defines no user with " + IRoleDefinition.ROLE_ADMIN + " role");
+
+	            if (fNeedToSave)
+	            	try {
+	            		saveUsers();
+	            	}
+	            	catch (IOException ioe) {
+	            		LOG.error("Unable to save updated user info to " + m_resourceFile + ", it will be saved next time users are", ioe);
+	            	}
 	        }
     	} catch (Throwable t) {
     		LOG.error(t);
@@ -233,20 +269,44 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     	bufferSaveOrUpdateUser(username, password, grantedAuthorities, enabled, method, email);
     }
 
-    /** Update a user, save it to disk and reload users */
-    public void saveOrUpdateUser(String username, String password, Collection<? extends GrantedAuthority> grantedAuthorities, boolean enabled, String method, String email) throws IOException {
-	    bufferSaveOrUpdateUser(username, password, grantedAuthorities, enabled, method, email);
-	    saveUsers();
-    }
-    
-    /** Update a user, save it to disk and reload users */
-    public void saveOrUpdateUser(String username, String password, String[] stringAuthorities, boolean enabled, String method, String email) throws IOException {
-	    bufferSaveOrUpdateUser(username, password, stringAuthorities, enabled, method, email);
-	    saveUsers();
+    /** Update a user and save it to disk. If saving fails, the user is restored to its previous state in memory */
+    synchronized public void saveOrUpdateUser(String username, String password, Collection<? extends GrantedAuthority> grantedAuthorities, boolean enabled, String method, String email) throws IOException {
+    	UserWithMethod previousState = copyOf(m_users.get(username));
+    	try {
+    		bufferSaveOrUpdateUser(username, password, grantedAuthorities, enabled, method, email);
+    		saveUsers();
+    	}
+    	catch (IOException | RuntimeException e) {
+    		if (previousState == null)
+    			m_users.remove(username);
+    		else
+    			m_users.put(username, previousState);
+    		throw e;
+    	}
     }
 
-    /** Save and reload users stored in memory */
+    /** Update a user and save it to disk. If saving fails, the user is restored to its previous state in memory */
+    public void saveOrUpdateUser(String username, String password, String[] stringAuthorities, boolean enabled, String method, String email) throws IOException {
+    	List<GrantedAuthority> grantedAuthorities = Arrays.stream(stringAuthorities).map(authority -> new SimpleGrantedAuthority(authority)).collect(Collectors.toList());
+	    saveOrUpdateUser(username, password, grantedAuthorities, enabled, method, email);
+    }
+
+    private static UserWithMethod copyOf(UserWithMethod user) {
+    	return user == null ? null : new UserWithMethod(user.getUsername(), user.getPassword(), user.getAuthorities(), user.isEnabled(), user.getMethod(), user.getEmail());
+    }
+
+    private boolean containsAdministrator() {
+    	SimpleGrantedAuthority adminRole = new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN);
+    	return m_users.values().stream().anyMatch(user -> user.getAuthorities().contains(adminRole));
+    }
+
+    /** Save users stored in memory to disk. The file is replaced atomically so that a failure (e.g. disk full) leaves it untouched */
     synchronized public void saveUsers() throws IOException {
+    	if (m_users.isEmpty())
+    		throw new IOException("Refusing to save an empty user list to " + m_resourceFile);
+    	if (m_fAdminExistedAtLoadTime && !containsAdministrator())
+    		throw new IOException("Refusing to save a user list containing no administrator to " + m_resourceFile);
+
     	Properties props = new Properties();
     	for (String username : m_users.keySet()) {
     		UserWithMethod user = m_users.get(username);
@@ -258,16 +318,22 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
             props.put(username, sPropValue);
     	}
     	
-	    props.store(new OutputStreamWriter(new FileOutputStream(m_resourceFile), "UTF-8"), "");
+    	PropertiesFileUtils.storeAtomically(props, m_resourceFile, "", StandardCharsets.UTF_8);
     }
 
     synchronized public boolean deleteUser(String username) throws IOException {
         if (!m_users.containsKey(username)) {
             return false;
         }
-        
-        m_users.remove(username);
-        saveUsers();
+
+        UserWithMethod removedUser = m_users.remove(username);
+        try {
+        	saveUsers();
+        }
+        catch (IOException ioe) {
+        	m_users.put(username, removedUser);
+        	throw ioe;
+        }
         return true;
     }
 
