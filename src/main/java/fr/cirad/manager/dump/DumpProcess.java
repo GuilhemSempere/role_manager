@@ -9,10 +9,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.Writer;
 import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.LocalDateTime;
@@ -22,9 +23,8 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
-import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
-import org.apache.commons.compress.compressors.gzip.GzipParameters;
 import org.apache.log4j.Logger;
 
 import fr.cirad.manager.AbstractProcess;
@@ -166,27 +166,16 @@ public class DumpProcess extends AbstractProcess {
         else if (plainLogFile.exists()) {   // Windows script does not gzip logfiles: let's do it now
         	
         	// Windows logfile encoding is (at least sometimes) UTF-16 and we need to specify that in order to be able to read the stream correctly
-        	InputStream plainFileInputStream = new FileInputStream(plainLogFile);
-        	Charset charset = Charset.forName("UTF-8");
-        	CharsetDecoder decoder = charset.newDecoder();      	
-            byte[] buffer = new byte[512];
-            if ((plainFileInputStream.read(buffer) != -1)) {
-                try {
-                    decoder.decode(ByteBuffer.wrap(buffer));
-                } catch (CharacterCodingException e) {
-                	charset = Charset.forName("UTF-16");
-                    LOG.debug("Compressing logfile by reading it as " + charset.displayName());
-                }
-            }
-            plainFileInputStream.close();
+        	Charset charset = detectLogCharset(plainLogFile);
+        	LOG.debug("Compressing logfile by reading it as " + charset.displayName());
         	
-            try (	InputStreamReader isr = new InputStreamReader(new FileInputStream(plainLogFile), charset);
-            		GzipCompressorOutputStream gos = new GzipCompressorOutputStream(new FileOutputStream(gzippedLogFile), new GzipParameters() {{setFilename(plainLogFile.getName());}} )) {
-                int c;
-                while ((c = isr.read()) != -1)
-                	gos.write((byte) c);
-                
-                logInputStream = new GZIPInputStream(new FileInputStream(gzippedLogFile));
+            // re-encode as UTF-8 since that is what getLog() decodes with
+            try (	Reader reader = new InputStreamReader(new FileInputStream(plainLogFile), charset);
+            		Writer writer = new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(gzippedLogFile)), StandardCharsets.UTF_8)) {
+                char[] chars = new char[8192];
+                int n;
+                while ((n = reader.read(chars)) != -1)
+                	writer.write(chars, 0, n);
             }
         	
         	if (gzippedLogFile.exists() && gzippedLogFile.length() > 0)
@@ -196,6 +185,35 @@ public class DumpProcess extends AbstractProcess {
         else
             throw new FileNotFoundException("Could find neither gzipped nor plain log file: " + logFile);
         return logInputStream;
+	}
+
+	/**
+	 * Works out a plain logfile's encoding from its first bytes: a BOM if there is one,
+	 * otherwise the position of NUL bytes, which only show up in UTF-16 text (logs being mostly ASCII).
+	 */
+	private static Charset detectLogCharset(File logFile) throws IOException {
+		byte[] start;
+		try (InputStream is = new FileInputStream(logFile)) {
+			start = is.readNBytes(512);
+		}
+
+		if (start.length >= 2 && (((start[0] & 0xFF) == 0xFF && (start[1] & 0xFF) == 0xFE) || ((start[0] & 0xFF) == 0xFE && (start[1] & 0xFF) == 0xFF)))
+			return StandardCharsets.UTF_16;  // this one reads the BOM to get the byte order, and leaves it out of the decoded text
+
+		int nulsAtEvenPositions = 0, nulsAtOddPositions = 0;
+		for (int i = 0; i < start.length; i++)
+			if (start[i] == 0) {
+				if (i % 2 == 0)
+					nulsAtEvenPositions++;
+				else
+					nulsAtOddPositions++;
+			}
+
+		if (nulsAtOddPositions > nulsAtEvenPositions)
+			return StandardCharsets.UTF_16LE;
+		if (nulsAtEvenPositions > nulsAtOddPositions)
+			return StandardCharsets.UTF_16BE;
+		return StandardCharsets.UTF_8;
 	}
 
 
