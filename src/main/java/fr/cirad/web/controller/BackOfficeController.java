@@ -659,6 +659,10 @@ public class BackOfficeController {
 		if ("localhost".equalsIgnoreCase(sHostName) || "127.0.0.1".equals(sHostName)) // we need a *real* address for remote applications to be able to reach us
 			sHostName = tryAndFindVisibleIp(request);
 		sHostName = "http" + (request.isSecure() ? "s" : "") + "://" + sHostName + (nPort != 80 ? ":" + nPort : "");
+		
+		if (sHostName.contains(", "))
+			sHostName = sHostName.split(", ")[0];
+		
 		LOG.debug("After scanning network interfaces, determinePublicHostName is returning " + sHostName);
 		return sHostName;
 	}
