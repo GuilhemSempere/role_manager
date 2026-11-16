@@ -76,9 +76,21 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 	@Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 		try {
-			UserWithMethod user = m_users.get(username);
+			UserWithMethod user = findByUsername(username);
 			if (user == null)
 				throw new UsernameNotFoundException("Username not found");
+			else
+				return user;
+		} catch (NullPointerException exc) {  // Resource probably not set
+			throw new UsernameNotFoundException("No data loaded", exc);
+		}
+    }
+
+    public UserWithMethod loadUserByUserId(String userId) throws UsernameNotFoundException {
+		try {
+			UserWithMethod user = m_users.get(userId);
+			if (user == null)
+				throw new UsernameNotFoundException("User ID not found");
 			else
 				return user;
 		} catch (NullPointerException exc) {  // Resource probably not set
@@ -95,13 +107,12 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 		boolean fBCryptEnabled = pe != null && pe instanceof CustomBCryptPasswordEncoder;
 		if (fBCryptEnabled) {
 			int nConvertedPasswordCount = 0;
-			for (String username : m_users.keySet()) {
-				UserWithMethod user = m_users.get(username);
+			for (UserWithMethod user : new ArrayList<>(m_users.values())) {
 				String password = user.getPassword();
 				if (nConvertedPasswordCount == 0 && ((CustomBCryptPasswordEncoder) pe).looksLikeBCrypt(password))
 					break;	// all is fine, passwords are encoded
 
-				bufferSaveOrUpdateUser(username, password, user.getAuthorities(), user.isEnabled(), user.getMethod(), user.getEmail());
+				bufferSaveOrUpdateUser(user.getUsername(), password, user.getAuthorities(), user.isEnabled(), user.getMethod(), user.getEmail(), user.getSub());
 				nConvertedPasswordCount++;
 			}
 			
@@ -115,8 +126,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 				}
 		}
 		else
-			for (String username : m_users.keySet()) {
-				UserDetails user = m_users.get(username);
+			for (UserWithMethod user : m_users.values()) {
 				String password = user.getPassword();
 				if (new CustomBCryptPasswordEncoder().looksLikeBCrypt(password))
 					throw new Exception("It looks like the system was reverted back from encoded to plain password mode. The users.properties file contains BCrypt-encoded passwords which cannot be decoded. This can only be fixed by editing it manually.");
@@ -160,6 +170,7 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 	            	String email = null;
 	            	boolean enabled = true;
 	            	String method = "";
+	            	String sub = null;
 	            	List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
 	            	
 	            	// Compatibility mode
@@ -180,12 +191,14 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 	            			if (!authority.isEmpty())
 	            				authorities.add(new SimpleGrantedAuthority(authority));
 	            		}
-	            		if (tokens.length == 5 && !tokens[4].trim().isEmpty())
+	            		if (tokens.length >= 5 && !tokens[4].trim().isEmpty())
 	            			email = tokens[4].trim();
+	            		if (tokens.length >= 6 && !tokens[5].trim().isEmpty())
+	            			sub = tokens[5].trim();
 	            	}
 
-	            	UserWithMethod userWM = new UserWithMethod(username, password, authorities, enabled, method, email);
-	            	m_users.put(username, userWM);
+	            	UserWithMethod userWM = new UserWithMethod(username, password, authorities, enabled, method, email, sub);
+	            	m_users.put(userWM.getUserId(), userWM);
         			if (email == null) {
         				if (UserWithMethod.isEmailAddress(username))
         					usersForWhichToCopyEmailFromUsername.add(userWM);	// we will try and set it from the username (which appears to be an email address) once all users have been loaded
@@ -227,9 +240,9 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 
     public List<String> listUsers(boolean fExcludeAdministrators) throws IOException {
         List<String> result = new ArrayList<>();
-        for (String key : m_users.keySet()) {
-            if (!fExcludeAdministrators || !loadUserByUsername(key).getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN))) {
-                result.add(key);
+        for (UserWithMethod user : m_users.values()) {
+            if (!fExcludeAdministrators || !user.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_ADMIN))) {
+                result.add(user.getUsername());
             }
         }
         return result;
@@ -237,18 +250,25 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     
     /** Update a user in memory, without saving it immediately to disk */
     synchronized public void bufferSaveOrUpdateUser(String username, String password, Collection<? extends GrantedAuthority> grantedAuthorities, boolean enabled, String method, String email) throws IOException {
+    	bufferSaveOrUpdateUser(username, password, grantedAuthorities, enabled, method, email, null);
+    }
+
+    /** Update a user in memory, without saving it immediately to disk. A null/blank {@code sub} leaves the existing value untouched. */
+    synchronized public void bufferSaveOrUpdateUser(String username, String password, Collection<? extends GrantedAuthority> grantedAuthorities, boolean enabled, String method, String email, String sub) throws IOException {
+    	String normalizedSub = normalizeSub(sub);
+    	UserWithMethod user = findUser(username, method, normalizedSub);
+
         if (password == null && grantedAuthorities == null && enabled == false) {
         	m_users.remove(username);	// we actually want to delete it
         } else {
-        	UserWithMethod user = m_users.get(username);
         	password = (passwordEncoder instanceof CustomBCryptPasswordEncoder && !((CustomBCryptPasswordEncoder) passwordEncoder).looksLikeBCrypt(password)) ? passwordEncoder.encode(password) : password;
         	boolean fValidEmailPassed = email != null && !email.trim().isEmpty();
         	if (user == null) {	// it's a new one
         		if (fValidEmailPassed && getUserWithMethodByEmailAddress(email) != null)
         			throw new IOException("A user with this e-mail address already exists: " + email);
         		else {
-	        		user = new UserWithMethod(username, password, grantedAuthorities, enabled, method, email);
-	        		m_users.put(username, user);
+	        		user = new UserWithMethod(username, password, grantedAuthorities, enabled, method, email, normalizedSub);
+	        		m_users.put(user.getUserId(), user);
         		}
         	} else {
         		if (fValidEmailPassed && !email.trim().equalsIgnoreCase(user.getEmail()) && getUserWithMethodByEmailAddress(email) != null)
@@ -260,6 +280,8 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         		user.setEnabled(enabled);
         		user.setMethod(method);
         		user.setEmail(email == null ? user.getEmail() : email.trim());
+        		if (normalizedSub != null)
+        			user.setSub(normalizedSub);
         	}
 	    }
     }
@@ -271,9 +293,16 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 
     /** Update a user and save it to disk. If saving fails, the user is restored to its previous state in memory */
     synchronized public void saveOrUpdateUser(String username, String password, Collection<? extends GrantedAuthority> grantedAuthorities, boolean enabled, String method, String email) throws IOException {
-    	UserWithMethod previousState = copyOf(m_users.get(username));
+    	saveOrUpdateUser(username, password, grantedAuthorities, enabled, method, email, null);
+    }
+
+    /** Update a user and save it to disk. If saving fails, the user is restored to its previous state in memory. A null/blank {@code sub} leaves the existing value untouched. */
+    synchronized public void saveOrUpdateUser(String username, String password, Collection<? extends GrantedAuthority> grantedAuthorities, boolean enabled, String method, String email, String sub) throws IOException {
+    	String normalizedSub = normalizeSub(sub);
+    	UserWithMethod existing = findUser(username, method, normalizedSub);
+    	UserWithMethod previousState = copyOf(existing);
     	try {
-    		bufferSaveOrUpdateUser(username, password, grantedAuthorities, enabled, method, email);
+    		bufferSaveOrUpdateUser(username, password, grantedAuthorities, enabled, method, email, normalizedSub);
     		saveUsers();
     	}
     	catch (IOException | RuntimeException e) {
@@ -291,8 +320,14 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 	    saveOrUpdateUser(username, password, grantedAuthorities, enabled, method, email);
     }
 
+    /** Update a user and save it to disk. If saving fails, the user is restored to its previous state in memory */
+    public void saveOrUpdateUser(String username, String password, String[] stringAuthorities, boolean enabled, String method, String email, String oauthSub) throws IOException {
+    	List<GrantedAuthority> grantedAuthorities = Arrays.stream(stringAuthorities).map(authority -> new SimpleGrantedAuthority(authority)).collect(Collectors.toList());
+	    saveOrUpdateUser(username, password, grantedAuthorities, enabled, method, email, oauthSub);
+    }
+
     private static UserWithMethod copyOf(UserWithMethod user) {
-    	return user == null ? null : new UserWithMethod(user.getUsername(), user.getPassword(), user.getAuthorities(), user.isEnabled(), user.getMethod(), user.getEmail());
+    	return user == null ? null : new UserWithMethod(user.getUsername(), user.getPassword(), user.getAuthorities(), user.isEnabled(), user.getMethod(), user.getEmail(), user.getSub());
     }
 
     private boolean containsAdministrator() {
@@ -308,30 +343,32 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     		throw new IOException("Refusing to save a user list containing no administrator to " + m_resourceFile);
 
     	Properties props = new Properties();
-    	for (String username : m_users.keySet()) {
-    		UserWithMethod user = m_users.get(username);
+    	for (UserWithMethod user : m_users.values()) {
     		String sPropValue = user.getPassword();
             sPropValue += "," + (user.isEnabled() ? "enabled" : "disabled");
             sPropValue += "," + user.getMethod();
             sPropValue += "," + String.join(";", user.getAuthorities().stream().map(authority -> authority.toString()).collect(Collectors.toList()));
             sPropValue += (user.getEmail() == null ? "" : ("," + user.getEmail()));
-            props.put(username, sPropValue);
+            sPropValue += (user.getSub() == null ? "" : ("," + user.getSub()));
+            props.put(user.getUsername(), sPropValue);
     	}
     	
     	PropertiesFileUtils.storeAtomically(props, m_resourceFile, "", StandardCharsets.UTF_8);
     }
 
     synchronized public boolean deleteUser(String username) throws IOException {
-        if (!m_users.containsKey(username)) {
+    	UserWithMethod user = findByUsername(username);
+        if (user == null) {
             return false;
         }
 
-        UserWithMethod removedUser = m_users.remove(username);
+        String userId = user.getUserId();
+        UserWithMethod removedUser = m_users.remove(userId);
         try {
         	saveUsers();
         }
         catch (IOException ioe) {
-        	m_users.put(username, removedUser);
+        	m_users.put(userId, removedUser);
         	throw ioe;
         }
         return true;
@@ -526,6 +563,43 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         return result;
     }
 
+    private static String normalizeSub(String sub) {
+    	return sub == null || sub.isBlank() ? null : sub.trim();
+    }
+
+    /** Finds a user by its username (the map itself is keyed by userId). */
+    private UserWithMethod findByUsername(String username) {
+    	UserWithMethod direct = m_users.get(username);
+    	if (direct != null && username.equals(direct.getUsername()))
+    		return direct;
+    	for (UserWithMethod candidate : m_users.values())
+    		if (username.equals(candidate.getUsername()))
+    			return candidate;
+    	return null;
+    }
+
+    /** Resolves the user targeted by an update: preferably via its userId, then by username and method. */
+    private UserWithMethod findUser(String username, String method, String sub) {
+    	if (sub != null) {
+    		UserWithMethod user = m_users.get(UserWithMethod.buildUserId(username, method, sub));
+    		if (user != null)
+    			return user;
+    	}
+
+    	UserWithMethod direct = m_users.get(username);
+    	if (direct != null && (method == null || method.equals(direct.getMethod())))
+    		return direct;
+
+    	UserWithMethod match = null;
+    	for (UserWithMethod candidate : m_users.values())
+    		if (username.equals(candidate.getUsername()) && (method == null || method.equals(candidate.getMethod()))) {
+    			if (match != null)
+    				throw new IllegalArgumentException("Several users found with username '" + username + "' and method '" + method + "'");
+    			match = candidate;
+    		}
+    	return match;
+    }
+
     public UserWithMethod getUserWithMethodByEmailAddress(String email) throws IllegalArgumentException {
     	if (email != null)
     		email = email.trim().toLowerCase();
@@ -540,4 +614,21 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
 
     	return users.isEmpty() ? null : users.get(0);
     }
+
+    public UserWithMethod getUserWithMethodByMethodAndSubject(String method, String sub) throws IllegalArgumentException {
+        if (method == null || method.isBlank() || sub == null || sub.isBlank())
+            return null;
+
+        List<UserWithMethod> users = new ArrayList<>();
+        for (UserWithMethod user : m_users.values()) {
+            if (method.equalsIgnoreCase(user.getMethod()) && sub.equals(user.getSub()))
+                users.add(user);
+        }
+        if (users.size() > 1)
+            throw new IllegalArgumentException(users.size() + " users found with method " + method + " and subject: " + sub);
+
+
+        return users.isEmpty() ? null : users.get(0);
+    }
+
 }
