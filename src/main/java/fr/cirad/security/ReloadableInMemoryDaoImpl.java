@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.regex.Pattern;
@@ -264,6 +265,8 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         	password = (passwordEncoder instanceof CustomBCryptPasswordEncoder && !((CustomBCryptPasswordEncoder) passwordEncoder).looksLikeBCrypt(password)) ? passwordEncoder.encode(password) : password;
         	boolean fValidEmailPassed = email != null && !email.trim().isEmpty();
         	if (user == null) {	// it's a new one
+        		if (findByUsername(username) != null)
+        			throw new IOException("A user with this username already exists: " + username);
         		if (fValidEmailPassed && getUserWithMethodByEmailAddress(email) != null)
         			throw new IOException("A user with this e-mail address already exists: " + email);
         		else {
@@ -306,10 +309,14 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
     		saveUsers();
     	}
     	catch (IOException | RuntimeException e) {
-    		if (previousState == null)
-    			m_users.remove(username);
+    		String userId = previousState != null ? previousState.getUserId() : UserWithMethod.buildUserId(username, method, normalizedSub);
+    		UserWithMethod insertedUser = m_users.get(userId);
+    		if (previousState == null) {
+    			if (insertedUser != null && username.equals(insertedUser.getUsername()) && Objects.equals(method, insertedUser.getMethod()) && Objects.equals(normalizedSub, insertedUser.getSub()))
+    				m_users.remove(userId);
+    		}
     		else
-    			m_users.put(username, previousState);
+    			m_users.put(userId, previousState);
     		throw e;
     	}
     }
