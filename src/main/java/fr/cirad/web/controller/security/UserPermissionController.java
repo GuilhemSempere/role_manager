@@ -185,6 +185,7 @@ public class UserPermissionController
 			else
 			{
 				HashSet<String> modules = new HashSet<>(userDao.getSupervisedModules(ud.getAuthorities()));
+				modules.addAll(userDao.getBaseReaderModules(ud.getAuthorities()));
 				modules.addAll(userDao.getManagedEntitiesByModuleAndType(ud.getAuthorities()).keySet());
 				modules.addAll(userDao.getCustomRolesByModuleAndEntityType(ud.getAuthorities()).keySet());
 				sAuthoritySummary = modules.stream().collect(Collectors.joining(", "));
@@ -275,6 +276,10 @@ public class UserPermissionController
 	        	String sSupervisorRole = sModule + ROLE_STRING_SEPARATOR + IRoleDefinition.ROLE_DB_SUPERVISOR;
 	        	if (request.getParameter(urlEncode(sSupervisorRole)) != null)
 	        		grantedAuthorityLabels.add(sSupervisorRole);
+
+	        	String sBaseReaderRole = sModule + ROLE_STRING_SEPARATOR + IRoleDefinition.ROLE_DB_READER;
+	        	if (request.getParameter(urlEncode(sBaseReaderRole)) != null)
+	        		grantedAuthorityLabels.add(sBaseReaderRole);
 			}
 	        
 		    for (String sEntityType : rolesByLevel1Type.keySet()) {
@@ -324,6 +329,8 @@ public class UserPermissionController
 			if (!fSubmittedByAdmin) {
 				for (String supervisedModule : userDao.getSupervisedModules(user.getAuthorities()))
 					grantedAuthorityLabels.add(supervisedModule + ROLE_STRING_SEPARATOR + IRoleDefinition.ROLE_DB_SUPERVISOR);
+				for (String baseReaderModule : userDao.getBaseReaderModules(user.getAuthorities()))
+					grantedAuthorityLabels.add(baseReaderModule + ROLE_STRING_SEPARATOR + IRoleDefinition.ROLE_DB_READER);
 				if (user.getAuthorities().contains(new SimpleGrantedAuthority(IRoleDefinition.ROLE_DB_SUPERVISOR)))
 					grantedAuthorityLabels.add(IRoleDefinition.ROLE_DB_SUPERVISOR);
 			}

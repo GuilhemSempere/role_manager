@@ -22,6 +22,7 @@ public interface IRoleDefinition {
 	static final public String ROLE_ANONYMOUS = "ROLE_ANONYMOUS";
 	static final public String ROLE_DB_CREATOR = "ROLE_DB_CREATOR";
 	static final public String ROLE_DB_SUPERVISOR = "SUPERVISOR";
+	static final public String ROLE_DB_READER = "BASE_READER";
     @Deprecated static final public String CREATOR_ROLE_SUFFIX = "CREATOR"; // this is now deprecated in favor of ROLE_SUPERVISOR
 	static final public String TOPLEVEL_ROLE_PREFIX = "USER";
 	static final public String ENTITY_MANAGER_ROLE = "MANAGER";

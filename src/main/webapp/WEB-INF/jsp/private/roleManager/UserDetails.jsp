@@ -23,6 +23,7 @@
 <c:set var="loggedUserAuthorities" value="${userDao.getLoggedUserAuthorities()}" />
 <c:set var='adminRole' value='<%= IRoleDefinition.ROLE_ADMIN %>' />
 <c:set var='supervisorRole' value='<%= IRoleDefinition.ROLE_DB_SUPERVISOR %>' />
+<c:set var='baseReaderRole' value='<%= IRoleDefinition.ROLE_DB_READER %>' />
 <c:set var='dbCreatorRole' value='<%= IRoleDefinition.ROLE_DB_CREATOR %>' />
 <c:set var='roleSep' value='<%= UserPermissionController.ROLE_STRING_SEPARATOR %>' />
 <c:set var='trimmedUsername' value='${fn:trim(user.username)}' />
@@ -196,6 +197,7 @@
 								<div class="databaseListModules">
 									<c:forEach var="moduleName" items="${publicModules}">
 										<c:set var="isDbSupervisor" value="false" /><c:forEach var="authority" items="${user.authorities}"><c:if test="${authority == moduleName.concat(roleSep).concat(supervisorRole)}"><c:set var="isDbSupervisor" value="true" /></c:if></c:forEach>
+										<c:set var="isBaseReader" value="false" /><c:forEach var="authority" items="${user.authorities}"><c:if test="${authority == moduleName.concat(roleSep).concat(baseReaderRole)}"><c:set var="isBaseReader" value="true" /></c:if></c:forEach>
 										<div class="databaseModule">
 											<div class="databaseColumn">
 												<div class="databaseCell">
@@ -205,6 +207,8 @@
 													<c:if test="${isLoggedUserAdmin}">
 														<input type="checkbox" onclick='$("a.${urlEncoder.urlEncode(moduleName)}_PermissionLink").toggle();' name='${urlEncoder.urlEncode(moduleName.concat(roleSep).concat(supervisorRole))}' ${isDbSupervisor ? " checked" : ""}>
 														<span class="databaseSpan">DB Supervisor</span>
+														<input type="checkbox" name='${urlEncoder.urlEncode(moduleName.concat(roleSep).concat(baseReaderRole))}' ${isBaseReader ? " checked" : ""}>
+														<span class="databaseSpan">DB Reader</span>
 													</c:if>
 												</div>
 												<c:forEach var="level1Type" items="${rolesByLevel1Type}">
@@ -242,6 +246,7 @@
 								<div class="databaseListModules">
 									<c:forEach var="moduleName" items="${privateModules}">
 										<c:set var="isDbSupervisor" value="false" /><c:forEach var="authority" items="${user.authorities}"><c:if test="${authority == moduleName.concat(roleSep).concat(supervisorRole)}"><c:set var="isDbSupervisor" value="true" /></c:if></c:forEach>
+										<c:set var="isBaseReader" value="false" /><c:forEach var="authority" items="${user.authorities}"><c:if test="${authority == moduleName.concat(roleSep).concat(baseReaderRole)}"><c:set var="isBaseReader" value="true" /></c:if></c:forEach>
 										<div class="databaseModule">
 											<div class="databaseColumn">
 												<div class="databaseCell">
@@ -251,6 +256,8 @@
 													<c:if test="${isLoggedUserAdmin}">
 														<input type="checkbox" onclick='$("a.${urlEncoder.urlEncode(moduleName)}_PermissionLink").toggle();' name='${urlEncoder.urlEncode(moduleName.concat(roleSep).concat(supervisorRole))}' ${isDbSupervisor ? " checked" : ""}>
 														<span class="databaseSpan">DB Supervisor</span>
+														<input type="checkbox" name='${urlEncoder.urlEncode(moduleName.concat(roleSep).concat(baseReaderRole))}' ${isBaseReader ? " checked" : ""}>
+														<span class="databaseSpan">DB Reader</span>
 													</c:if>
 												</div>
 												<c:forEach var="level1Type" items="${rolesByLevel1Type}">

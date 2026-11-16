@@ -418,6 +418,19 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         return result;
     }
 
+    public HashSet<String /*module*/> getBaseReaderModules(Collection<? extends GrantedAuthority> authorities) {
+        HashSet<String>result = new HashSet<>();
+        if (authorities != null) {
+            Collection<String> modules = moduleManager.getModules(null);
+            for (GrantedAuthority auth : authorities) {
+                String[] splitPermission = auth.getAuthority().split(Pattern.quote(UserPermissionController.ROLE_STRING_SEPARATOR));
+                if (splitPermission.length == 2 && modules.contains(splitPermission[0]) && splitPermission[1].equals(IRoleDefinition.ROLE_DB_READER))
+                    result.add(splitPermission[0]);
+            }
+        }
+        return result;
+    }
+
     public Map<String /*module*/, Map<String /*entity-type*/, Collection<Comparable> /*entity-IDs*/>> getManagedEntitiesByModuleAndType(Collection<? extends GrantedAuthority> authorities) {
         Map<String, Map<String, Collection<Comparable>>> result = new HashMap<>();
         if (authorities != null) {
