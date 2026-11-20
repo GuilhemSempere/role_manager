@@ -381,6 +381,19 @@ public class ReloadableInMemoryDaoImpl implements UserDetailsService {
         return true;
     }
 
+    synchronized public boolean deleteUser(UserWithMethod user) throws IOException {
+        String userId = user.getUserId();
+        UserWithMethod removedUser = m_users.remove(userId);
+        try {
+            saveUsers();
+        }
+        catch (IOException ioe) {
+            m_users.put(userId, removedUser);
+            throw ioe;
+        }
+        return true;
+    }
+
     public boolean canLoggedUserWriteToSystem() {
         Collection<? extends GrantedAuthority> loggedUserAuthorities = getLoggedUserAuthorities();
         for (GrantedAuthority auth : loggedUserAuthorities) {
