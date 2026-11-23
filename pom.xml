@@ -54,13 +54,13 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-webmvc</artifactId>
-            <version>5.3.25</version>
+            <version>5.3.39</version>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-web</artifactId>
-            <version>5.6.10</version>
+            <version>5.8.16</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.springframework</groupId>
@@ -79,7 +79,7 @@
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-config</artifactId>
-            <version>5.6.10</version>
+            <version>5.8.16</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.springframework</groupId>
@@ -88,12 +88,6 @@
             </exclusions>
         </dependency>
         
-		<dependency>
-			<groupId>commons-lang</groupId>
-			<artifactId>commons-lang</artifactId>
-			<version>2.6</version>
-		</dependency>
-		
 		<dependency>
 		  <groupId>commons-collections</groupId>
 		  <artifactId>commons-collections</artifactId>
